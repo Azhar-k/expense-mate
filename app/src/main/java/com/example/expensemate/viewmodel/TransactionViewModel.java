@@ -10,6 +10,7 @@ import com.example.expensemate.data.Transaction;
 import com.example.expensemate.data.TransactionDao;
 import com.example.expensemate.data.TotalExpense;
 import com.example.expensemate.data.TotalExpenseDao;
+import com.example.expensemate.data.CategorySum;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -120,6 +121,10 @@ public class TransactionViewModel extends AndroidViewModel {
 
     public LiveData<Double> getTotalExpense() {
         return totalExpense;
+    }
+
+    public LiveData<List<CategorySum>> getCategorySums() {
+        return transactionDao.getCategorySums();
     }
 
     @Override

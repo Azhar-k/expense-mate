@@ -35,4 +35,7 @@ public interface TransactionDao {
     void updateTransaction(long id, double amount, String description, Date date, String accountNumber,
                          String accountType, String transactionType, String receiverName,
                          String smsBody, String smsSender, String category);
+
+    @Query("SELECT category, SUM(amount) as total FROM transactions WHERE transactionType = 'DEBIT' GROUP BY category ORDER BY total DESC")
+    LiveData<List<CategorySum>> getCategorySums();
 } 
