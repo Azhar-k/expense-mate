@@ -10,7 +10,7 @@
     <color name="card_background">#FFFFFF</color>
     <color name="divider">#BDBDBD</color>
     <color name="debit_color">#FF0000</color>
-    <color name="credit_color">#00FF00</color>
+    <color name="credit_color">#228B22</color>
     <color name="error">#F44336</color>
     
     <!-- System colors -->

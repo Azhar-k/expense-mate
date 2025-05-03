@@ -19,6 +19,8 @@ public class ExpenseFragment extends Fragment {
     private TransactionViewModel transactionViewModel;
     private TextView totalExpenseText;
     private TextView totalIncomeText;
+    private TextView totalBalanceText;
+    private final NumberFormat formatter = NumberFormat.getCurrencyInstance(new Locale("en", "IN"));
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -26,27 +28,45 @@ public class ExpenseFragment extends Fragment {
         
         totalExpenseText = root.findViewById(R.id.total_expense);
         totalIncomeText = root.findViewById(R.id.total_income);
+        totalBalanceText = root.findViewById(R.id.total_balance);
         
         transactionViewModel = new ViewModelProvider(requireActivity()).get(TransactionViewModel.class);
         
         // Observe total expense
         transactionViewModel.getTotalExpense().observe(getViewLifecycleOwner(), total -> {
             Log.d(TAG, "Total expense changed: " + total);
-            NumberFormat formatter = NumberFormat.getCurrencyInstance(new Locale("en", "IN"));
             String formattedAmount = formatter.format(total);
             Log.d(TAG, "Formatted amount: " + formattedAmount);
             totalExpenseText.setText(formattedAmount);
+            updateBalance();
         });
 
         // Observe total income
         transactionViewModel.getTotalIncome().observe(getViewLifecycleOwner(), total -> {
             Log.d(TAG, "Total income changed: " + total);
-            NumberFormat formatter = NumberFormat.getCurrencyInstance(new Locale("en", "IN"));
             String formattedAmount = formatter.format(total);
             Log.d(TAG, "Formatted amount: " + formattedAmount);
             totalIncomeText.setText(formattedAmount);
+            updateBalance();
         });
 
         return root;
+    }
+
+    private void updateBalance() {
+        Double income = transactionViewModel.getTotalIncome().getValue();
+        Double expense = transactionViewModel.getTotalExpense().getValue();
+        
+        if (income != null && expense != null) {
+            double balance = income - expense;
+            String formattedBalance = formatter.format(balance);
+            
+            // Set color based on whether balance is positive or negative
+            int colorResId = balance >= 0 ? R.color.credit_color : R.color.debit_color;
+            totalBalanceText.setTextColor(requireContext().getColor(colorResId));
+            
+            totalBalanceText.setText(formattedBalance);
+            Log.d(TAG, "Balance updated: " + formattedBalance);
+        }
     }
 } 

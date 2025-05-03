@@ -3,7 +3,7 @@
     <item
         android:id="@+id/navigation_expense"
         android:icon="@drawable/ic_money"
-        android:title="Expenses" />
+        android:title="Home" />
     <item
         android:id="@+id/navigation_transactions"
         android:icon="@drawable/ic_transactions"
