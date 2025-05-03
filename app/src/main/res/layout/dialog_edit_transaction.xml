@@ -69,40 +69,6 @@
     </com.google.android.material.textfield.TextInputLayout>
 
     <com.google.android.material.textfield.TextInputLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="20dp"
-        android:hint="Account Number"
-        style="@style/CustomTextInputLayout">
-
-        <com.google.android.material.textfield.TextInputEditText
-            android:id="@+id/etAccountNumber"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:inputType="text"
-            android:textColor="@color/black"
-            android:textSize="18sp"
-            android:padding="16dp" />
-    </com.google.android.material.textfield.TextInputLayout>
-
-    <com.google.android.material.textfield.TextInputLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="20dp"
-        android:hint="Account Type"
-        style="@style/CustomTextInputLayout">
-
-        <com.google.android.material.textfield.TextInputEditText
-            android:id="@+id/etAccountType"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:inputType="text"
-            android:textColor="@color/black"
-            android:textSize="18sp"
-            android:padding="16dp" />
-    </com.google.android.material.textfield.TextInputLayout>
-
-    <com.google.android.material.textfield.TextInputLayout
         android:id="@+id/tilCategory"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"

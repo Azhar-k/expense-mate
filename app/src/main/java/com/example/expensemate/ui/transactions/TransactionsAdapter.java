@@ -116,10 +116,8 @@ public class TransactionsAdapter extends ListAdapter<Transaction, TransactionsAd
                     String amountStr = dialogBinding.etAmount.getText().toString();
                     String description = dialogBinding.etDescription.getText().toString();
                     String receiverName = dialogBinding.etReceiverName.getText().toString();
-                    String accountNumber = dialogBinding.etAccountNumber.getText().toString();
-                    String accountType = dialogBinding.etAccountType.getText().toString();
-                    String transactionType = dialogBinding.etTransactionType.getText().toString();
                     String category = dialogBinding.etCategory.getText().toString();
+                    String transactionType = dialogBinding.etTransactionType.getText().toString();
 
                     if (amountStr.isEmpty()) {
                         Toast.makeText(context, "Please enter amount", Toast.LENGTH_SHORT).show();
@@ -130,8 +128,8 @@ public class TransactionsAdapter extends ListAdapter<Transaction, TransactionsAd
                             Double.parseDouble(amountStr),
                             description,
                             new Date(),
-                            accountNumber,
-                            accountType,
+                            "",
+                            "",
                             transactionType,
                             receiverName,
                             "", // Empty SMS body for manual transactions
@@ -175,12 +173,13 @@ public class TransactionsAdapter extends ListAdapter<Transaction, TransactionsAd
 
         public void bind(Transaction transaction) {
             binding.tvAmount.setText(String.format("₹%.2f", transaction.getAmount()));
-            binding.tvDescription.setText(transaction.getDescription());
-            binding.tvDate.setText(dateFormat.format(transaction.getDate()));
-            binding.tvReceiver.setText(transaction.getReceiverName());
-            binding.tvAccountType.setText(transaction.getAccountType());
-            binding.tvAccountNumber.setText(transaction.getAccountNumber());
-            binding.tvCategory.setText("Category: " + transaction.getCategory());
+            binding.tvAmount.setTextColor(context.getColor(
+                    transaction.getTransactionType().equals("DEBIT") ? R.color.debit_color : R.color.credit_color));
+            binding.tvDate.setText(String.format("Date: %s", dateFormat.format(transaction.getDate())));
+            binding.tvCategory.setText(String.format("Category: %s", transaction.getCategory()));
+            binding.tvDescription.setText(String.format("Description: %s", transaction.getDescription()));
+            binding.tvTransactionType.setText(String.format("Type: %s", transaction.getTransactionType()));
+            binding.tvReceiver.setText(String.format("Receiver: %s", transaction.getReceiverName()));
         }
 
         private void showEditDialog(Transaction transaction) {
@@ -192,8 +191,8 @@ public class TransactionsAdapter extends ListAdapter<Transaction, TransactionsAd
             dialogBinding.etAmount.setText(String.valueOf(transaction.getAmount()));
             dialogBinding.etDescription.setText(transaction.getDescription());
             dialogBinding.etReceiverName.setText(transaction.getReceiverName());
-            dialogBinding.etAccountNumber.setText(transaction.getAccountNumber());
-            dialogBinding.etAccountType.setText(transaction.getAccountType());
+            dialogBinding.etCategory.setText(transaction.getCategory());
+            dialogBinding.etTransactionType.setText(transaction.getTransactionType());
 
             // Set up transaction type dropdown
             String[] transactionTypes = {"DEBIT", "CREDIT"};
@@ -256,8 +255,6 @@ public class TransactionsAdapter extends ListAdapter<Transaction, TransactionsAd
                         String amountStr = dialogBinding.etAmount.getText().toString();
                         String description = dialogBinding.etDescription.getText().toString();
                         String receiverName = dialogBinding.etReceiverName.getText().toString();
-                        String accountNumber = dialogBinding.etAccountNumber.getText().toString();
-                        String accountType = dialogBinding.etAccountType.getText().toString();
                         String transactionType = dialogBinding.etTransactionType.getText().toString();
                         String category = dialogBinding.etCategory.getText().toString();
 
@@ -270,8 +267,8 @@ public class TransactionsAdapter extends ListAdapter<Transaction, TransactionsAd
                                 Double.parseDouble(amountStr),
                                 description,
                                 transaction.getDate(), // Keep the original date
-                                accountNumber,
-                                accountType,
+                                "",
+                                "",
                                 transactionType,
                                 receiverName,
                                 transaction.getSmsBody(), // Keep the original SMS body
@@ -315,10 +312,9 @@ public class TransactionsAdapter extends ListAdapter<Transaction, TransactionsAd
             return oldItem.getAmount() == newItem.getAmount() &&
                    oldItem.getDescription().equals(newItem.getDescription()) &&
                    oldItem.getDate().equals(newItem.getDate()) &&
-                   oldItem.getAccountNumber().equals(newItem.getAccountNumber()) &&
-                   oldItem.getAccountType().equals(newItem.getAccountType()) &&
-                   oldItem.getTransactionType().equals(newItem.getTransactionType()) &&
-                   oldItem.getReceiverName().equals(newItem.getReceiverName());
+                   oldItem.getReceiverName().equals(newItem.getReceiverName()) &&
+                   oldItem.getCategory().equals(newItem.getCategory()) &&
+                   oldItem.getTransactionType().equals(newItem.getTransactionType());
         }
     }
 } 
