@@ -37,16 +37,7 @@ public class TransactionViewModel extends AndroidViewModel {
                 TotalExpense existing = totalExpenseDao.getTotalExpense().getValue();
                 if (existing == null) {
                     Log.d(TAG, "Initializing total expense");
-                    // Calculate total from existing transactions
-                    List<Transaction> transactions = transactionDao.getAllTransactionsSync();
-                    double total = 0.0;
-                    for (Transaction t : transactions) {
-                        if (t.getTransactionType().equals("DEBIT")) {
-                            total += t.getAmount();
-                        }
-                    }
-                    Log.d(TAG, "Calculated total from existing transactions: " + total);
-                    totalExpenseDao.insert(new TotalExpense(total));
+                    totalExpenseDao.insert(new TotalExpense(0.0));
                 }
             } catch (Exception e) {
                 Log.e(TAG, "Error initializing total expense", e);
