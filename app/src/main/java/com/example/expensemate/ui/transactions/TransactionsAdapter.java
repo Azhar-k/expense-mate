@@ -53,15 +53,27 @@ public class TransactionsAdapter extends ListAdapter<Transaction, TransactionsAd
                 LayoutInflater.from(context)
         );
 
-        // Set up transaction type dropdown
+        // Set up transaction types dropdown
         String[] transactionTypes = {"DEBIT", "CREDIT"};
-        ArrayAdapter<String> adapter = new ArrayAdapter<>(
+        ArrayAdapter<String> transactionTypeAdapter = new ArrayAdapter<>(
                 context,
                 android.R.layout.simple_dropdown_item_1line,
                 transactionTypes
         );
-        dialogBinding.etTransactionType.setAdapter(adapter);
+        dialogBinding.etTransactionType.setAdapter(transactionTypeAdapter);
         dialogBinding.etTransactionType.setText("DEBIT", false); // Default to DEBIT
+
+        // Set up categories dropdown
+        String[] categories = {"Food", "Household", "Movies", "Fuel", "Home Food", 
+                             "Home Household", "Family", "Home Entertainment", 
+                             "Vehicle", "Transport", "Entertainment", "Others"};
+        ArrayAdapter<String> categoryAdapter = new ArrayAdapter<>(
+                context,
+                android.R.layout.simple_dropdown_item_1line,
+                categories
+        );
+        dialogBinding.etCategory.setAdapter(categoryAdapter);
+        dialogBinding.etCategory.setText("Others", false); // Default to Others
 
         AlertDialog dialog = new AlertDialog.Builder(context, 
                 com.google.android.material.R.style.Theme_MaterialComponents_Light_Dialog)
@@ -85,6 +97,7 @@ public class TransactionsAdapter extends ListAdapter<Transaction, TransactionsAd
                     String accountNumber = dialogBinding.etAccountNumber.getText().toString();
                     String accountType = dialogBinding.etAccountType.getText().toString();
                     String transactionType = dialogBinding.etTransactionType.getText().toString();
+                    String category = dialogBinding.etCategory.getText().toString();
 
                     if (amountStr.isEmpty()) {
                         Toast.makeText(context, "Please enter amount", Toast.LENGTH_SHORT).show();
@@ -102,6 +115,7 @@ public class TransactionsAdapter extends ListAdapter<Transaction, TransactionsAd
                             "", // Empty SMS body for manual transactions
                             ""  // Empty SMS sender for manual transactions
                     );
+                    newTransaction.setCategory(category);
                     viewModel.insertTransaction(newTransaction);
                     Toast.makeText(context, "Transaction added", Toast.LENGTH_SHORT).show();
                     dialog.dismiss();
@@ -144,6 +158,7 @@ public class TransactionsAdapter extends ListAdapter<Transaction, TransactionsAd
             binding.tvReceiver.setText(transaction.getReceiverName());
             binding.tvAccountType.setText(transaction.getAccountType());
             binding.tvAccountNumber.setText(transaction.getAccountNumber());
+            binding.tvCategory.setText("Category: " + transaction.getCategory());
         }
 
         private void showEditDialog(Transaction transaction) {
@@ -160,19 +175,31 @@ public class TransactionsAdapter extends ListAdapter<Transaction, TransactionsAd
 
             // Set up transaction type dropdown
             String[] transactionTypes = {"DEBIT", "CREDIT"};
-            ArrayAdapter<String> adapter = new ArrayAdapter<>(
+            ArrayAdapter<String> transactionTypeAdapter = new ArrayAdapter<>(
                     context,
                     android.R.layout.simple_dropdown_item_1line,
                     transactionTypes
             );
-            dialogBinding.etTransactionType.setAdapter(adapter);
+            dialogBinding.etTransactionType.setAdapter(transactionTypeAdapter);
             dialogBinding.etTransactionType.setText(transaction.getTransactionType(), false);
+
+            // Set up categories dropdown
+            String[] categories = {"Food", "Household", "Movies", "Fuel", "Home Food", 
+                                 "Home Household", "Family", "Home Entertainment", 
+                                 "Vehicle", "Transport", "Entertainment", "Others"};
+            ArrayAdapter<String> categoryAdapter = new ArrayAdapter<>(
+                    context,
+                    android.R.layout.simple_dropdown_item_1line,
+                    categories
+            );
+            dialogBinding.etCategory.setAdapter(categoryAdapter);
+            dialogBinding.etCategory.setText(transaction.getCategory(), false);
 
             AlertDialog dialog = new AlertDialog.Builder(context, 
                     com.google.android.material.R.style.Theme_MaterialComponents_Light_Dialog)
                     .setView(dialogBinding.getRoot())
-                    .setPositiveButton("Save", null)  // Set to null initially
-                    .setNegativeButton("Cancel", null)  // Set to null initially
+                    .setPositiveButton("Save", null)
+                    .setNegativeButton("Cancel", null)
                     .create();
 
             dialog.setOnShowListener(dialogInterface -> {
@@ -190,6 +217,7 @@ public class TransactionsAdapter extends ListAdapter<Transaction, TransactionsAd
                         String accountNumber = dialogBinding.etAccountNumber.getText().toString();
                         String accountType = dialogBinding.etAccountType.getText().toString();
                         String transactionType = dialogBinding.etTransactionType.getText().toString();
+                        String category = dialogBinding.etCategory.getText().toString();
 
                         if (amountStr.isEmpty()) {
                             Toast.makeText(context, "Please enter amount", Toast.LENGTH_SHORT).show();
@@ -208,6 +236,7 @@ public class TransactionsAdapter extends ListAdapter<Transaction, TransactionsAd
                                 transaction.getSmsSender() // Keep the original SMS sender
                         );
                         updatedTransaction.setId(transaction.getId());
+                        updatedTransaction.setCategory(category);
                         viewModel.updateTransaction(transaction, updatedTransaction);
                         Toast.makeText(context, "Transaction updated", Toast.LENGTH_SHORT).show();
                         dialog.dismiss();

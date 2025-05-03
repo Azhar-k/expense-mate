@@ -8,7 +8,7 @@ import androidx.room.TypeConverters;
 import androidx.room.migration.Migration;
 import androidx.sqlite.db.SupportSQLiteDatabase;
 
-@Database(entities = {Transaction.class, TotalExpense.class}, version = 2, exportSchema = false)
+@Database(entities = {Transaction.class, TotalExpense.class}, version = 3, exportSchema = false)
 @TypeConverters(Converters.class)
 public abstract class AppDatabase extends RoomDatabase {
     private static volatile AppDatabase INSTANCE;
@@ -29,6 +29,15 @@ public abstract class AppDatabase extends RoomDatabase {
         }
     };
 
+    // Migration from version 2 to 3
+    private static final Migration MIGRATION_2_3 = new Migration(2, 3) {
+        @Override
+        public void migrate(SupportSQLiteDatabase database) {
+            // Add category column with default value 'Others' but allow NULL
+            database.execSQL("ALTER TABLE transactions ADD COLUMN category TEXT DEFAULT 'Others'");
+        }
+    };
+
     public abstract TransactionDao transactionDao();
     public abstract TotalExpenseDao totalExpenseDao();
 
@@ -38,7 +47,8 @@ public abstract class AppDatabase extends RoomDatabase {
                 if (INSTANCE == null) {
                     INSTANCE = Room.databaseBuilder(context.getApplicationContext(),
                             AppDatabase.class, "expense_mate_database")
-                            .addMigrations(MIGRATION_1_2)
+                            .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+                            .fallbackToDestructiveMigration()
                             .build();
                 }
             }

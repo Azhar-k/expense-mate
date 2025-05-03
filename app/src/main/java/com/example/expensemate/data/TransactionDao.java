@@ -31,8 +31,8 @@ public interface TransactionDao {
 
     @Query("UPDATE transactions SET amount = :amount, description = :description, date = :date, " +
            "accountNumber = :accountNumber, accountType = :accountType, transactionType = :transactionType, " +
-           "receiverName = :receiverName, smsBody = :smsBody, smsSender = :smsSender WHERE id = :id")
+           "receiverName = :receiverName, smsBody = :smsBody, smsSender = :smsSender, category = :category WHERE id = :id")
     void updateTransaction(long id, double amount, String description, Date date, String accountNumber,
                          String accountType, String transactionType, String receiverName,
-                         String smsBody, String smsSender);
+                         String smsBody, String smsSender, String category);
 } 

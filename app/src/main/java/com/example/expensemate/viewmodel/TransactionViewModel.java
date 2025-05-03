@@ -109,7 +109,8 @@ public class TransactionViewModel extends AndroidViewModel {
                     newTransaction.getTransactionType(),
                     newTransaction.getReceiverName(),
                     newTransaction.getSmsBody(),
-                    newTransaction.getSmsSender()
+                    newTransaction.getSmsSender(),
+                    newTransaction.getCategory()
                 );
             } catch (Exception e) {
                 Log.e(TAG, "Error updating transaction", e);

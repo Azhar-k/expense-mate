@@ -17,8 +17,10 @@ public class Transaction {
     private String receiverName;
     private String smsBody;
     private String smsSender;
+    private String category; // New field for transaction category
 
     public Transaction() {
+        this.category = "Others"; // Default category
     }
 
     public Transaction(double amount, String description, Date date, String accountNumber,
@@ -33,6 +35,7 @@ public class Transaction {
         this.receiverName = receiverName;
         this.smsBody = smsBody;
         this.smsSender = smsSender;
+        this.category = "Others"; // Default category
     }
 
     // Getters and Setters
@@ -114,5 +117,13 @@ public class Transaction {
 
     public void setSmsSender(String smsSender) {
         this.smsSender = smsSender;
+    }
+
+    public String getCategory() {
+        return category;
+    }
+
+    public void setCategory(String category) {
+        this.category = category;
     }
 } 
