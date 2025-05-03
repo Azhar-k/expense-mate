@@ -3,6 +3,8 @@ package com.example.expensemate.ui.transactions;
 import android.app.AlertDialog;
 import android.view.LayoutInflater;
 import android.view.ViewGroup;
+import android.widget.ArrayAdapter;
+import android.widget.Button;
 import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.DiffUtil;
@@ -86,33 +88,54 @@ public class TransactionsAdapter extends ListAdapter<Transaction, TransactionsAd
             dialogBinding.etReceiverName.setText(transaction.getReceiverName());
             dialogBinding.etAccountNumber.setText(transaction.getAccountNumber());
             dialogBinding.etAccountType.setText(transaction.getAccountType());
-            dialogBinding.etTransactionType.setText(transaction.getTransactionType());
 
-            new AlertDialog.Builder(itemView.getContext())
-                    .setTitle("Edit Transaction")
+            // Set up transaction type dropdown
+            String[] transactionTypes = {"DEBIT", "CREDIT"};
+            ArrayAdapter<String> adapter = new ArrayAdapter<>(
+                    itemView.getContext(),
+                    android.R.layout.simple_dropdown_item_1line,
+                    transactionTypes
+            );
+            dialogBinding.etTransactionType.setAdapter(adapter);
+            dialogBinding.etTransactionType.setText(transaction.getTransactionType(), false);
+
+            AlertDialog dialog = new AlertDialog.Builder(itemView.getContext(), com.google.android.material.R.style.Theme_MaterialComponents_Light_Dialog)
                     .setView(dialogBinding.getRoot())
-                    .setPositiveButton("Save", (dialog, which) -> {
-                        try {
-                            Transaction updatedTransaction = new Transaction(
-                                    Double.parseDouble(dialogBinding.etAmount.getText().toString()),
-                                    dialogBinding.etDescription.getText().toString(),
-                                    transaction.getDate(), // Keep the original date
-                                    dialogBinding.etAccountNumber.getText().toString(),
-                                    dialogBinding.etAccountType.getText().toString(),
-                                    dialogBinding.etTransactionType.getText().toString(),
-                                    dialogBinding.etReceiverName.getText().toString(),
-                                    transaction.getSmsBody(), // Keep the original SMS body
-                                    transaction.getSmsSender() // Keep the original SMS sender
-                            );
-                            updatedTransaction.setId(transaction.getId());
-                            viewModel.updateTransaction(transaction, updatedTransaction);
-                            Toast.makeText(itemView.getContext(), "Transaction updated", Toast.LENGTH_SHORT).show();
-                        } catch (NumberFormatException e) {
-                            Toast.makeText(itemView.getContext(), "Invalid amount", Toast.LENGTH_SHORT).show();
-                        }
-                    })
-                    .setNegativeButton("Cancel", null)
-                    .show();
+                    .setPositiveButton("Save", null)  // Set to null initially
+                    .setNegativeButton("Cancel", null)  // Set to null initially
+                    .create();
+
+            dialog.setOnShowListener(dialogInterface -> {
+                Button positiveButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
+                Button negativeButton = dialog.getButton(AlertDialog.BUTTON_NEGATIVE);
+                
+                positiveButton.setTextColor(itemView.getContext().getResources().getColor(R.color.primary));
+                negativeButton.setTextColor(itemView.getContext().getResources().getColor(R.color.primary));
+                
+                positiveButton.setOnClickListener(v -> {
+                    try {
+                        Transaction updatedTransaction = new Transaction(
+                                Double.parseDouble(dialogBinding.etAmount.getText().toString()),
+                                dialogBinding.etDescription.getText().toString(),
+                                transaction.getDate(), // Keep the original date
+                                dialogBinding.etAccountNumber.getText().toString(),
+                                dialogBinding.etAccountType.getText().toString(),
+                                dialogBinding.etTransactionType.getText().toString(),
+                                dialogBinding.etReceiverName.getText().toString(),
+                                transaction.getSmsBody(), // Keep the original SMS body
+                                transaction.getSmsSender() // Keep the original SMS sender
+                        );
+                        updatedTransaction.setId(transaction.getId());
+                        viewModel.updateTransaction(transaction, updatedTransaction);
+                        Toast.makeText(itemView.getContext(), "Transaction updated", Toast.LENGTH_SHORT).show();
+                        dialog.dismiss();
+                    } catch (NumberFormatException e) {
+                        Toast.makeText(itemView.getContext(), "Invalid amount", Toast.LENGTH_SHORT).show();
+                    }
+                });
+            });
+
+            dialog.show();
         }
 
         private void showDeleteConfirmationDialog(Transaction transaction) {
