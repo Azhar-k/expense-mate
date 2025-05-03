@@ -45,6 +45,73 @@ public class TransactionsAdapter extends ListAdapter<Transaction, TransactionsAd
         holder.bind(getItem(position));
     }
 
+    public void showAddTransactionDialog() {
+        DialogEditTransactionBinding dialogBinding = DialogEditTransactionBinding.inflate(
+                LayoutInflater.from(viewModel.getApplication().getApplicationContext())
+        );
+
+        // Set up transaction type dropdown
+        String[] transactionTypes = {"DEBIT", "CREDIT"};
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(
+                viewModel.getApplication().getApplicationContext(),
+                android.R.layout.simple_dropdown_item_1line,
+                transactionTypes
+        );
+        dialogBinding.etTransactionType.setAdapter(adapter);
+        dialogBinding.etTransactionType.setText("DEBIT", false); // Default to DEBIT
+
+        AlertDialog dialog = new AlertDialog.Builder(viewModel.getApplication().getApplicationContext(), 
+                com.google.android.material.R.style.Theme_MaterialComponents_Light_Dialog)
+                .setView(dialogBinding.getRoot())
+                .setPositiveButton("Add", null)
+                .setNegativeButton("Cancel", null)
+                .create();
+
+        dialog.setOnShowListener(dialogInterface -> {
+            Button positiveButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
+            Button negativeButton = dialog.getButton(AlertDialog.BUTTON_NEGATIVE);
+            
+            positiveButton.setTextColor(viewModel.getApplication().getResources().getColor(R.color.primary));
+            negativeButton.setTextColor(viewModel.getApplication().getResources().getColor(R.color.primary));
+            
+            positiveButton.setOnClickListener(v -> {
+                try {
+                    String amountStr = dialogBinding.etAmount.getText().toString();
+                    String description = dialogBinding.etDescription.getText().toString();
+                    String receiverName = dialogBinding.etReceiverName.getText().toString();
+                    String accountNumber = dialogBinding.etAccountNumber.getText().toString();
+                    String accountType = dialogBinding.etAccountType.getText().toString();
+                    String transactionType = dialogBinding.etTransactionType.getText().toString();
+
+                    if (amountStr.isEmpty() || description.isEmpty() || receiverName.isEmpty() || 
+                        accountNumber.isEmpty() || accountType.isEmpty() || transactionType.isEmpty()) {
+                        Toast.makeText(viewModel.getApplication(), "Please fill all fields", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+
+                    Transaction newTransaction = new Transaction(
+                            Double.parseDouble(amountStr),
+                            description,
+                            new Date(),
+                            accountNumber,
+                            accountType,
+                            transactionType,
+                            receiverName,
+                            "", // Empty SMS body for manual transactions
+                            ""  // Empty SMS sender for manual transactions
+                    );
+                    viewModel.insertTransaction(newTransaction);
+                    Toast.makeText(viewModel.getApplication(), "Transaction added", Toast.LENGTH_SHORT).show();
+                    dialog.dismiss();
+                } catch (NumberFormatException e) {
+                    Toast.makeText(viewModel.getApplication(), "Invalid amount", Toast.LENGTH_SHORT).show();
+                }
+            });
+        });
+
+        dialog.show();
+    }
+
     class TransactionViewHolder extends RecyclerView.ViewHolder {
         private final ItemTransactionBinding binding;
 

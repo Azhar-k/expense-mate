@@ -19,20 +19,18 @@ public class TransactionsFragment extends Fragment {
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         binding = FragmentTransactionsBinding.inflate(inflater, container, false);
-        return binding.getRoot();
-    }
-
-    @Override
-    public void onViewCreated(@NonNull View view, Bundle savedInstanceState) {
-        super.onViewCreated(view, savedInstanceState);
+        View root = binding.getRoot();
 
         // Initialize ViewModel
         viewModel = new ViewModelProvider(this).get(TransactionViewModel.class);
 
         // Setup RecyclerView
         adapter = new TransactionsAdapter(viewModel);
-        binding.recyclerView.setLayoutManager(new LinearLayoutManager(requireContext()));
+        binding.recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
         binding.recyclerView.setAdapter(adapter);
+
+        // Set up FAB
+        binding.fabAddTransaction.setOnClickListener(v -> adapter.showAddTransactionDialog());
 
         // Observe transactions
         viewModel.getAllTransactions().observe(getViewLifecycleOwner(), transactions -> {
@@ -40,6 +38,8 @@ public class TransactionsFragment extends Fragment {
             // Show/hide empty state
             binding.tvEmptyState.setVisibility(transactions.isEmpty() ? View.VISIBLE : View.GONE);
         });
+
+        return root;
     }
 
     @Override
