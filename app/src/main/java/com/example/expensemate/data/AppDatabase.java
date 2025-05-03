@@ -8,7 +8,7 @@ import androidx.room.TypeConverters;
 import androidx.room.migration.Migration;
 import androidx.sqlite.db.SupportSQLiteDatabase;
 
-@Database(entities = {Transaction.class, TotalExpense.class}, version = 3, exportSchema = false)
+@Database(entities = {Transaction.class, TotalExpense.class, TotalIncome.class}, version = 4, exportSchema = false)
 @TypeConverters(Converters.class)
 public abstract class AppDatabase extends RoomDatabase {
     private static volatile AppDatabase INSTANCE;
@@ -38,8 +38,25 @@ public abstract class AppDatabase extends RoomDatabase {
         }
     };
 
+    // Migration from version 3 to 4
+    private static final Migration MIGRATION_3_4 = new Migration(3, 4) {
+        @Override
+        public void migrate(SupportSQLiteDatabase database) {
+            // Create the total_income table
+            database.execSQL(
+                "CREATE TABLE IF NOT EXISTS `total_income` (" +
+                "`id` INTEGER NOT NULL PRIMARY KEY, " +
+                "`amount` REAL NOT NULL DEFAULT 0.0" +
+                ")");
+            
+            // Insert initial total income
+            database.execSQL("INSERT INTO total_income (id, amount) VALUES (1, 0.0)");
+        }
+    };
+
     public abstract TransactionDao transactionDao();
     public abstract TotalExpenseDao totalExpenseDao();
+    public abstract TotalIncomeDao totalIncomeDao();
 
     public static AppDatabase getDatabase(final Context context) {
         if (INSTANCE == null) {
@@ -47,8 +64,7 @@ public abstract class AppDatabase extends RoomDatabase {
                 if (INSTANCE == null) {
                     INSTANCE = Room.databaseBuilder(context.getApplicationContext(),
                             AppDatabase.class, "expense_mate_database")
-                            .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
-                            .fallbackToDestructiveMigration()
+                            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
                             .build();
                 }
             }

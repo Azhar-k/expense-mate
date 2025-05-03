@@ -18,12 +18,14 @@ public class ExpenseFragment extends Fragment {
     private static final String TAG = "ExpenseFragment";
     private TransactionViewModel transactionViewModel;
     private TextView totalExpenseText;
+    private TextView totalIncomeText;
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View root = inflater.inflate(R.layout.fragment_expense, container, false);
         
         totalExpenseText = root.findViewById(R.id.total_expense);
+        totalIncomeText = root.findViewById(R.id.total_income);
         
         transactionViewModel = new ViewModelProvider(requireActivity()).get(TransactionViewModel.class);
         
@@ -34,6 +36,15 @@ public class ExpenseFragment extends Fragment {
             String formattedAmount = formatter.format(total);
             Log.d(TAG, "Formatted amount: " + formattedAmount);
             totalExpenseText.setText(formattedAmount);
+        });
+
+        // Observe total income
+        transactionViewModel.getTotalIncome().observe(getViewLifecycleOwner(), total -> {
+            Log.d(TAG, "Total income changed: " + total);
+            NumberFormat formatter = NumberFormat.getCurrencyInstance(new Locale("en", "IN"));
+            String formattedAmount = formatter.format(total);
+            Log.d(TAG, "Formatted amount: " + formattedAmount);
+            totalIncomeText.setText(formattedAmount);
         });
 
         return root;
