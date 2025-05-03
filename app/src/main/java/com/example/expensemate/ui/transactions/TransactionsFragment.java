@@ -22,10 +22,10 @@ public class TransactionsFragment extends Fragment {
         View root = binding.getRoot();
 
         // Initialize ViewModel
-        viewModel = new ViewModelProvider(this).get(TransactionViewModel.class);
+        viewModel = new ViewModelProvider(requireActivity()).get(TransactionViewModel.class);
 
         // Setup RecyclerView
-        adapter = new TransactionsAdapter(viewModel);
+        adapter = new TransactionsAdapter(viewModel, requireContext());
         binding.recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
         binding.recyclerView.setAdapter(adapter);
 
