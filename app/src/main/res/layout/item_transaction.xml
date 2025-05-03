@@ -26,33 +26,34 @@
             app:layout_constraintEnd_toStartOf="@id/btnEdit"
             app:layout_constraintTop_toTopOf="parent"
             android:layout_marginTop="8dp"
+            android:layout_marginEnd="16dp"
             tools:text="₹1,000.00" />
 
         <ImageButton
             android:id="@+id/btnEdit"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
             android:layout_marginEnd="8dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="Edit transaction"
-            android:padding="8dp"
+            android:padding="12dp"
             android:src="@drawable/ic_edit"
             app:layout_constraintEnd_toStartOf="@id/btnDelete"
-            app:layout_constraintTop_toTopOf="parent"
-            android:layout_marginTop="8dp"
-            app:tint="@color/primary" />
+            app:layout_constraintTop_toTopOf="@id/tvAmount"
+            app:layout_constraintBottom_toBottomOf="@id/tvAmount"
+            app:tint="@color/black" />
 
         <ImageButton
             android:id="@+id/btnDelete"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="Delete transaction"
-            android:padding="8dp"
+            android:padding="12dp"
             android:src="@drawable/ic_delete"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            android:layout_marginTop="8dp"
+            app:layout_constraintTop_toTopOf="@id/tvAmount"
+            app:layout_constraintBottom_toBottomOf="@id/tvAmount"
             app:tint="@color/error" />
 
         <TextView
@@ -65,8 +66,8 @@
             android:textStyle="bold"
             app:layout_constraintEnd_toStartOf="@id/tvAmount"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            android:layout_marginTop="8dp"
+            app:layout_constraintTop_toTopOf="@id/tvAmount"
+            app:layout_constraintBottom_toBottomOf="@id/tvAmount"
             tools:text="Debit transaction" />
 
         <View
