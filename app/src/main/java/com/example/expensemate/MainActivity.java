@@ -1,9 +1,16 @@
 package com.example.expensemate;
 
+import android.Manifest;
+import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.view.View;
 import android.view.Menu;
+import android.widget.Toast;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.core.content.ContextCompat;
 import com.google.android.material.snackbar.Snackbar;
 import com.google.android.material.navigation.NavigationView;
 
@@ -15,11 +22,29 @@ import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.expensemate.databinding.ActivityMainBinding;
+import com.example.expensemate.service.SmsMonitorService;
 
 public class MainActivity extends AppCompatActivity {
 
     private AppBarConfiguration mAppBarConfiguration;
     private ActivityMainBinding binding;
+    private static final String[] REQUIRED_PERMISSIONS = {
+            Manifest.permission.RECEIVE_SMS,
+            Manifest.permission.READ_SMS
+    };
+
+    private final ActivityResultLauncher<String[]> requestPermissionLauncher =
+            registerForActivityResult(new ActivityResultContracts.RequestMultiplePermissions(), permissions -> {
+                boolean allGranted = true;
+                for (Boolean isGranted : permissions.values()) {
+                    allGranted = allGranted && isGranted;
+                }
+                if (allGranted) {
+                    startSmsMonitorService();
+                } else {
+                    Toast.makeText(this, "Permissions are required for SMS monitoring", Toast.LENGTH_LONG).show();
+                }
+            });
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -48,6 +73,29 @@ public class MainActivity extends AppCompatActivity {
         NavController navController = Navigation.findNavController(this, R.id.nav_host_fragment_content_main);
         NavigationUI.setupActionBarWithNavController(this, navController, mAppBarConfiguration);
         NavigationUI.setupWithNavController(navigationView, navController);
+
+        checkAndRequestPermissions();
+    }
+
+    private void checkAndRequestPermissions() {
+        boolean allPermissionsGranted = true;
+        for (String permission : REQUIRED_PERMISSIONS) {
+            if (ContextCompat.checkSelfPermission(this, permission) != PackageManager.PERMISSION_GRANTED) {
+                allPermissionsGranted = false;
+                break;
+            }
+        }
+
+        if (allPermissionsGranted) {
+            startSmsMonitorService();
+        } else {
+            requestPermissionLauncher.launch(REQUIRED_PERMISSIONS);
+        }
+    }
+
+    private void startSmsMonitorService() {
+        Intent serviceIntent = new Intent(this, SmsMonitorService.class);
+        startService(serviceIntent);
     }
 
     @Override
