@@ -28,23 +28,7 @@ public class MainActivity extends AppCompatActivity {
 
     private AppBarConfiguration mAppBarConfiguration;
     private ActivityMainBinding binding;
-    private static final String[] REQUIRED_PERMISSIONS = {
-            Manifest.permission.RECEIVE_SMS,
-            Manifest.permission.READ_SMS
-    };
-
-    private final ActivityResultLauncher<String[]> requestPermissionLauncher =
-            registerForActivityResult(new ActivityResultContracts.RequestMultiplePermissions(), permissions -> {
-                boolean allGranted = true;
-                for (Boolean isGranted : permissions.values()) {
-                    allGranted = allGranted && isGranted;
-                }
-                if (allGranted) {
-                    startSmsMonitorService();
-                } else {
-                    Toast.makeText(this, "Permissions are required for SMS monitoring", Toast.LENGTH_LONG).show();
-                }
-            });
+    private ActivityResultLauncher<String[]> requestPermissionLauncher;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -67,20 +51,46 @@ public class MainActivity extends AppCompatActivity {
         // Passing each menu ID as a set of Ids because each
         // menu should be considered as top level destinations.
         mAppBarConfiguration = new AppBarConfiguration.Builder(
-                R.id.nav_home, R.id.nav_gallery, R.id.nav_slideshow)
+                R.id.nav_transactions, R.id.nav_home, R.id.nav_gallery, R.id.nav_slideshow)
                 .setOpenableLayout(drawer)
                 .build();
         NavController navController = Navigation.findNavController(this, R.id.nav_host_fragment_content_main);
         NavigationUI.setupActionBarWithNavController(this, navController, mAppBarConfiguration);
         NavigationUI.setupWithNavController(navigationView, navController);
 
+        // Initialize permission launcher
+        requestPermissionLauncher = registerForActivityResult(
+            new ActivityResultContracts.RequestMultiplePermissions(),
+            permissions -> {
+                boolean allGranted = true;
+                for (Boolean isGranted : permissions.values()) {
+                    if (!isGranted) {
+                        allGranted = false;
+                        break;
+                    }
+                }
+                if (allGranted) {
+                    startSmsMonitorService();
+                } else {
+                    Toast.makeText(this, "SMS monitoring requires all permissions", Toast.LENGTH_LONG).show();
+                }
+            }
+        );
+
+        // Check and request permissions
         checkAndRequestPermissions();
     }
 
     private void checkAndRequestPermissions() {
+        String[] requiredPermissions = {
+            Manifest.permission.RECEIVE_SMS,
+            Manifest.permission.READ_SMS
+        };
+
         boolean allPermissionsGranted = true;
-        for (String permission : REQUIRED_PERMISSIONS) {
-            if (ContextCompat.checkSelfPermission(this, permission) != PackageManager.PERMISSION_GRANTED) {
+        for (String permission : requiredPermissions) {
+            if (ContextCompat.checkSelfPermission(this, permission) 
+                != PackageManager.PERMISSION_GRANTED) {
                 allPermissionsGranted = false;
                 break;
             }
@@ -89,7 +99,7 @@ public class MainActivity extends AppCompatActivity {
         if (allPermissionsGranted) {
             startSmsMonitorService();
         } else {
-            requestPermissionLauncher.launch(REQUIRED_PERMISSIONS);
+            requestPermissionLauncher.launch(requiredPermissions);
         }
     }
 

@@ -37,6 +37,8 @@ public class TransactionsFragment extends Fragment {
         // Observe transactions
         viewModel.getAllTransactions().observe(getViewLifecycleOwner(), transactions -> {
             adapter.submitList(transactions);
+            // Show/hide empty state
+            binding.tvEmptyState.setVisibility(transactions.isEmpty() ? View.VISIBLE : View.GONE);
         });
     }
 
