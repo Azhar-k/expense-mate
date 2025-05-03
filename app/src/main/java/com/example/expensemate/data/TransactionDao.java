@@ -13,6 +13,9 @@ public interface TransactionDao {
     @Query("SELECT * FROM transactions ORDER BY date DESC")
     LiveData<List<Transaction>> getAllTransactions();
 
+    @Query("SELECT * FROM transactions ORDER BY date DESC")
+    List<Transaction> getAllTransactionsSync();
+
     @Query("SELECT * FROM transactions WHERE transactionType = 'DEBIT' ORDER BY date DESC")
     LiveData<List<Transaction>> getDebitTransactions();
 

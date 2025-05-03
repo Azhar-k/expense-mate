@@ -4,121 +4,106 @@ import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
-import android.view.View;
-import android.view.Menu;
-import android.widget.Toast;
-
-import androidx.activity.result.ActivityResultLauncher;
-import androidx.activity.result.contract.ActivityResultContracts;
-import androidx.core.content.ContextCompat;
-import com.google.android.material.snackbar.Snackbar;
-import com.google.android.material.navigation.NavigationView;
-
-import androidx.navigation.NavController;
-import androidx.navigation.Navigation;
-import androidx.navigation.ui.AppBarConfiguration;
-import androidx.navigation.ui.NavigationUI;
-import androidx.drawerlayout.widget.DrawerLayout;
+import android.util.Log;
+import android.view.MenuItem;
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.ActionBarDrawerToggle;
 import androidx.appcompat.app.AppCompatActivity;
-
-import com.example.expensemate.databinding.ActivityMainBinding;
+import androidx.appcompat.widget.Toolbar;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
+import androidx.core.view.GravityCompat;
+import androidx.drawerlayout.widget.DrawerLayout;
+import androidx.navigation.NavController;
+import androidx.navigation.fragment.NavHostFragment;
+import androidx.navigation.ui.NavigationUI;
+import com.google.android.material.bottomnavigation.BottomNavigationView;
+import com.google.android.material.navigation.NavigationView;
 import com.example.expensemate.service.SmsMonitorService;
 
-public class MainActivity extends AppCompatActivity {
-
-    private AppBarConfiguration mAppBarConfiguration;
-    private ActivityMainBinding binding;
-    private ActivityResultLauncher<String[]> requestPermissionLauncher;
+public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
+    private static final String TAG = "MainActivity";
+    private static final int SMS_PERMISSION_REQUEST_CODE = 123;
+    private DrawerLayout drawerLayout;
+    private ActionBarDrawerToggle drawerToggle;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
 
-        binding = ActivityMainBinding.inflate(getLayoutInflater());
-        setContentView(binding.getRoot());
+        // Set up toolbar
+        Toolbar toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+        getSupportActionBar().setTitle("Expense Mate");
 
-        setSupportActionBar(binding.appBarMain.toolbar);
-        binding.appBarMain.fab.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                        .setAction("Action", null)
-                        .setAnchorView(R.id.fab).show();
-            }
-        });
-        DrawerLayout drawer = binding.drawerLayout;
-        NavigationView navigationView = binding.navView;
-        // Passing each menu ID as a set of Ids because each
-        // menu should be considered as top level destinations.
-        mAppBarConfiguration = new AppBarConfiguration.Builder(
-                R.id.nav_transactions, R.id.nav_home, R.id.nav_gallery, R.id.nav_slideshow)
-                .setOpenableLayout(drawer)
-                .build();
-        NavController navController = Navigation.findNavController(this, R.id.nav_host_fragment_content_main);
-        NavigationUI.setupActionBarWithNavController(this, navController, mAppBarConfiguration);
-        NavigationUI.setupWithNavController(navigationView, navController);
+        // Set up drawer
+        drawerLayout = findViewById(R.id.drawer_layout);
+        NavigationView navigationView = findViewById(R.id.nav_view_drawer);
+        navigationView.setNavigationItemSelectedListener(this);
 
-        // Initialize permission launcher
-        requestPermissionLauncher = registerForActivityResult(
-            new ActivityResultContracts.RequestMultiplePermissions(),
-            permissions -> {
-                boolean allGranted = true;
-                for (Boolean isGranted : permissions.values()) {
-                    if (!isGranted) {
-                        allGranted = false;
-                        break;
-                    }
-                }
-                if (allGranted) {
-                    startSmsMonitorService();
-                } else {
-                    Toast.makeText(this, "SMS monitoring requires all permissions", Toast.LENGTH_LONG).show();
-                }
-            }
+        // Set up drawer toggle
+        drawerToggle = new ActionBarDrawerToggle(
+                this,
+                drawerLayout,
+                toolbar,
+                R.string.navigation_drawer_open,
+                R.string.navigation_drawer_close
         );
+        drawerLayout.addDrawerListener(drawerToggle);
+        drawerToggle.syncState();
 
-        // Check and request permissions
-        checkAndRequestPermissions();
-    }
-
-    private void checkAndRequestPermissions() {
-        String[] requiredPermissions = {
-            Manifest.permission.RECEIVE_SMS,
-            Manifest.permission.READ_SMS
-        };
-
-        boolean allPermissionsGranted = true;
-        for (String permission : requiredPermissions) {
-            if (ContextCompat.checkSelfPermission(this, permission) 
-                != PackageManager.PERMISSION_GRANTED) {
-                allPermissionsGranted = false;
-                break;
-            }
+        // Set up navigation
+        NavHostFragment navHostFragment = (NavHostFragment) getSupportFragmentManager()
+                .findFragmentById(R.id.nav_host_fragment);
+        if (navHostFragment != null) {
+            NavController navController = navHostFragment.getNavController();
+            BottomNavigationView navView = findViewById(R.id.nav_view);
+            NavigationUI.setupWithNavController(navView, navController);
         }
 
-        if (allPermissionsGranted) {
-            startSmsMonitorService();
+        // Check and request SMS permission
+        checkSmsPermission();
+
+        // Start SMS monitoring service
+        startSmsMonitorService();
+    }
+
+    @Override
+    public boolean onNavigationItemSelected(@NonNull MenuItem item) {
+        int id = item.getItemId();
+        
+        if (id == R.id.nav_settings) {
+            // TODO: Handle settings
+        } else if (id == R.id.nav_about) {
+            // TODO: Handle about
+        }
+
+        drawerLayout.closeDrawer(GravityCompat.START);
+        return true;
+    }
+
+    @Override
+    public void onBackPressed() {
+        if (drawerLayout.isDrawerOpen(GravityCompat.START)) {
+            drawerLayout.closeDrawer(GravityCompat.START);
         } else {
-            requestPermissionLauncher.launch(requiredPermissions);
+            super.onBackPressed();
+        }
+    }
+
+    private void checkSmsPermission() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECEIVE_SMS)
+                != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this,
+                    new String[]{Manifest.permission.RECEIVE_SMS},
+                    SMS_PERMISSION_REQUEST_CODE);
         }
     }
 
     private void startSmsMonitorService() {
         Intent serviceIntent = new Intent(this, SmsMonitorService.class);
         startService(serviceIntent);
-    }
-
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; this adds items to the action bar if it is present.
-        getMenuInflater().inflate(R.menu.main, menu);
-        return true;
-    }
-
-    @Override
-    public boolean onSupportNavigateUp() {
-        NavController navController = Navigation.findNavController(this, R.id.nav_host_fragment_content_main);
-        return NavigationUI.navigateUp(navController, mAppBarConfiguration)
-                || super.onSupportNavigateUp();
+        Log.d(TAG, "SMS Monitor Service started");
     }
 }

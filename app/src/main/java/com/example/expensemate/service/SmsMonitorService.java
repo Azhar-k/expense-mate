@@ -14,11 +14,9 @@ import android.util.Log;
 import androidx.core.app.NotificationCompat;
 import com.example.expensemate.R;
 import com.example.expensemate.MainActivity;
-import com.example.expensemate.data.AppDatabase;
 import com.example.expensemate.data.Transaction;
-import java.util.Arrays;
+import com.example.expensemate.viewmodel.TransactionViewModel;
 import java.util.Date;
-import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.regex.Pattern;
@@ -29,7 +27,7 @@ public class SmsMonitorService extends Service {
     private static final String CHANNEL_ID = "SmsMonitorChannel";
     
     private SmsReceiver smsReceiver;
-    private AppDatabase database;
+    private TransactionViewModel transactionViewModel;
     private ExecutorService executorService;
     private boolean isReceiverRegistered = false;
 
@@ -37,7 +35,7 @@ public class SmsMonitorService extends Service {
     public void onCreate() {
         super.onCreate();
         Log.d(TAG, "Service created");
-        database = AppDatabase.getDatabase(getApplicationContext());
+        transactionViewModel = new TransactionViewModel(getApplication());
         executorService = Executors.newSingleThreadExecutor();
         smsReceiver = new SmsReceiver((smsBody, sender) -> processSms(smsBody, sender));
         createNotificationChannel();
@@ -126,8 +124,8 @@ public class SmsMonitorService extends Service {
         if (transaction != null) {
             Log.d(TAG, "Transaction extracted: " + transaction.getAmount() + " to " + transaction.getReceiverName());
             executorService.execute(() -> {
-                database.transactionDao().insertTransaction(transaction);
-                Log.d(TAG, "Transaction inserted into database");
+                transactionViewModel.insertTransaction(transaction);
+                Log.d(TAG, "Transaction inserted via ViewModel");
             });
         } else {
             Log.d(TAG, "No transaction details could be extracted");
