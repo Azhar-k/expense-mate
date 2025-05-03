@@ -141,9 +141,14 @@ public class SmsMonitorService extends Service {
                 "ICICI Bank Acct XX(\\d+) debited for Rs (\\d+(?:\\.\\d{2})?) on (\\d{2}-[A-Za-z]{3}-\\d{2}); ([^;]+) credited"
             );
             
-            // Pattern for other bank formats
+            // Pattern for Kotak Bank format
+            Pattern kotakPattern = Pattern.compile(
+                "Sent Rs\\.?(\\d+(?:\\.\\d{2})?) from Kotak Bank AC ([A-Z0-9]+) to ([^\\s]+)"
+            );
+            
+            // Comprehensive pattern for various bank formats
             Pattern generalPattern = Pattern.compile(
-                "Rs\\.?\\s*(\\d+(?:\\.\\d{2})?)\\s*(?:debited|spent|paid)\\s*(?:to|at)\\s*([A-Za-z0-9\\s]+)"
+                "(?i)(?:Rs\\.?|INR)\\s*(\\d+(?:\\.\\d{2})?)\\s*(?:has been|is|was)?\\s*(?:debited|spent|paid|sent|transferred|withdrawn)\\s*(?:from|in|to|at)?\\s*(?:your|the)?\\s*(?:account|a/c|ac|bank)?\\s*(?:[A-Z0-9]+)?\\s*(?:to|for|at)?\\s*([A-Za-z0-9@\\s\\.]+)"
             );
 
             // Try ICICI pattern first
@@ -167,7 +172,28 @@ public class SmsMonitorService extends Service {
                 );
             }
 
-            // Try general pattern if ICICI pattern doesn't match
+            // Try Kotak pattern
+            var kotakMatcher = kotakPattern.matcher(smsBody);
+            if (kotakMatcher.find()) {
+                double amount = Double.parseDouble(kotakMatcher.group(1));
+                String accountNumber = kotakMatcher.group(2);
+                String receiverName = kotakMatcher.group(3).trim();
+                Log.d(TAG, "Found Kotak transaction: " + amount + " to " + receiverName);
+                
+                return new Transaction(
+                    amount,
+                    "Debit transaction",
+                    new Date(),
+                    accountNumber,
+                    "BANK",
+                    "DEBIT",
+                    receiverName,
+                    smsBody,
+                    sender
+                );
+            }
+
+            // Try general pattern if specific patterns don't match
             var generalMatcher = generalPattern.matcher(smsBody);
             if (generalMatcher.find()) {
                 double amount = Double.parseDouble(generalMatcher.group(1));
@@ -195,7 +221,7 @@ public class SmsMonitorService extends Service {
     }
 
     private String extractAccountNumber(String smsBody) {
-        Pattern accountPattern = Pattern.compile("A/c\\s*No\\.?\\s*([A-Z0-9]+)");
+        Pattern accountPattern = Pattern.compile("(?:A/c|Ac|Account)\\s*(?:No\\.?)?\\s*([A-Z0-9]+)");
         var matcher = accountPattern.matcher(smsBody);
         String accountNumber = matcher.find() ? matcher.group(1) : "Unknown";
         Log.d(TAG, "Extracted account number: " + accountNumber);

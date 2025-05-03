@@ -31,19 +31,6 @@ public class TransactionViewModel extends AndroidViewModel {
         executorService = Executors.newSingleThreadExecutor();
         allTransactions = transactionDao.getAllTransactions();
         
-        // Initialize total expense if not exists
-        executorService.execute(() -> {
-            try {
-                TotalExpense existing = totalExpenseDao.getTotalExpense().getValue();
-                if (existing == null) {
-                    Log.d(TAG, "Initializing total expense");
-                    totalExpenseDao.insert(new TotalExpense(0.0));
-                }
-            } catch (Exception e) {
-                Log.e(TAG, "Error initializing total expense", e);
-            }
-        });
-
         // Transform TotalExpense to Double
         totalExpense = Transformations.map(totalExpenseDao.getTotalExpense(), 
             totalExpense -> {
