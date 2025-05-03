@@ -3,9 +3,11 @@ package com.example.expensemate.ui.transactions;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.view.LayoutInflater;
+import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.TextView;
 import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.DiffUtil;
@@ -59,9 +61,19 @@ public class TransactionsAdapter extends ListAdapter<Transaction, TransactionsAd
                 context,
                 android.R.layout.simple_dropdown_item_1line,
                 transactionTypes
-        );
+        ) {
+            @Override
+            public View getView(int position, View convertView, ViewGroup parent) {
+                View view = super.getView(position, convertView, parent);
+                TextView text = (TextView) view.findViewById(android.R.id.text1);
+                text.setTextColor(context.getResources().getColor(R.color.black));
+                return view;
+            }
+        };
         dialogBinding.etTransactionType.setAdapter(transactionTypeAdapter);
         dialogBinding.etTransactionType.setText("DEBIT", false); // Default to DEBIT
+        dialogBinding.etTransactionType.setOnClickListener(v -> dialogBinding.etTransactionType.showDropDown());
+        dialogBinding.etTransactionType.setDropDownBackgroundResource(android.R.color.white);
 
         // Set up categories dropdown
         String[] categories = {"Food", "Household", "Movies", "Fuel", "Home Food", 
@@ -71,9 +83,19 @@ public class TransactionsAdapter extends ListAdapter<Transaction, TransactionsAd
                 context,
                 android.R.layout.simple_dropdown_item_1line,
                 categories
-        );
+        ) {
+            @Override
+            public View getView(int position, View convertView, ViewGroup parent) {
+                View view = super.getView(position, convertView, parent);
+                TextView text = (TextView) view.findViewById(android.R.id.text1);
+                text.setTextColor(context.getResources().getColor(R.color.black));
+                return view;
+            }
+        };
         dialogBinding.etCategory.setAdapter(categoryAdapter);
         dialogBinding.etCategory.setText("Others", false); // Default to Others
+        dialogBinding.etCategory.setOnClickListener(v -> dialogBinding.etCategory.showDropDown());
+        dialogBinding.etCategory.setDropDownBackgroundResource(android.R.color.white);
 
         AlertDialog dialog = new AlertDialog.Builder(context, 
                 com.google.android.material.R.style.Theme_MaterialComponents_Light_Dialog)
@@ -179,9 +201,19 @@ public class TransactionsAdapter extends ListAdapter<Transaction, TransactionsAd
                     context,
                     android.R.layout.simple_dropdown_item_1line,
                     transactionTypes
-            );
+            ) {
+                @Override
+                public View getView(int position, View convertView, ViewGroup parent) {
+                    View view = super.getView(position, convertView, parent);
+                    TextView text = (TextView) view.findViewById(android.R.id.text1);
+                    text.setTextColor(context.getResources().getColor(R.color.black));
+                    return view;
+                }
+            };
             dialogBinding.etTransactionType.setAdapter(transactionTypeAdapter);
             dialogBinding.etTransactionType.setText(transaction.getTransactionType(), false);
+            dialogBinding.etTransactionType.setOnClickListener(v -> dialogBinding.etTransactionType.showDropDown());
+            dialogBinding.etTransactionType.setDropDownBackgroundResource(android.R.color.white);
 
             // Set up categories dropdown
             String[] categories = {"Food", "Household", "Movies", "Fuel", "Home Food", 
@@ -191,9 +223,19 @@ public class TransactionsAdapter extends ListAdapter<Transaction, TransactionsAd
                     context,
                     android.R.layout.simple_dropdown_item_1line,
                     categories
-            );
+            ) {
+                @Override
+                public View getView(int position, View convertView, ViewGroup parent) {
+                    View view = super.getView(position, convertView, parent);
+                    TextView text = (TextView) view.findViewById(android.R.id.text1);
+                    text.setTextColor(context.getResources().getColor(R.color.black));
+                    return view;
+                }
+            };
             dialogBinding.etCategory.setAdapter(categoryAdapter);
             dialogBinding.etCategory.setText(transaction.getCategory(), false);
+            dialogBinding.etCategory.setOnClickListener(v -> dialogBinding.etCategory.showDropDown());
+            dialogBinding.etCategory.setDropDownBackgroundResource(android.R.color.white);
 
             AlertDialog dialog = new AlertDialog.Builder(context, 
                     com.google.android.material.R.style.Theme_MaterialComponents_Light_Dialog)
