@@ -85,6 +85,38 @@ public class TransactionViewModel extends AndroidViewModel {
         });
     }
 
+    public void updateTransaction(Transaction oldTransaction, Transaction newTransaction) {
+        executorService.execute(() -> {
+            try {
+                Log.d(TAG, "Updating transaction: " + oldTransaction.getId());
+                
+                // If it's a debit transaction, update the total expense
+                if (oldTransaction.getTransactionType().equals("DEBIT")) {
+                    totalExpenseDao.decrementAmount(oldTransaction.getAmount());
+                }
+                if (newTransaction.getTransactionType().equals("DEBIT")) {
+                    totalExpenseDao.incrementAmount(newTransaction.getAmount());
+                }
+                
+                // Update the transaction
+                transactionDao.updateTransaction(
+                    newTransaction.getId(),
+                    newTransaction.getAmount(),
+                    newTransaction.getDescription(),
+                    newTransaction.getDate(),
+                    newTransaction.getAccountNumber(),
+                    newTransaction.getAccountType(),
+                    newTransaction.getTransactionType(),
+                    newTransaction.getReceiverName(),
+                    newTransaction.getSmsBody(),
+                    newTransaction.getSmsSender()
+                );
+            } catch (Exception e) {
+                Log.e(TAG, "Error updating transaction", e);
+            }
+        });
+    }
+
     public LiveData<Double> getTotalExpense() {
         return totalExpense;
     }

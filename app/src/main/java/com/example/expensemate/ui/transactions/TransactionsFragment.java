@@ -30,7 +30,7 @@ public class TransactionsFragment extends Fragment {
         viewModel = new ViewModelProvider(this).get(TransactionViewModel.class);
 
         // Setup RecyclerView
-        adapter = new TransactionsAdapter();
+        adapter = new TransactionsAdapter(viewModel);
         binding.recyclerView.setLayoutManager(new LinearLayoutManager(requireContext()));
         binding.recyclerView.setAdapter(adapter);
 
