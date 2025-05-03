@@ -86,9 +86,8 @@ public class TransactionsAdapter extends ListAdapter<Transaction, TransactionsAd
                     String accountType = dialogBinding.etAccountType.getText().toString();
                     String transactionType = dialogBinding.etTransactionType.getText().toString();
 
-                    if (amountStr.isEmpty() || description.isEmpty() || receiverName.isEmpty() || 
-                        accountNumber.isEmpty() || accountType.isEmpty() || transactionType.isEmpty()) {
-                        Toast.makeText(context, "Please fill all fields", Toast.LENGTH_SHORT).show();
+                    if (amountStr.isEmpty()) {
+                        Toast.makeText(context, "Please enter amount", Toast.LENGTH_SHORT).show();
                         return;
                     }
 
@@ -185,14 +184,26 @@ public class TransactionsAdapter extends ListAdapter<Transaction, TransactionsAd
                 
                 positiveButton.setOnClickListener(v -> {
                     try {
+                        String amountStr = dialogBinding.etAmount.getText().toString();
+                        String description = dialogBinding.etDescription.getText().toString();
+                        String receiverName = dialogBinding.etReceiverName.getText().toString();
+                        String accountNumber = dialogBinding.etAccountNumber.getText().toString();
+                        String accountType = dialogBinding.etAccountType.getText().toString();
+                        String transactionType = dialogBinding.etTransactionType.getText().toString();
+
+                        if (amountStr.isEmpty()) {
+                            Toast.makeText(context, "Please enter amount", Toast.LENGTH_SHORT).show();
+                            return;
+                        }
+
                         Transaction updatedTransaction = new Transaction(
-                                Double.parseDouble(dialogBinding.etAmount.getText().toString()),
-                                dialogBinding.etDescription.getText().toString(),
+                                Double.parseDouble(amountStr),
+                                description,
                                 transaction.getDate(), // Keep the original date
-                                dialogBinding.etAccountNumber.getText().toString(),
-                                dialogBinding.etAccountType.getText().toString(),
-                                dialogBinding.etTransactionType.getText().toString(),
-                                dialogBinding.etReceiverName.getText().toString(),
+                                accountNumber,
+                                accountType,
+                                transactionType,
+                                receiverName,
                                 transaction.getSmsBody(), // Keep the original SMS body
                                 transaction.getSmsSender() // Keep the original SMS sender
                         );
