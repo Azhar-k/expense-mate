@@ -12,7 +12,7 @@
     <color name="debit_color">#B41313</color>
     <color name="credit_color">#228B22</color>
     <color name="error">#F44336</color>
-    <color name="bar">#D9D6D6</color>
+    <color name="bar">#80A6A3</color>
     
     <!-- System colors -->
     <color name="white">#FFFFFFFF</color>
