@@ -8,7 +8,7 @@ import androidx.room.TypeConverters;
 import androidx.room.migration.Migration;
 import androidx.sqlite.db.SupportSQLiteDatabase;
 
-@Database(entities = {Transaction.class, Category.class, RecurringPayment.class}, version = 7, exportSchema = false)
+@Database(entities = {Transaction.class, Category.class, RecurringPayment.class}, version = 8, exportSchema = false)
 @TypeConverters(Converters.class)
 public abstract class AppDatabase extends RoomDatabase {
     private static volatile AppDatabase INSTANCE;
@@ -122,6 +122,37 @@ public abstract class AppDatabase extends RoomDatabase {
         }
     };
 
+    private static final Migration MIGRATION_7_8 = new Migration(7, 8) {
+        @Override
+        public void migrate(SupportSQLiteDatabase database) {
+            // Create temporary table with new schema
+            database.execSQL(
+                "CREATE TABLE IF NOT EXISTS `recurring_payments_temp` (" +
+                "`id` INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, " +
+                "`name` TEXT, " +
+                "`amount` REAL NOT NULL, " +
+                "`dueDay` INTEGER NOT NULL, " +
+                "`expiryDate` INTEGER, " +
+                "`isCompleted` INTEGER NOT NULL DEFAULT 0, " +
+                "`lastCompletedDate` INTEGER" +
+                ")");
+
+            // Copy data from old table to new table, converting dueDate to dueDay
+            database.execSQL(
+                "INSERT INTO recurring_payments_temp (id, name, amount, dueDay, expiryDate, isCompleted, lastCompletedDate) " +
+                "SELECT id, name, amount, " +
+                "CAST(strftime('%d', datetime(dueDate/1000, 'unixepoch')) AS INTEGER), " +
+                "expiryDate, isCompleted, lastCompletedDate " +
+                "FROM recurring_payments");
+
+            // Drop old table
+            database.execSQL("DROP TABLE recurring_payments");
+
+            // Rename new table to original name
+            database.execSQL("ALTER TABLE recurring_payments_temp RENAME TO recurring_payments");
+        }
+    };
+
     public abstract TransactionDao transactionDao();
     public abstract CategoryDao categoryDao();
     public abstract RecurringPaymentDao recurringPaymentDao();
@@ -133,7 +164,7 @@ public abstract class AppDatabase extends RoomDatabase {
                     INSTANCE = Room.databaseBuilder(context.getApplicationContext(),
                             AppDatabase.class, "expense_mate_database")
                             .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, 
-                                         MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
+                                         MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
                             .build();
                 }
             }

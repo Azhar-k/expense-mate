@@ -31,7 +31,7 @@ public class RecurringPaymentsAdapter extends ListAdapter<RecurringPayment, Recu
             public boolean areContentsTheSame(@NonNull RecurringPayment oldItem, @NonNull RecurringPayment newItem) {
                 return oldItem.getName().equals(newItem.getName()) &&
                        oldItem.getAmount() == newItem.getAmount() &&
-                       oldItem.getDueDate().equals(newItem.getDueDate()) &&
+                       oldItem.getDueDay() == newItem.getDueDay() &&
                        oldItem.getExpiryDate().equals(newItem.getExpiryDate()) &&
                        oldItem.isCompleted() == newItem.isCompleted();
             }
@@ -104,7 +104,7 @@ public class RecurringPaymentsAdapter extends ListAdapter<RecurringPayment, Recu
         public void bind(RecurringPayment payment) {
             nameTextView.setText(payment.getName());
             amountTextView.setText(String.format(Locale.getDefault(), "₹%.2f", payment.getAmount()));
-            dueDateTextView.setText(dateFormat.format(payment.getDueDate()));
+            dueDateTextView.setText(String.format(Locale.getDefault(), "Day %d of every month", payment.getDueDay()));
             expiryDateTextView.setText(dateFormat.format(payment.getExpiryDate()));
             completedCheckBox.setChecked(payment.isCompleted());
         }

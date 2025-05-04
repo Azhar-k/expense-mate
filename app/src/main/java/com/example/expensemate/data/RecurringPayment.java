@@ -11,15 +11,15 @@ public class RecurringPayment {
     
     private String name;
     private double amount;
-    private Date dueDate;
+    private int dueDay; // Day of the month (1-31)
     private Date expiryDate;
     private boolean isCompleted;
     private Date lastCompletedDate;
 
-    public RecurringPayment(String name, double amount, Date dueDate, Date expiryDate) {
+    public RecurringPayment(String name, double amount, int dueDay, Date expiryDate) {
         this.name = name;
         this.amount = amount;
-        this.dueDate = dueDate;
+        this.dueDay = dueDay;
         this.expiryDate = expiryDate;
         this.isCompleted = false;
     }
@@ -34,8 +34,8 @@ public class RecurringPayment {
     public double getAmount() { return amount; }
     public void setAmount(double amount) { this.amount = amount; }
     
-    public Date getDueDate() { return dueDate; }
-    public void setDueDate(Date dueDate) { this.dueDate = dueDate; }
+    public int getDueDay() { return dueDay; }
+    public void setDueDay(int dueDay) { this.dueDay = dueDay; }
     
     public Date getExpiryDate() { return expiryDate; }
     public void setExpiryDate(Date expiryDate) { this.expiryDate = expiryDate; }

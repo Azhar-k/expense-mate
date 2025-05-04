@@ -26,14 +26,12 @@ public class RecurringPaymentsFragment extends Fragment {
     private RecurringPaymentsViewModel viewModel;
     private RecyclerView recyclerView;
     private RecurringPaymentsAdapter adapter;
-    private DatePickerHelper dueDatePicker;
     private DatePickerHelper expiryDatePicker;
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         viewModel = new ViewModelProvider(this).get(RecurringPaymentsViewModel.class);
-        dueDatePicker = new DatePickerHelper(requireContext());
         expiryDatePicker = new DatePickerHelper(requireContext());
     }
 
@@ -76,8 +74,7 @@ public class RecurringPaymentsFragment extends Fragment {
     private void showAddDialog() {
         DialogEditRecurringPaymentBinding dialogBinding = DialogEditRecurringPaymentBinding.inflate(getLayoutInflater());
 
-        // Set up date picker click listeners
-        dialogBinding.etDueDate.setOnClickListener(v -> dueDatePicker.showDatePicker(dialogBinding.etDueDate, null));
+        // Set up expiry date picker click listener
         dialogBinding.etExpiryDate.setOnClickListener(v -> expiryDatePicker.showDatePicker(dialogBinding.etExpiryDate, null));
 
         AlertDialog dialog = new AlertDialog.Builder(requireContext(), 
@@ -98,22 +95,29 @@ public class RecurringPaymentsFragment extends Fragment {
             positiveButton.setOnClickListener(v -> {
                 String name = dialogBinding.etPaymentName.getText().toString().trim();
                 String amountStr = dialogBinding.etAmount.getText().toString().trim();
-                Date dueDate = dueDatePicker.getSelectedDate();
+                String dueDayStr = dialogBinding.etDueDate.getText().toString().trim();
                 Date expiryDate = expiryDatePicker.getSelectedDate();
 
-                if (name.isEmpty() || amountStr.isEmpty() || dueDate == null || expiryDate == null) {
+                if (name.isEmpty() || amountStr.isEmpty() || dueDayStr.isEmpty() || expiryDate == null) {
                     Toast.makeText(requireContext(), "Please fill all fields", Toast.LENGTH_SHORT).show();
                     return;
                 }
 
                 try {
                     double amount = Double.parseDouble(amountStr);
-                    RecurringPayment payment = new RecurringPayment(name, amount, dueDate, expiryDate);
+                    int dueDay = Integer.parseInt(dueDayStr);
+                    
+                    if (dueDay < 1 || dueDay > 31) {
+                        Toast.makeText(requireContext(), "Due day must be between 1 and 31", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    
+                    RecurringPayment payment = new RecurringPayment(name, amount, dueDay, expiryDate);
                     viewModel.insert(payment);
                     Toast.makeText(requireContext(), "Payment added", Toast.LENGTH_SHORT).show();
                     dialog.dismiss();
                 } catch (NumberFormatException e) {
-                    Toast.makeText(requireContext(), "Invalid amount", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(requireContext(), "Invalid amount or due day", Toast.LENGTH_SHORT).show();
                 }
             });
         });
@@ -127,19 +131,16 @@ public class RecurringPaymentsFragment extends Fragment {
         // Pre-fill the fields
         dialogBinding.etPaymentName.setText(payment.getName());
         dialogBinding.etAmount.setText(String.valueOf(payment.getAmount()));
+        dialogBinding.etDueDate.setText(String.valueOf(payment.getDueDay()));
         
-        // Set up date pickers with initial dates
-        dueDatePicker.setSelectedDate(payment.getDueDate());
+        // Set up expiry date picker with initial date
         expiryDatePicker.setSelectedDate(payment.getExpiryDate());
         
-        // Set initial date text
-        dialogBinding.etDueDate.setText(dueDatePicker.getSelectedDate() != null ? 
-            new SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()).format(dueDatePicker.getSelectedDate()) : "");
+        // Set initial expiry date text
         dialogBinding.etExpiryDate.setText(expiryDatePicker.getSelectedDate() != null ? 
             new SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()).format(expiryDatePicker.getSelectedDate()) : "");
 
-        // Set up date picker click listeners
-        dialogBinding.etDueDate.setOnClickListener(v -> dueDatePicker.showDatePicker(dialogBinding.etDueDate, payment.getDueDate()));
+        // Set up expiry date picker click listener
         dialogBinding.etExpiryDate.setOnClickListener(v -> expiryDatePicker.showDatePicker(dialogBinding.etExpiryDate, payment.getExpiryDate()));
 
         AlertDialog dialog = new AlertDialog.Builder(requireContext(), 
@@ -160,25 +161,32 @@ public class RecurringPaymentsFragment extends Fragment {
             positiveButton.setOnClickListener(v -> {
                 String name = dialogBinding.etPaymentName.getText().toString().trim();
                 String amountStr = dialogBinding.etAmount.getText().toString().trim();
-                Date dueDate = dueDatePicker.getSelectedDate();
+                String dueDayStr = dialogBinding.etDueDate.getText().toString().trim();
                 Date expiryDate = expiryDatePicker.getSelectedDate();
 
-                if (name.isEmpty() || amountStr.isEmpty() || dueDate == null || expiryDate == null) {
+                if (name.isEmpty() || amountStr.isEmpty() || dueDayStr.isEmpty() || expiryDate == null) {
                     Toast.makeText(requireContext(), "Please fill all fields", Toast.LENGTH_SHORT).show();
                     return;
                 }
 
                 try {
                     double amount = Double.parseDouble(amountStr);
+                    int dueDay = Integer.parseInt(dueDayStr);
+                    
+                    if (dueDay < 1 || dueDay > 31) {
+                        Toast.makeText(requireContext(), "Due day must be between 1 and 31", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    
                     payment.setName(name);
                     payment.setAmount(amount);
-                    payment.setDueDate(dueDate);
+                    payment.setDueDay(dueDay);
                     payment.setExpiryDate(expiryDate);
                     viewModel.update(payment);
                     Toast.makeText(requireContext(), "Payment updated", Toast.LENGTH_SHORT).show();
                     dialog.dismiss();
                 } catch (NumberFormatException e) {
-                    Toast.makeText(requireContext(), "Invalid amount", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(requireContext(), "Invalid amount or due day", Toast.LENGTH_SHORT).show();
                 }
             });
         });

@@ -6,7 +6,7 @@ import java.util.List;
 
 @Dao
 public interface RecurringPaymentDao {
-    @Query("SELECT * FROM recurring_payments ORDER BY dueDate ASC")
+    @Query("SELECT * FROM recurring_payments ORDER BY dueDay ASC")
     LiveData<List<RecurringPayment>> getAllRecurringPayments();
 
     @Insert
