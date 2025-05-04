@@ -8,7 +8,7 @@ import androidx.room.TypeConverters;
 import androidx.room.migration.Migration;
 import androidx.sqlite.db.SupportSQLiteDatabase;
 
-@Database(entities = {Transaction.class, TotalExpense.class, TotalIncome.class}, version = 4, exportSchema = false)
+@Database(entities = {Transaction.class, TotalExpense.class, TotalIncome.class, Category.class}, version = 5, exportSchema = false)
 @TypeConverters(Converters.class)
 public abstract class AppDatabase extends RoomDatabase {
     private static volatile AppDatabase INSTANCE;
@@ -54,9 +54,50 @@ public abstract class AppDatabase extends RoomDatabase {
         }
     };
 
+    // Migration from version 4 to 5
+    private static final Migration MIGRATION_4_5 = new Migration(4, 5) {
+        @Override
+        public void migrate(SupportSQLiteDatabase database) {
+            // Create the categories table
+            database.execSQL(
+                "CREATE TABLE IF NOT EXISTS `categories` (" +
+                "`id` INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, " +
+                "`name` TEXT NOT NULL, " +
+                "`type` TEXT NOT NULL" +
+                ")");
+
+            // Insert default categories
+            String[] defaultExpenseCategories = {
+                "Food", "Household", "Movies", "Fuel", "Home Food",
+                "Home Household", "Family", "Home Entertainment",
+                "Vehicle", "Transport", "Entertainment", "Others"
+            };
+
+            for (String category : defaultExpenseCategories) {
+                database.execSQL(
+                    "INSERT INTO categories (name, type) VALUES (?, ?)",
+                    new Object[]{category, "EXPENSE"}
+                );
+            }
+
+            // Insert default income categories
+            String[] defaultIncomeCategories = {
+                "Salary", "Business", "Investment", "Gift", "Others"
+            };
+
+            for (String category : defaultIncomeCategories) {
+                database.execSQL(
+                    "INSERT INTO categories (name, type) VALUES (?, ?)",
+                    new Object[]{category, "INCOME"}
+                );
+            }
+        }
+    };
+
     public abstract TransactionDao transactionDao();
     public abstract TotalExpenseDao totalExpenseDao();
     public abstract TotalIncomeDao totalIncomeDao();
+    public abstract CategoryDao categoryDao();
 
     public static AppDatabase getDatabase(final Context context) {
         if (INSTANCE == null) {
@@ -64,7 +105,7 @@ public abstract class AppDatabase extends RoomDatabase {
                 if (INSTANCE == null) {
                     INSTANCE = Room.databaseBuilder(context.getApplicationContext(),
                             AppDatabase.class, "expense_mate_database")
-                            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+                            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
                             .build();
                 }
             }
