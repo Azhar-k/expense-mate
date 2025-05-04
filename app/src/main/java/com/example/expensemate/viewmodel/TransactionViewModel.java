@@ -209,6 +209,10 @@ public class TransactionViewModel extends AndroidViewModel {
         return categorySums;
     }
 
+    public LiveData<List<CategorySum>> getCategorySumsByMonthYear(String month, String year) {
+        return transactionDao.getCategorySumsByMonthYear(month, year);
+    }
+
     @Override
     protected void onCleared() {
         super.onCleared();
