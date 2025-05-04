@@ -4,14 +4,23 @@
     android:layout_height="wrap_content"
     android:orientation="vertical"
     android:background="@color/white"
-    android:padding="32dp"
-    android:layout_margin="16dp">
+    android:padding="40dp"
+    android:layout_margin="24dp">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Category Details"
+        android:textColor="@color/black"
+        android:textSize="24sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="24dp"/>
 
     <com.google.android.material.textfield.TextInputLayout
         android:id="@+id/tilCategoryName"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="20dp"
+        android:layout_marginBottom="24dp"
         style="@style/CustomTextInputLayout"
         android:hint="Category Name">
 
@@ -21,7 +30,7 @@
             android:layout_height="wrap_content"
             android:inputType="text"
             android:textColor="@color/black"
-            android:textSize="18sp"
+            android:textSize="20sp"
             android:padding="16dp" />
 
     </com.google.android.material.textfield.TextInputLayout>
@@ -30,7 +39,7 @@
         android:id="@+id/tilCategoryType"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="20dp"
+        android:layout_marginBottom="24dp"
         style="@style/CustomTextInputLayout"
         android:hint="Category Type">
 
@@ -40,7 +49,7 @@
             android:layout_height="wrap_content"
             android:inputType="none"
             android:textColor="@color/black"
-            android:textSize="18sp"
+            android:textSize="20sp"
             android:padding="16dp"
             android:focusable="false"
             android:clickable="true" />
