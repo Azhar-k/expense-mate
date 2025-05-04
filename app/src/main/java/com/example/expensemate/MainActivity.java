@@ -29,6 +29,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     private DrawerLayout drawerLayout;
     private ActionBarDrawerToggle drawerToggle;
     private BottomNavigationView bottomNavView;
+    private NavigationView navigationView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -42,7 +43,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
         // Set up drawer
         drawerLayout = findViewById(R.id.drawer_layout);
-        NavigationView navigationView = findViewById(R.id.nav_view_drawer);
+        navigationView = findViewById(R.id.nav_view_drawer);
         navigationView.setNavigationItemSelectedListener(this);
 
         // Set up drawer toggle
@@ -64,12 +65,14 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             bottomNavView = findViewById(R.id.nav_view);
             NavigationUI.setupWithNavController(bottomNavView, navController);
             
-            // Add navigation listener to handle bottom nav visibility
+            // Add navigation listener to handle bottom nav visibility and drawer selection
             navController.addOnDestinationChangedListener((controller, destination, arguments) -> {
                 if (destination.getId() == R.id.navigation_categories) {
                     bottomNavView.setVisibility(View.GONE);
+                    navigationView.setCheckedItem(R.id.nav_categories);
                 } else {
                     bottomNavView.setVisibility(View.VISIBLE);
+                    navigationView.setCheckedItem(R.id.nav_home);
                 }
             });
         }
