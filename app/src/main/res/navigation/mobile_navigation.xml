@@ -29,4 +29,10 @@
         android:label="Categories"
         tools:layout="@layout/fragment_categories" />
 
+    <fragment
+        android:id="@+id/navigation_recurring_payments"
+        android:name="com.example.expensemate.ui.RecurringPaymentsFragment"
+        android:label="@string/recurring_payments"
+        tools:layout="@layout/fragment_recurring_payments" />
+
 </navigation>

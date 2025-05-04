@@ -11,4 +11,14 @@
     <string name="menu_gallery">Gallery</string>
     <string name="menu_slideshow">Slideshow</string>
     <string name="menu_transactions">Transactions</string>
+
+    <string name="recurring_payments">Recurring Payments</string>
+    <string name="add_recurring_payment">Add Recurring Payment</string>
+    <string name="mark_as_completed">Mark as completed</string>
+    <string name="due_date">Due Date:</string>
+    <string name="expiry_date">Expiry Date:</string>
+    <string name="payment_name">Payment Name</string>
+    <string name="payment_amount">Amount</string>
+    <string name="save">Save</string>
+    <string name="cancel">Cancel</string>
 </resources>

@@ -8,7 +8,7 @@ import androidx.room.TypeConverters;
 import androidx.room.migration.Migration;
 import androidx.sqlite.db.SupportSQLiteDatabase;
 
-@Database(entities = {Transaction.class, Category.class}, version = 6, exportSchema = false)
+@Database(entities = {Transaction.class, Category.class, RecurringPayment.class}, version = 7, exportSchema = false)
 @TypeConverters(Converters.class)
 public abstract class AppDatabase extends RoomDatabase {
     private static volatile AppDatabase INSTANCE;
@@ -105,8 +105,26 @@ public abstract class AppDatabase extends RoomDatabase {
         }
     };
 
+    private static final Migration MIGRATION_6_7 = new Migration(6, 7) {
+        @Override
+        public void migrate(SupportSQLiteDatabase database) {
+            // Create the recurring_payments table
+            database.execSQL(
+                "CREATE TABLE IF NOT EXISTS `recurring_payments` (" +
+                "`id` INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, " +
+                "`name` TEXT, " +
+                "`amount` REAL NOT NULL, " +
+                "`dueDate` INTEGER, " +
+                "`expiryDate` INTEGER, " +
+                "`isCompleted` INTEGER NOT NULL DEFAULT 0, " +
+                "`lastCompletedDate` INTEGER" +
+                ")");
+        }
+    };
+
     public abstract TransactionDao transactionDao();
     public abstract CategoryDao categoryDao();
+    public abstract RecurringPaymentDao recurringPaymentDao();
 
     public static AppDatabase getDatabase(final Context context) {
         if (INSTANCE == null) {
@@ -114,7 +132,8 @@ public abstract class AppDatabase extends RoomDatabase {
                 if (INSTANCE == null) {
                     INSTANCE = Room.databaseBuilder(context.getApplicationContext(),
                             AppDatabase.class, "expense_mate_database")
-                            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
+                            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, 
+                                         MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
                             .build();
                 }
             }

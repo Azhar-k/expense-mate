@@ -13,6 +13,10 @@
             android:icon="@drawable/ic_category"
             android:title="Categories" />
         <item
+            android:id="@+id/nav_recurring_payments"
+            android:icon="@drawable/ic_recurring"
+            android:title="@string/recurring_payments" />
+        <item
             android:id="@+id/nav_settings"
             android:icon="@drawable/ic_settings"
             android:title="Settings" />
