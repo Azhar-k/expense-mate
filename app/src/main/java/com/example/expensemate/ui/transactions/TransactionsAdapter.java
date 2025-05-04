@@ -2,6 +2,7 @@ package com.example.expensemate.ui.transactions;
 
 import android.app.AlertDialog;
 import android.app.DatePickerDialog;
+import android.app.TimePickerDialog;
 import android.content.Context;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -65,18 +66,31 @@ public class TransactionsAdapter extends ListAdapter<Transaction, TransactionsAd
                 LayoutInflater.from(context)
         );
 
-        // Set up date field
-        SimpleDateFormat dateFormat = new SimpleDateFormat("dd MMM yyyy", Locale.getDefault());
+        // Set up date and time field
+        SimpleDateFormat dateTimeFormat = new SimpleDateFormat("dd MMM yyyy, HH:mm", Locale.getDefault());
         Calendar calendar = Calendar.getInstance();
-        dialogBinding.etDate.setText(dateFormat.format(calendar.getTime()));
+        dialogBinding.etDate.setText(dateTimeFormat.format(calendar.getTime()));
         
-        // Set up date picker
+        // Set up date and time pickers
         dialogBinding.etDate.setOnClickListener(v -> {
+            // Show date picker first
             DatePickerDialog datePickerDialog = new DatePickerDialog(
                 context,
                 (view, year, month, dayOfMonth) -> {
                     calendar.set(year, month, dayOfMonth);
-                    dialogBinding.etDate.setText(dateFormat.format(calendar.getTime()));
+                    // After date is selected, show time picker
+                    TimePickerDialog timePickerDialog = new TimePickerDialog(
+                        context,
+                        (timeView, hourOfDay, minute) -> {
+                            calendar.set(Calendar.HOUR_OF_DAY, hourOfDay);
+                            calendar.set(Calendar.MINUTE, minute);
+                            dialogBinding.etDate.setText(dateTimeFormat.format(calendar.getTime()));
+                        },
+                        calendar.get(Calendar.HOUR_OF_DAY),
+                        calendar.get(Calendar.MINUTE),
+                        true
+                    );
+                    timePickerDialog.show();
                 },
                 calendar.get(Calendar.YEAR),
                 calendar.get(Calendar.MONTH),
@@ -229,19 +243,33 @@ public class TransactionsAdapter extends ListAdapter<Transaction, TransactionsAd
             dialogBinding.etCategory.setText(transaction.getCategory());
             dialogBinding.etTransactionType.setText(transaction.getTransactionType());
             
-            // Set up date field
-            dialogBinding.etDate.setText(dateFormat.format(transaction.getDate()));
+            // Set up date and time field
+            SimpleDateFormat dateTimeFormat = new SimpleDateFormat("dd MMM yyyy, HH:mm", Locale.getDefault());
+            dialogBinding.etDate.setText(dateTimeFormat.format(transaction.getDate()));
             
-            // Set up date picker
+            // Set up date and time pickers
             Calendar calendar = Calendar.getInstance();
             calendar.setTime(transaction.getDate());
             
             dialogBinding.etDate.setOnClickListener(v -> {
+                // Show date picker first
                 DatePickerDialog datePickerDialog = new DatePickerDialog(
                     context,
                     (view, year, month, dayOfMonth) -> {
                         calendar.set(year, month, dayOfMonth);
-                        dialogBinding.etDate.setText(dateFormat.format(calendar.getTime()));
+                        // After date is selected, show time picker
+                        TimePickerDialog timePickerDialog = new TimePickerDialog(
+                            context,
+                            (timeView, hourOfDay, minute) -> {
+                                calendar.set(Calendar.HOUR_OF_DAY, hourOfDay);
+                                calendar.set(Calendar.MINUTE, minute);
+                                dialogBinding.etDate.setText(dateTimeFormat.format(calendar.getTime()));
+                            },
+                            calendar.get(Calendar.HOUR_OF_DAY),
+                            calendar.get(Calendar.MINUTE),
+                            true
+                        );
+                        timePickerDialog.show();
                     },
                     calendar.get(Calendar.YEAR),
                     calendar.get(Calendar.MONTH),
