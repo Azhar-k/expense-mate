@@ -38,4 +38,41 @@ public interface TransactionDao {
 
     @Query("SELECT category, SUM(amount) as total FROM transactions WHERE transactionType = 'DEBIT' GROUP BY category ORDER BY total DESC")
     LiveData<List<CategorySum>> getCategorySums();
+
+    @Query("SELECT SUM(amount) FROM transactions WHERE transactionType = 'DEBIT' AND strftime('%Y-%m', date/1000, 'unixepoch') = strftime('%Y-%m', 'now')")
+    LiveData<Double> getCurrentMonthExpense();
+
+    @Query("SELECT SUM(amount) FROM transactions WHERE transactionType = 'CREDIT' AND strftime('%Y-%m', date/1000, 'unixepoch') = strftime('%Y-%m', 'now')")
+    LiveData<Double> getCurrentMonthIncome();
+
+    @Query("SELECT * FROM transactions WHERE strftime('%m', datetime(date/1000, 'unixepoch')) = :month AND strftime('%Y', datetime(date/1000, 'unixepoch')) = :year ORDER BY date DESC")
+    LiveData<List<Transaction>> getTransactionsByMonthYear(String month, String year);
+
+    @Query("SELECT COALESCE(SUM(amount), 0) FROM transactions WHERE transactionType = 'DEBIT' " +
+           "AND strftime('%m', datetime(date/1000, 'unixepoch')) = :month " +
+           "AND strftime('%Y', datetime(date/1000, 'unixepoch')) = :year")
+    LiveData<Double> getExpenseByMonthYear(String month, String year);
+
+    @Query("SELECT COALESCE(SUM(amount), 0) FROM transactions WHERE transactionType = 'CREDIT' " +
+           "AND strftime('%m', datetime(date/1000, 'unixepoch')) = :month " +
+           "AND strftime('%Y', datetime(date/1000, 'unixepoch')) = :year")
+    LiveData<Double> getIncomeByMonthYear(String month, String year);
+
+    @Query("SELECT category, SUM(amount) as total FROM transactions " +
+           "WHERE transactionType = 'DEBIT' " +
+           "AND strftime('%m', datetime(date/1000, 'unixepoch')) = :month " +
+           "AND strftime('%Y', datetime(date/1000, 'unixepoch')) = :year " +
+           "GROUP BY category ORDER BY total DESC")
+    LiveData<List<CategorySum>> getCategorySumsByMonthYear(String month, String year);
+
+    // Synchronous methods for getting totals
+    @Query("SELECT COALESCE(SUM(amount), 0) FROM transactions WHERE transactionType = 'DEBIT' " +
+           "AND strftime('%m', datetime(date/1000, 'unixepoch')) = :month " +
+           "AND strftime('%Y', datetime(date/1000, 'unixepoch')) = :year")
+    Double getExpenseByMonthYearSync(String month, String year);
+
+    @Query("SELECT COALESCE(SUM(amount), 0) FROM transactions WHERE transactionType = 'CREDIT' " +
+           "AND strftime('%m', datetime(date/1000, 'unixepoch')) = :month " +
+           "AND strftime('%Y', datetime(date/1000, 'unixepoch')) = :year")
+    Double getIncomeByMonthYearSync(String month, String year);
 } 

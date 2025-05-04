@@ -2,6 +2,7 @@ package com.example.expensemate.data;
 
 import androidx.room.Entity;
 import androidx.room.PrimaryKey;
+import androidx.room.TypeConverters;
 import java.util.Date;
 
 @Entity(tableName = "transactions")
@@ -10,7 +11,10 @@ public class Transaction {
     private long id;
     private double amount;
     private String description;
+    
+    @TypeConverters(Converters.class)
     private Date date;
+    
     private String accountNumber;
     private String accountType; // "BANK" or "CREDIT_CARD"
     private String transactionType; // "DEBIT" or "CREDIT"
@@ -21,6 +25,7 @@ public class Transaction {
 
     public Transaction() {
         this.category = "Others"; // Default category
+        this.date = new Date(); // Initialize with current date
     }
 
     public Transaction(double amount, String description, Date date, String accountNumber,
@@ -28,7 +33,7 @@ public class Transaction {
                       String smsBody, String smsSender) {
         this.amount = amount;
         this.description = description;
-        this.date = date;
+        this.date = date != null ? date : new Date();
         this.accountNumber = accountNumber;
         this.accountType = accountType;
         this.transactionType = transactionType;
@@ -68,7 +73,7 @@ public class Transaction {
     }
 
     public void setDate(Date date) {
-        this.date = date;
+        this.date = date != null ? date : new Date();
     }
 
     public String getAccountNumber() {
@@ -124,6 +129,6 @@ public class Transaction {
     }
 
     public void setCategory(String category) {
-        this.category = category;
+        this.category = category != null ? category : "Others";
     }
 } 

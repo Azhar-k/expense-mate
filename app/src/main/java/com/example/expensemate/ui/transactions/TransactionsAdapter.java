@@ -1,6 +1,7 @@
 package com.example.expensemate.ui.transactions;
 
 import android.app.AlertDialog;
+import android.app.DatePickerDialog;
 import android.content.Context;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -24,6 +25,7 @@ import com.example.expensemate.viewmodel.CategoryViewModel;
 import com.example.expensemate.viewmodel.TransactionViewModel;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
@@ -62,6 +64,26 @@ public class TransactionsAdapter extends ListAdapter<Transaction, TransactionsAd
         DialogEditTransactionBinding dialogBinding = DialogEditTransactionBinding.inflate(
                 LayoutInflater.from(context)
         );
+
+        // Set up date field
+        SimpleDateFormat dateFormat = new SimpleDateFormat("dd MMM yyyy", Locale.getDefault());
+        Calendar calendar = Calendar.getInstance();
+        dialogBinding.etDate.setText(dateFormat.format(calendar.getTime()));
+        
+        // Set up date picker
+        dialogBinding.etDate.setOnClickListener(v -> {
+            DatePickerDialog datePickerDialog = new DatePickerDialog(
+                context,
+                (view, year, month, dayOfMonth) -> {
+                    calendar.set(year, month, dayOfMonth);
+                    dialogBinding.etDate.setText(dateFormat.format(calendar.getTime()));
+                },
+                calendar.get(Calendar.YEAR),
+                calendar.get(Calendar.MONTH),
+                calendar.get(Calendar.DAY_OF_MONTH)
+            );
+            datePickerDialog.show();
+        });
 
         // Set up transaction types dropdown
         String[] transactionTypes = {"DEBIT", "CREDIT"};
@@ -140,7 +162,7 @@ public class TransactionsAdapter extends ListAdapter<Transaction, TransactionsAd
                     Transaction newTransaction = new Transaction(
                             Double.parseDouble(amountStr),
                             description,
-                            new Date(),
+                            calendar.getTime(),
                             "",
                             "",
                             transactionType,
@@ -206,6 +228,27 @@ public class TransactionsAdapter extends ListAdapter<Transaction, TransactionsAd
             dialogBinding.etReceiverName.setText(transaction.getReceiverName());
             dialogBinding.etCategory.setText(transaction.getCategory());
             dialogBinding.etTransactionType.setText(transaction.getTransactionType());
+            
+            // Set up date field
+            dialogBinding.etDate.setText(dateFormat.format(transaction.getDate()));
+            
+            // Set up date picker
+            Calendar calendar = Calendar.getInstance();
+            calendar.setTime(transaction.getDate());
+            
+            dialogBinding.etDate.setOnClickListener(v -> {
+                DatePickerDialog datePickerDialog = new DatePickerDialog(
+                    context,
+                    (view, year, month, dayOfMonth) -> {
+                        calendar.set(year, month, dayOfMonth);
+                        dialogBinding.etDate.setText(dateFormat.format(calendar.getTime()));
+                    },
+                    calendar.get(Calendar.YEAR),
+                    calendar.get(Calendar.MONTH),
+                    calendar.get(Calendar.DAY_OF_MONTH)
+                );
+                datePickerDialog.show();
+            });
 
             // Set up transaction type dropdown
             String[] transactionTypes = {"DEBIT", "CREDIT"};
@@ -282,7 +325,7 @@ public class TransactionsAdapter extends ListAdapter<Transaction, TransactionsAd
                         Transaction updatedTransaction = new Transaction(
                                 Double.parseDouble(amountStr),
                                 description,
-                                transaction.getDate(),
+                                calendar.getTime(),
                                 transaction.getAccountNumber(),
                                 transaction.getAccountType(),
                                 transactionType,
