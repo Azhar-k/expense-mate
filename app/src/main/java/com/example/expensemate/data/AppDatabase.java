@@ -8,7 +8,7 @@ import androidx.room.TypeConverters;
 import androidx.room.migration.Migration;
 import androidx.sqlite.db.SupportSQLiteDatabase;
 
-@Database(entities = {Transaction.class, TotalExpense.class, TotalIncome.class, Category.class}, version = 5, exportSchema = false)
+@Database(entities = {Transaction.class, Category.class}, version = 6, exportSchema = false)
 @TypeConverters(Converters.class)
 public abstract class AppDatabase extends RoomDatabase {
     private static volatile AppDatabase INSTANCE;
@@ -94,9 +94,18 @@ public abstract class AppDatabase extends RoomDatabase {
         }
     };
 
+    private static final Migration MIGRATION_5_6 = new Migration(5, 6) {
+        @Override
+        public void migrate(SupportSQLiteDatabase database) {
+            // Create the total_income table
+            database.execSQL(
+                    "DROP TABLE IF EXISTS `total_income`");
+            database.execSQL(
+                    "DROP TABLE IF EXISTS `total_expense`");
+        }
+    };
+
     public abstract TransactionDao transactionDao();
-    public abstract TotalExpenseDao totalExpenseDao();
-    public abstract TotalIncomeDao totalIncomeDao();
     public abstract CategoryDao categoryDao();
 
     public static AppDatabase getDatabase(final Context context) {
@@ -105,7 +114,7 @@ public abstract class AppDatabase extends RoomDatabase {
                 if (INSTANCE == null) {
                     INSTANCE = Room.databaseBuilder(context.getApplicationContext(),
                             AppDatabase.class, "expense_mate_database")
-                            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+                            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
                             .build();
                 }
             }

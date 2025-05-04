@@ -5,14 +5,9 @@ import android.util.Log;
 import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
-import androidx.lifecycle.Transformations;
 import com.example.expensemate.data.AppDatabase;
 import com.example.expensemate.data.Transaction;
 import com.example.expensemate.data.TransactionDao;
-import com.example.expensemate.data.TotalExpense;
-import com.example.expensemate.data.TotalExpenseDao;
-import com.example.expensemate.data.TotalIncome;
-import com.example.expensemate.data.TotalIncomeDao;
 import com.example.expensemate.data.CategorySum;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
@@ -25,8 +20,6 @@ public class TransactionViewModel extends AndroidViewModel {
     private static final String TAG = "TransactionViewModel";
     private final AppDatabase database;
     private final TransactionDao transactionDao;
-    private final TotalExpenseDao totalExpenseDao;
-    private final TotalIncomeDao totalIncomeDao;
     private final ExecutorService executorService;
     private final LiveData<List<Transaction>> allTransactions;
     private final MutableLiveData<String> selectedMonth = new MutableLiveData<>();
@@ -39,8 +32,6 @@ public class TransactionViewModel extends AndroidViewModel {
         super(application);
         database = AppDatabase.getDatabase(application);
         transactionDao = database.transactionDao();
-        totalExpenseDao = database.totalExpenseDao();
-        totalIncomeDao = database.totalIncomeDao();
         executorService = Executors.newSingleThreadExecutor();
         allTransactions = transactionDao.getAllTransactions();
         
@@ -112,17 +103,6 @@ public class TransactionViewModel extends AndroidViewModel {
             try {
                 Log.d(TAG, "Inserting transaction: " + transaction.getAmount() + " " + transaction.getTransactionType());
                 transactionDao.insertTransaction(transaction);
-                
-                // Update total expense if it's a debit transaction
-                if (transaction.getTransactionType().equals("DEBIT")) {
-                    totalExpenseDao.incrementAmount(transaction.getAmount());
-                }
-                // Update total income if it's a credit transaction
-                else if (transaction.getTransactionType().equals("CREDIT")) {
-                    Log.d(TAG, "Updating total income for credit transaction");
-                    totalIncomeDao.incrementAmount(transaction.getAmount());
-                }
-                
                 // Update the current period totals
                 updatePeriodLiveData();
             } catch (Exception e) {
@@ -136,17 +116,6 @@ public class TransactionViewModel extends AndroidViewModel {
             try {
                 Log.d(TAG, "Deleting transaction: " + transaction.getAmount() + " " + transaction.getTransactionType());
                 transactionDao.deleteTransaction(transaction);
-                
-                // Update total expense if it's a debit transaction
-                if (transaction.getTransactionType().equals("DEBIT")) {
-                    totalExpenseDao.decrementAmount(transaction.getAmount());
-                }
-                // Update total income if it's a credit transaction
-                else if (transaction.getTransactionType().equals("CREDIT")) {
-                    Log.d(TAG, "Updating total income for deleted credit transaction");
-                    totalIncomeDao.decrementAmount(transaction.getAmount());
-                }
-                
                 // Update the current period totals
                 updatePeriodLiveData();
             } catch (Exception e) {
@@ -159,20 +128,6 @@ public class TransactionViewModel extends AndroidViewModel {
         executorService.execute(() -> {
             try {
                 Log.d(TAG, "Updating transaction: " + oldTransaction.getId());
-                
-                // Update totals based on old transaction type
-                if (oldTransaction.getTransactionType().equals("DEBIT")) {
-                    totalExpenseDao.decrementAmount(oldTransaction.getAmount());
-                } else if (oldTransaction.getTransactionType().equals("CREDIT")) {
-                    totalIncomeDao.decrementAmount(oldTransaction.getAmount());
-                }
-                
-                // Update totals based on new transaction type
-                if (newTransaction.getTransactionType().equals("DEBIT")) {
-                    totalExpenseDao.incrementAmount(newTransaction.getAmount());
-                } else if (newTransaction.getTransactionType().equals("CREDIT")) {
-                    totalIncomeDao.incrementAmount(newTransaction.getAmount());
-                }
                 
                 // Update the transaction
                 transactionDao.updateTransaction(
