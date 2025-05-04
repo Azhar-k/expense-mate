@@ -6,6 +6,7 @@ import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.MenuItem;
+import android.view.View;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBarDrawerToggle;
 import androidx.appcompat.app.AppCompatActivity;
@@ -15,6 +16,7 @@ import androidx.core.content.ContextCompat;
 import androidx.core.view.GravityCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.navigation.NavController;
+import androidx.navigation.NavDestination;
 import androidx.navigation.fragment.NavHostFragment;
 import androidx.navigation.ui.NavigationUI;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
@@ -26,6 +28,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     private static final int SMS_PERMISSION_REQUEST_CODE = 123;
     private DrawerLayout drawerLayout;
     private ActionBarDrawerToggle drawerToggle;
+    private BottomNavigationView bottomNavView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -58,8 +61,17 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 .findFragmentById(R.id.nav_host_fragment);
         if (navHostFragment != null) {
             NavController navController = navHostFragment.getNavController();
-            BottomNavigationView navView = findViewById(R.id.nav_view);
-            NavigationUI.setupWithNavController(navView, navController);
+            bottomNavView = findViewById(R.id.nav_view);
+            NavigationUI.setupWithNavController(bottomNavView, navController);
+            
+            // Add navigation listener to handle bottom nav visibility
+            navController.addOnDestinationChangedListener((controller, destination, arguments) -> {
+                if (destination.getId() == R.id.navigation_categories) {
+                    bottomNavView.setVisibility(View.GONE);
+                } else {
+                    bottomNavView.setVisibility(View.VISIBLE);
+                }
+            });
         }
 
         // Check and request SMS permission
@@ -72,8 +84,14 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     @Override
     public boolean onNavigationItemSelected(@NonNull MenuItem item) {
         int id = item.getItemId();
+        NavController navController = ((NavHostFragment) getSupportFragmentManager()
+                .findFragmentById(R.id.nav_host_fragment)).getNavController();
         
-        if (id == R.id.nav_settings) {
+        if (id == R.id.nav_home) {
+            navController.navigate(R.id.navigation_expense);
+        } else if (id == R.id.nav_categories) {
+            navController.navigate(R.id.navigation_categories);
+        } else if (id == R.id.nav_settings) {
             // TODO: Handle settings
         } else if (id == R.id.nav_about) {
             // TODO: Handle about

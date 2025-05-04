@@ -12,8 +12,4 @@
         android:id="@+id/navigation_summary"
         android:icon="@drawable/ic_menu_summary"
         android:title="Summary" />
-    <item
-        android:id="@+id/navigation_categories"
-        android:icon="@drawable/ic_category"
-        android:title="Categories" />
 </menu> 
