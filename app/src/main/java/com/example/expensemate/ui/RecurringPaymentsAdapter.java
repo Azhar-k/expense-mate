@@ -63,23 +63,6 @@ public class RecurringPaymentsAdapter extends ListAdapter<RecurringPayment, Recu
         this.fragment = fragment;
     }
 
-    public double getTotalAmount() {
-        double total = 0;
-        for (RecurringPayment payment : getCurrentList()) {
-            total += payment.getAmount();
-        }
-        return total;
-    }
-
-    public double getRemainingAmount() {
-        double remaining = 0;
-        for (RecurringPayment payment : getCurrentList()) {
-            if (!payment.isCompleted()) {
-                remaining += payment.getAmount();
-            }
-        }
-        return remaining;
-    }
 
     public boolean areAllCompleted() {
         for (RecurringPayment payment : getCurrentList()) {

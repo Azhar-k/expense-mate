@@ -33,6 +33,7 @@ public class RecurringPaymentsFragment extends Fragment {
     private ImageButton selectAllButton;
     private TextView totalAmountTextView;
     private TextView remainingAmountTextView;
+    private TextView selectAllTextView;
     private boolean isAllSelected = false;
 
     @Override
@@ -69,6 +70,7 @@ public class RecurringPaymentsFragment extends Fragment {
         recyclerView.setAdapter(adapter);
 
         selectAllButton = view.findViewById(R.id.btn_select_all);
+        selectAllTextView = view.findViewById(R.id.tv_select_all);
         totalAmountTextView = view.findViewById(R.id.tv_total_amount);
         remainingAmountTextView = view.findViewById(R.id.tv_remaining_amount);
         selectAllButton.setOnClickListener(v -> toggleSelectAll());
@@ -79,6 +81,7 @@ public class RecurringPaymentsFragment extends Fragment {
         // Observe recurring payments
         viewModel.getRecurringPayments().observe(getViewLifecycleOwner(), payments -> {
             adapter.submitList(payments);
+            updateUI();
         });
 
         // Observe total amount
@@ -112,25 +115,30 @@ public class RecurringPaymentsFragment extends Fragment {
                 }
             }
         }
+        updateSelectAllUI();
+    }
+
+    private void updateSelectAllUI() {
+        if (selectAllTextView != null) {
+            selectAllTextView.setText(isAllSelected ? "NONE" : "ALL");
+        }
     }
 
     private void updateUI() {
         List<RecurringPayment> payments = adapter.getCurrentList();
         if (payments == null || payments.isEmpty()) {
             selectAllButton.setVisibility(View.GONE);
+            selectAllTextView.setVisibility(View.GONE);
             totalAmountTextView.setText("Total: ₹0.00");
             remainingAmountTextView.setText("Remaining: ₹0.00");
             return;
         }
 
         selectAllButton.setVisibility(View.VISIBLE);
+        selectAllTextView.setVisibility(View.VISIBLE);
         boolean allCompleted = adapter.areAllCompleted();
         isAllSelected = allCompleted;
-
-        double total = adapter.getTotalAmount();
-        double remaining = adapter.getRemainingAmount();
-        totalAmountTextView.setText(String.format(Locale.getDefault(), "Total: ₹%.2f", total));
-        remainingAmountTextView.setText(String.format(Locale.getDefault(), "Remaining: ₹%.2f", remaining));
+        updateSelectAllUI();
     }
 
     private void showAddDialog() {
@@ -240,11 +248,13 @@ public class RecurringPaymentsFragment extends Fragment {
                         return;
                     }
                     
-                    payment.setName(name);
-                    payment.setAmount(amount);
-                    payment.setDueDay(dueDay);
-                    payment.setExpiryDate(expiryDate);
-                    viewModel.update(payment);
+                    // Create a new payment object with updated values
+                    RecurringPayment updatedPayment = new RecurringPayment(name, amount, dueDay, expiryDate);
+                    updatedPayment.setId(payment.getId());
+                    updatedPayment.setCompleted(payment.isCompleted());
+                    updatedPayment.setLastCompletedDate(payment.getLastCompletedDate());
+                    
+                    viewModel.update(updatedPayment);
                     Toast.makeText(requireContext(), "Payment updated", Toast.LENGTH_SHORT).show();
                     dialog.dismiss();
                 } catch (NumberFormatException e) {
