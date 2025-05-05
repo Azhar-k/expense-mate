@@ -11,15 +11,27 @@ import java.util.Date;
 public class RecurringPaymentsViewModel extends AndroidViewModel {
     private RecurringPaymentRepository repository;
     private LiveData<List<RecurringPayment>> allRecurringPayments;
+    private LiveData<Double> totalAmount;
+    private LiveData<Double> remainingAmount;
 
     public RecurringPaymentsViewModel(Application application) {
         super(application);
         repository = new RecurringPaymentRepository(application);
         allRecurringPayments = repository.getAllRecurringPayments();
+        totalAmount = repository.getTotalAmount();
+        remainingAmount = repository.getRemainingAmount();
     }
 
     public LiveData<List<RecurringPayment>> getRecurringPayments() {
         return allRecurringPayments;
+    }
+
+    public LiveData<Double> getTotalAmount() {
+        return totalAmount;
+    }
+
+    public LiveData<Double> getRemainingAmount() {
+        return remainingAmount;
     }
 
     public void insert(RecurringPayment payment) {

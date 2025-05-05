@@ -25,6 +25,14 @@ public class RecurringPaymentRepository {
         return allRecurringPayments;
     }
 
+    public LiveData<Double> getTotalAmount() {
+        return recurringPaymentDao.getTotalAmount();
+    }
+
+    public LiveData<Double> getRemainingAmount() {
+        return recurringPaymentDao.getRemainingAmount();
+    }
+
     public void insert(RecurringPayment payment) {
         executorService.execute(() -> recurringPaymentDao.insert(payment));
     }

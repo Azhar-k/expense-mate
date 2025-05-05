@@ -1,5 +1,6 @@
 package com.example.expensemate.ui;
 
+import android.graphics.Color;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -13,6 +14,8 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.expensemate.R;
 import com.example.expensemate.data.RecurringPayment;
 import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.Locale;
 
 public class RecurringPaymentsAdapter extends ListAdapter<RecurringPayment, RecurringPaymentsAdapter.PaymentViewHolder> {
@@ -60,6 +63,33 @@ public class RecurringPaymentsAdapter extends ListAdapter<RecurringPayment, Recu
         this.fragment = fragment;
     }
 
+    public double getTotalAmount() {
+        double total = 0;
+        for (RecurringPayment payment : getCurrentList()) {
+            total += payment.getAmount();
+        }
+        return total;
+    }
+
+    public double getRemainingAmount() {
+        double remaining = 0;
+        for (RecurringPayment payment : getCurrentList()) {
+            if (!payment.isCompleted()) {
+                remaining += payment.getAmount();
+            }
+        }
+        return remaining;
+    }
+
+    public boolean areAllCompleted() {
+        for (RecurringPayment payment : getCurrentList()) {
+            if (!payment.isCompleted()) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     class PaymentViewHolder extends RecyclerView.ViewHolder {
         private final TextView nameTextView;
         private final TextView amountTextView;
@@ -68,6 +98,7 @@ public class RecurringPaymentsAdapter extends ListAdapter<RecurringPayment, Recu
         private final CheckBox completedCheckBox;
         private final ImageButton editButton;
         private final ImageButton deleteButton;
+        private final View container;
 
         public PaymentViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -78,6 +109,7 @@ public class RecurringPaymentsAdapter extends ListAdapter<RecurringPayment, Recu
             completedCheckBox = itemView.findViewById(R.id.payment_completed);
             editButton = itemView.findViewById(R.id.btn_edit);
             deleteButton = itemView.findViewById(R.id.btn_delete);
+            container = itemView.findViewById(R.id.payment_container);
 
             editButton.setOnClickListener(v -> {
                 int position = getAdapterPosition();
@@ -107,6 +139,15 @@ public class RecurringPaymentsAdapter extends ListAdapter<RecurringPayment, Recu
             dueDateTextView.setText(String.format(Locale.getDefault(), "Day %d of every month", payment.getDueDay()));
             expiryDateTextView.setText(dateFormat.format(payment.getExpiryDate()));
             completedCheckBox.setChecked(payment.isCompleted());
+
+            // Check if payment is expired
+            Calendar calendar = Calendar.getInstance();
+            Date today = calendar.getTime();
+            if (payment.getExpiryDate().before(today)) {
+                container.setBackgroundColor(Color.parseColor("#FFFDE7")); // Light yellow
+            } else {
+                container.setBackgroundColor(Color.WHITE);
+            }
         }
     }
 

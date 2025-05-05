@@ -7,6 +7,8 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.Toast;
+import android.widget.TextView;
+import android.widget.ImageButton;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
@@ -20,6 +22,7 @@ import com.example.expensemate.viewmodel.RecurringPaymentsViewModel;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import java.util.Date;
 import java.text.SimpleDateFormat;
+import java.util.List;
 import java.util.Locale;
 
 public class RecurringPaymentsFragment extends Fragment {
@@ -27,6 +30,10 @@ public class RecurringPaymentsFragment extends Fragment {
     private RecyclerView recyclerView;
     private RecurringPaymentsAdapter adapter;
     private DatePickerHelper expiryDatePicker;
+    private ImageButton selectAllButton;
+    private TextView totalAmountTextView;
+    private TextView remainingAmountTextView;
+    private boolean isAllSelected = false;
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -61,14 +68,69 @@ public class RecurringPaymentsFragment extends Fragment {
         adapter.setFragment(this);
         recyclerView.setAdapter(adapter);
 
+        selectAllButton = view.findViewById(R.id.btn_select_all);
+        totalAmountTextView = view.findViewById(R.id.tv_total_amount);
+        remainingAmountTextView = view.findViewById(R.id.tv_remaining_amount);
+        selectAllButton.setOnClickListener(v -> toggleSelectAll());
+
         FloatingActionButton fab = view.findViewById(R.id.fab_add_recurring_payment);
         fab.setOnClickListener(v -> showAddDialog());
 
+        // Observe recurring payments
         viewModel.getRecurringPayments().observe(getViewLifecycleOwner(), payments -> {
             adapter.submitList(payments);
         });
 
+        // Observe total amount
+        viewModel.getTotalAmount().observe(getViewLifecycleOwner(), total -> {
+            if (total != null) {
+                totalAmountTextView.setText(String.format(Locale.getDefault(), "Total: ₹%.2f", total));
+            }
+        });
+
+        // Observe remaining amount
+        viewModel.getRemainingAmount().observe(getViewLifecycleOwner(), remaining -> {
+            if (remaining != null) {
+                remainingAmountTextView.setText(String.format(Locale.getDefault(), "Remaining: ₹%.2f", remaining));
+            }
+        });
+
         return view;
+    }
+
+    private void toggleSelectAll() {
+        List<RecurringPayment> currentList = adapter.getCurrentList();
+        if (currentList == null || currentList.isEmpty()) return;
+
+        isAllSelected = !isAllSelected;
+        for (RecurringPayment payment : currentList) {
+            if (payment.isCompleted() != isAllSelected) {
+                if (isAllSelected) {
+                    viewModel.markAsCompleted(payment);
+                } else {
+                    viewModel.resetCompletionStatus(payment);
+                }
+            }
+        }
+    }
+
+    private void updateUI() {
+        List<RecurringPayment> payments = adapter.getCurrentList();
+        if (payments == null || payments.isEmpty()) {
+            selectAllButton.setVisibility(View.GONE);
+            totalAmountTextView.setText("Total: ₹0.00");
+            remainingAmountTextView.setText("Remaining: ₹0.00");
+            return;
+        }
+
+        selectAllButton.setVisibility(View.VISIBLE);
+        boolean allCompleted = adapter.areAllCompleted();
+        isAllSelected = allCompleted;
+
+        double total = adapter.getTotalAmount();
+        double remaining = adapter.getRemainingAmount();
+        totalAmountTextView.setText(String.format(Locale.getDefault(), "Total: ₹%.2f", total));
+        remainingAmountTextView.setText(String.format(Locale.getDefault(), "Remaining: ₹%.2f", remaining));
     }
 
     private void showAddDialog() {
