@@ -166,6 +166,10 @@ public class TransactionViewModel extends AndroidViewModel {
         return transactionDao.getCategorySumsByMonthYear(month, year);
     }
 
+    public LiveData<List<Transaction>> getTransactionsByRecurringPaymentId(long paymentId) {
+        return transactionDao.getTransactionsByRecurringPaymentId(paymentId);
+    }
+
     @Override
     protected void onCleared() {
         super.onCleared();

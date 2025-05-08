@@ -37,6 +37,9 @@ public interface TransactionDao {
                          String accountType, String transactionType, String receiverName,
                          String smsBody, String smsSender, String category, Long linkedRecurringPaymentId);
 
+    @Query("SELECT * FROM transactions WHERE linkedRecurringPaymentId = :paymentId")
+    LiveData<List<Transaction>> getTransactionsByRecurringPaymentId(long paymentId);
+
     @Query("SELECT category, SUM(amount) as total FROM transactions " +
            "WHERE transactionType = 'DEBIT' AND linkedRecurringPaymentId IS NULL " +
            "AND strftime('%m', datetime(date/1000, 'unixepoch')) = :month " +
