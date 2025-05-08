@@ -19,10 +19,12 @@ import androidx.recyclerview.widget.ListAdapter;
 import androidx.recyclerview.widget.RecyclerView;
 import com.example.expensemate.R;
 import com.example.expensemate.data.Category;
+import com.example.expensemate.data.RecurringPayment;
 import com.example.expensemate.data.Transaction;
 import com.example.expensemate.databinding.DialogEditTransactionBinding;
 import com.example.expensemate.databinding.ItemTransactionBinding;
 import com.example.expensemate.viewmodel.CategoryViewModel;
+import com.example.expensemate.viewmodel.RecurringPaymentsViewModel;
 import com.example.expensemate.viewmodel.TransactionViewModel;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -36,6 +38,7 @@ public class TransactionsAdapter extends ListAdapter<Transaction, TransactionsAd
     private final CategoryViewModel categoryViewModel;
     private final SimpleDateFormat dateFormat;
     private final Context context;
+    private List<RecurringPayment> currentPayments;
 
     public TransactionsAdapter(TransactionViewModel viewModel, Context context) {
         super(new TransactionDiffCallback());
@@ -43,6 +46,7 @@ public class TransactionsAdapter extends ListAdapter<Transaction, TransactionsAd
         this.context = context;
         this.dateFormat = new SimpleDateFormat("dd MMM yyyy, HH:mm", Locale.getDefault());
         this.categoryViewModel = new ViewModelProvider((FragmentActivity) context).get(CategoryViewModel.class);
+        this.currentPayments = new ArrayList<>();
     }
 
     @NonNull
@@ -229,6 +233,24 @@ public class TransactionsAdapter extends ListAdapter<Transaction, TransactionsAd
             binding.tvDescription.setText(String.format("Description: %s", transaction.getDescription()));
             binding.tvTransactionType.setText(String.format("Type: %s", transaction.getTransactionType()));
             binding.tvReceiver.setText(String.format("Receiver: %s", transaction.getReceiverName()));
+
+            // Show linked payment information if any
+            if (transaction.getLinkedRecurringPaymentId() != null) {
+                RecurringPaymentsViewModel recurringPaymentsViewModel = new ViewModelProvider((FragmentActivity) context)
+                        .get(RecurringPaymentsViewModel.class);
+                recurringPaymentsViewModel.getRecurringPayments().observe((FragmentActivity) context, payments -> {
+                    for (RecurringPayment payment : payments) {
+                        if (payment.getId() == transaction.getLinkedRecurringPaymentId()) {
+                            binding.tvLinkedPayment.setVisibility(View.VISIBLE);
+                            binding.tvLinkedPayment.setText(String.format("Linked to: %s", payment.getName()));
+                            return;
+                        }
+                    }
+                    binding.tvLinkedPayment.setVisibility(View.GONE);
+                });
+            } else {
+                binding.tvLinkedPayment.setVisibility(View.GONE);
+            }
         }
 
         private void showEditDialog(Transaction transaction) {
@@ -245,12 +267,11 @@ public class TransactionsAdapter extends ListAdapter<Transaction, TransactionsAd
             
             // Set up date and time field
             SimpleDateFormat dateTimeFormat = new SimpleDateFormat("dd MMM yyyy, HH:mm", Locale.getDefault());
-            dialogBinding.etDate.setText(dateTimeFormat.format(transaction.getDate()));
-            
-            // Set up date and time pickers
             Calendar calendar = Calendar.getInstance();
             calendar.setTime(transaction.getDate());
+            dialogBinding.etDate.setText(dateTimeFormat.format(calendar.getTime()));
             
+            // Set up date and time pickers
             dialogBinding.etDate.setOnClickListener(v -> {
                 // Show date picker first
                 DatePickerDialog datePickerDialog = new DatePickerDialog(
@@ -323,6 +344,53 @@ public class TransactionsAdapter extends ListAdapter<Transaction, TransactionsAd
                 dialogBinding.etCategory.setDropDownBackgroundResource(android.R.color.white);
             });
 
+            // Set up recurring payments dropdown
+            RecurringPaymentsViewModel recurringPaymentsViewModel = new ViewModelProvider((FragmentActivity) context)
+                    .get(RecurringPaymentsViewModel.class);
+            recurringPaymentsViewModel.getRecurringPayments().observe((FragmentActivity) context, payments -> {
+                currentPayments = payments;
+                List<String> paymentNames = new ArrayList<>();
+                paymentNames.add("None"); // Add option to unlink
+                for (RecurringPayment payment : payments) {
+                    paymentNames.add(payment.getName());
+                }
+                
+                // Create a custom adapter with a better layout
+                ArrayAdapter<String> paymentAdapter = new ArrayAdapter<>(
+                        context,
+                        android.R.layout.simple_dropdown_item_1line,
+                        paymentNames
+                ) {
+                    @Override
+                    public View getView(int position, View convertView, ViewGroup parent) {
+                        View view = super.getView(position, convertView, parent);
+                        TextView text = (TextView) view.findViewById(android.R.id.text1);
+                        text.setTextColor(context.getResources().getColor(R.color.black));
+                        return view;
+                    }
+                };
+                
+                dialogBinding.etRecurringPayment.setAdapter(paymentAdapter);
+                
+                // Set current linked payment if any
+                if (transaction.getLinkedRecurringPaymentId() != null) {
+                    for (RecurringPayment payment : payments) {
+                        if (payment.getId() == transaction.getLinkedRecurringPaymentId()) {
+                            dialogBinding.etRecurringPayment.setText(payment.getName(), false);
+                            break;
+                        }
+                    }
+                } else {
+                    dialogBinding.etRecurringPayment.setText("None", false);
+                }
+                
+                // Configure the dropdown
+                dialogBinding.etRecurringPayment.setOnClickListener(v -> dialogBinding.etRecurringPayment.showDropDown());
+                dialogBinding.etRecurringPayment.setDropDownBackgroundResource(android.R.color.white);
+                dialogBinding.etRecurringPayment.setThreshold(1); // Show dropdown after typing 1 character
+                dialogBinding.etRecurringPayment.setDropDownHeight(ViewGroup.LayoutParams.WRAP_CONTENT);
+            });
+
             AlertDialog dialog = new AlertDialog.Builder(context, 
                     com.google.android.material.R.style.Theme_MaterialComponents_Light_Dialog)
                     .setView(dialogBinding.getRoot())
@@ -344,6 +412,7 @@ public class TransactionsAdapter extends ListAdapter<Transaction, TransactionsAd
                         String receiverName = dialogBinding.etReceiverName.getText().toString();
                         String category = dialogBinding.etCategory.getText().toString();
                         String transactionType = dialogBinding.etTransactionType.getText().toString();
+                        String selectedPayment = dialogBinding.etRecurringPayment.getText().toString();
 
                         if (amountStr.isEmpty()) {
                             Toast.makeText(context, "Please enter amount", Toast.LENGTH_SHORT).show();
@@ -363,7 +432,26 @@ public class TransactionsAdapter extends ListAdapter<Transaction, TransactionsAd
                         );
                         updatedTransaction.setId(transaction.getId());
                         updatedTransaction.setCategory(category);
+
+                        // Handle recurring payment linking
+                        if (!selectedPayment.equals("None")) {
+                            for (RecurringPayment payment : currentPayments) {
+                                if (payment.getName().equals(selectedPayment)) {
+                                    updatedTransaction.setLinkedRecurringPaymentId(payment.getId());
+                                    // Mark the recurring payment as completed
+                                    payment.setCompleted(true);
+                                    payment.setLastCompletedDate(calendar.getTime());
+                                    recurringPaymentsViewModel.update(payment);
+                                    break;
+                                }
+                            }
+                        } else {
+                            updatedTransaction.setLinkedRecurringPaymentId(null);
+                        }
+
+                        // Update transaction and notify adapter
                         viewModel.updateTransaction(transaction, updatedTransaction);
+                        notifyItemChanged(getAdapterPosition());
                         Toast.makeText(context, "Transaction updated", Toast.LENGTH_SHORT).show();
                         dialog.dismiss();
                     } catch (NumberFormatException e) {

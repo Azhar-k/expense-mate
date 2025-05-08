@@ -78,6 +78,7 @@ public class RecurringPaymentsAdapter extends ListAdapter<RecurringPayment, Recu
         private final TextView amountTextView;
         private final TextView dueDateTextView;
         private final TextView expiryDateTextView;
+        private final TextView expiredNoteTextView;
         private final CheckBox completedCheckBox;
         private final ImageButton editButton;
         private final ImageButton deleteButton;
@@ -89,6 +90,7 @@ public class RecurringPaymentsAdapter extends ListAdapter<RecurringPayment, Recu
             amountTextView = itemView.findViewById(R.id.payment_amount);
             dueDateTextView = itemView.findViewById(R.id.payment_due_date);
             expiryDateTextView = itemView.findViewById(R.id.payment_expiry_date);
+            expiredNoteTextView = itemView.findViewById(R.id.tv_expired_note);
             completedCheckBox = itemView.findViewById(R.id.payment_completed);
             editButton = itemView.findViewById(R.id.btn_edit);
             deleteButton = itemView.findViewById(R.id.btn_delete);
@@ -126,10 +128,23 @@ public class RecurringPaymentsAdapter extends ListAdapter<RecurringPayment, Recu
             // Check if payment is expired
             Calendar calendar = Calendar.getInstance();
             Date today = calendar.getTime();
-            if (payment.getExpiryDate().before(today)) {
+            boolean isExpired = payment.getExpiryDate().before(today);
+            
+            if (isExpired) {
                 container.setBackgroundColor(Color.parseColor("#FFFDE7")); // Light yellow
+                expiryDateTextView.setTextColor(Color.RED);
+                expiredNoteTextView.setVisibility(View.VISIBLE);
+                // Disable edit and completion for expired payments
+                editButton.setEnabled(false);
+                editButton.setAlpha(0.5f);
+                completedCheckBox.setEnabled(false);
             } else {
                 container.setBackgroundColor(Color.WHITE);
+                expiryDateTextView.setTextColor(Color.BLACK);
+                expiredNoteTextView.setVisibility(View.GONE);
+                editButton.setEnabled(true);
+                editButton.setAlpha(1.0f);
+                completedCheckBox.setEnabled(true);
             }
         }
     }

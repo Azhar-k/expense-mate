@@ -120,6 +120,18 @@
             app:layout_constraintTop_toBottomOf="@id/tvTransactionType"
             tools:text="Receiver: John Doe" />
 
+        <TextView
+            android:id="@+id/tvLinkedPayment"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:textColor="@color/primary"
+            android:textSize="14sp"
+            android:textStyle="italic"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/tvReceiver"
+            tools:text="Linked to: Monthly Rent" />
+
     </androidx.constraintlayout.widget.ConstraintLayout>
 
 </com.google.android.material.card.MaterialCardView> 

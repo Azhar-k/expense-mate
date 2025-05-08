@@ -107,5 +107,16 @@
                 android:layout_marginStart="8dp"
                 android:textColor="@color/black"/>
         </LinearLayout>
+
+        <TextView
+            android:id="@+id/tv_expired_note"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="Payment expired. Please delete."
+            android:textColor="@color/debit_color"
+            android:textStyle="italic"
+            android:visibility="gone"/>
+
     </LinearLayout>
 </com.google.android.material.card.MaterialCardView> 

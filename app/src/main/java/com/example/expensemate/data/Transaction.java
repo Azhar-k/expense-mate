@@ -22,10 +22,12 @@ public class Transaction {
     private String smsBody;
     private String smsSender;
     private String category; // New field for transaction category
+    private Long linkedRecurringPaymentId; // ID of the linked recurring payment, null if not linked
 
     public Transaction() {
         this.category = "Others"; // Default category
         this.date = new Date(); // Initialize with current date
+        this.linkedRecurringPaymentId = null;
     }
 
     public Transaction(double amount, String description, Date date, String accountNumber,
@@ -41,6 +43,7 @@ public class Transaction {
         this.smsBody = smsBody;
         this.smsSender = smsSender;
         this.category = "Others"; // Default category
+        this.linkedRecurringPaymentId = null;
     }
 
     // Getters and Setters
@@ -130,5 +133,13 @@ public class Transaction {
 
     public void setCategory(String category) {
         this.category = category != null ? category : "Others";
+    }
+
+    public Long getLinkedRecurringPaymentId() {
+        return linkedRecurringPaymentId;
+    }
+
+    public void setLinkedRecurringPaymentId(Long linkedRecurringPaymentId) {
+        this.linkedRecurringPaymentId = linkedRecurringPaymentId;
     }
 } 

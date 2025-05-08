@@ -127,9 +127,7 @@ public class TransactionViewModel extends AndroidViewModel {
     public void updateTransaction(Transaction oldTransaction, Transaction newTransaction) {
         executorService.execute(() -> {
             try {
-                Log.d(TAG, "Updating transaction: " + oldTransaction.getId());
-                
-                // Update the transaction
+                Log.d(TAG, "Updating transaction: " + newTransaction.getAmount() + " " + newTransaction.getTransactionType());
                 transactionDao.updateTransaction(
                     newTransaction.getId(),
                     newTransaction.getAmount(),
@@ -141,9 +139,9 @@ public class TransactionViewModel extends AndroidViewModel {
                     newTransaction.getReceiverName(),
                     newTransaction.getSmsBody(),
                     newTransaction.getSmsSender(),
-                    newTransaction.getCategory()
+                    newTransaction.getCategory(),
+                    newTransaction.getLinkedRecurringPaymentId()
                 );
-                
                 // Update the current period totals
                 updatePeriodLiveData();
             } catch (Exception e) {

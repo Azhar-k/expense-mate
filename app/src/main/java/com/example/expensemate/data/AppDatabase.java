@@ -8,7 +8,7 @@ import androidx.room.TypeConverters;
 import androidx.room.migration.Migration;
 import androidx.sqlite.db.SupportSQLiteDatabase;
 
-@Database(entities = {Transaction.class, Category.class, RecurringPayment.class}, version = 8, exportSchema = false)
+@Database(entities = {Transaction.class, Category.class, RecurringPayment.class}, version = 9, exportSchema = false)
 @TypeConverters(Converters.class)
 public abstract class AppDatabase extends RoomDatabase {
     private static volatile AppDatabase INSTANCE;
@@ -153,6 +153,14 @@ public abstract class AppDatabase extends RoomDatabase {
         }
     };
 
+    private static final Migration MIGRATION_8_9 = new Migration(8, 9) {
+        @Override
+        public void migrate(SupportSQLiteDatabase database) {
+            // Add linkedRecurringPaymentId column to transactions table
+            database.execSQL("ALTER TABLE transactions ADD COLUMN linkedRecurringPaymentId INTEGER DEFAULT NULL");
+        }
+    };
+
     public abstract TransactionDao transactionDao();
     public abstract CategoryDao categoryDao();
     public abstract RecurringPaymentDao recurringPaymentDao();
@@ -164,7 +172,8 @@ public abstract class AppDatabase extends RoomDatabase {
                     INSTANCE = Room.databaseBuilder(context.getApplicationContext(),
                             AppDatabase.class, "expense_mate_database")
                             .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, 
-                                         MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
+                                         MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, 
+                                         MIGRATION_7_8, MIGRATION_8_9)
                             .build();
                 }
             }
