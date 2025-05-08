@@ -446,7 +446,6 @@ public class TransactionsAdapter extends ListAdapter<Transaction, TransactionsAd
                                     
                                     // Update transaction and notify adapter
                                     viewModel.updateTransaction(transaction, updatedTransaction);
-                                    notifyItemChanged(getAdapterPosition());
                                     Toast.makeText(context, "Transaction updated", Toast.LENGTH_SHORT).show();
                                     dialog.dismiss();
                                     return;
