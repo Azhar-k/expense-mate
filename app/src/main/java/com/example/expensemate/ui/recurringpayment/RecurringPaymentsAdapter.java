@@ -1,4 +1,4 @@
-package com.example.expensemate.ui;
+package com.example.expensemate.ui.recurringpayment;
 
 import android.graphics.Color;
 import android.view.LayoutInflater;

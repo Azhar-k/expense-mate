@@ -23,7 +23,4 @@ public interface RecurringPaymentDao {
 
     @Delete
     void delete(RecurringPayment payment);
-
-    @Query("SELECT * FROM recurring_payments WHERE id = :id")
-    LiveData<RecurringPayment> getRecurringPayment(long id);
 } 

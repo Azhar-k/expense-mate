@@ -31,7 +31,7 @@
 
     <fragment
         android:id="@+id/navigation_recurring_payments"
-        android:name="com.example.expensemate.ui.RecurringPaymentsFragment"
+        android:name="com.example.expensemate.ui.recurringpayment.RecurringPaymentsFragment"
         android:label="@string/recurring_payments"
         tools:layout="@layout/fragment_recurring_payments" />
 

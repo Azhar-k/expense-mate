@@ -14,20 +14,11 @@ public interface TransactionDao {
     @Query("SELECT * FROM transactions ORDER BY date DESC")
     LiveData<List<Transaction>> getAllTransactions();
 
-    @Query("SELECT * FROM transactions ORDER BY date DESC")
-    List<Transaction> getAllTransactionsSync();
-
-    @Query("SELECT * FROM transactions WHERE transactionType = 'DEBIT' AND linkedRecurringPaymentId IS NULL ORDER BY date DESC")
-    LiveData<List<Transaction>> getDebitTransactions();
-
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     void insertTransaction(Transaction transaction);
 
     @Delete
     void deleteTransaction(Transaction transaction);
-
-    @Query("SELECT * FROM transactions WHERE accountNumber = :accountNumber ORDER BY date DESC")
-    LiveData<List<Transaction>> getTransactionsByAccount(String accountNumber);
 
     @Query("UPDATE transactions SET amount = :amount, description = :description, date = :date, " +
            "accountNumber = :accountNumber, accountType = :accountType, transactionType = :transactionType, " +
@@ -36,9 +27,6 @@ public interface TransactionDao {
     void updateTransaction(long id, double amount, String description, Date date, String accountNumber,
                          String accountType, String transactionType, String receiverName,
                          String smsBody, String smsSender, String category, Long linkedRecurringPaymentId);
-
-    @Query("SELECT * FROM transactions WHERE linkedRecurringPaymentId = :paymentId")
-    LiveData<List<Transaction>> getTransactionsByRecurringPaymentId(long paymentId);
 
     @Query("SELECT category, SUM(amount) as total FROM transactions " +
            "WHERE transactionType = 'DEBIT' AND linkedRecurringPaymentId IS NULL " +

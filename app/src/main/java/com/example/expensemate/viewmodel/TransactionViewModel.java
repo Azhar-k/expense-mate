@@ -90,14 +90,6 @@ public class TransactionViewModel extends AndroidViewModel {
         return allTransactions;
     }
 
-    public LiveData<List<Transaction>> getDebitTransactions() {
-        return transactionDao.getDebitTransactions();
-    }
-
-    public LiveData<List<Transaction>> getTransactionsByAccount(String accountNumber) {
-        return transactionDao.getTransactionsByAccount(accountNumber);
-    }
-
     public void insertTransaction(Transaction transaction) {
         executorService.execute(() -> {
             try {
@@ -158,16 +150,8 @@ public class TransactionViewModel extends AndroidViewModel {
         return totalIncome;
     }
 
-    public LiveData<List<CategorySum>> getCategorySums() {
-        return categorySums;
-    }
-
     public LiveData<List<CategorySum>> getCategorySumsByMonthYear(String month, String year) {
         return transactionDao.getCategorySumsByMonthYear(month, year);
-    }
-
-    public LiveData<List<Transaction>> getTransactionsByRecurringPaymentId(long paymentId) {
-        return transactionDao.getTransactionsByRecurringPaymentId(paymentId);
     }
 
     @Override
