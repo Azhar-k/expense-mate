@@ -1,5 +1,6 @@
 package com.example.expensemate.functional;
 
+import androidx.annotation.ColorRes;
 import androidx.test.ext.junit.rules.ActivityScenarioRule;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.espresso.Espresso;
@@ -26,6 +27,7 @@ import android.Manifest;
 import android.graphics.Color;
 import android.view.View;
 import android.widget.TextView;
+import androidx.core.content.ContextCompat;
 
 @RunWith(AndroidJUnit4.class)
 public class HomeScreenTest {
@@ -43,13 +45,7 @@ public class HomeScreenTest {
         scenario = ActivityScenario.launch(MainActivity.class);
         scenario.onActivity(activity -> {
             // Wait for activity to be fully created and resumed
-            while (!activity.isFinishing() && !activity.isDestroyed()) {
-                try {
-                    Thread.sleep(100);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-            }
+
         });
     }
 
@@ -64,16 +60,18 @@ public class HomeScreenTest {
     }
 
     // Custom matcher for text color
-    private static Matcher<View> withTextColor(final int color) {
+    private static Matcher<View> withTextColor(final @ColorRes int colorRes) {
         return new BoundedMatcher<View, TextView>(TextView.class) {
             @Override
             public void describeTo(Description description) {
-                description.appendText("with text color: " + color);
+                description.appendText("with text color resource id: " + colorRes);
             }
 
             @Override
-            public boolean matchesSafely(TextView textView) {
-                return textView.getCurrentTextColor() == color;
+            protected boolean matchesSafely(TextView textView) {
+                // resolve the @color resource into an actual ARGB value
+                int expectedColor = ContextCompat.getColor(textView.getContext(), colorRes);
+                return textView.getCurrentTextColor() == expectedColor;
             }
         };
     }
@@ -122,6 +120,10 @@ public class HomeScreenTest {
 
     @Test
     public void testTotalCalculations() {
+        // Navigate to transactions screen
+        Espresso.onView(ViewMatchers.withId(R.id.navigation_transactions))
+            .perform(ViewActions.click());
+
         // Create a test transaction
         Espresso.onView(ViewMatchers.withId(R.id.fabAddTransaction))
             .perform(ViewActions.click());
@@ -135,11 +137,15 @@ public class HomeScreenTest {
         
         Espresso.onView(ViewMatchers.withId(R.id.etTransactionType))
             .perform(ViewActions.click());
-        Espresso.onView(ViewMatchers.withText("Expense"))
+        Espresso.onView(ViewMatchers.withText("DEBIT"))
             .perform(ViewActions.click());
         
-        // Save transaction using dialog's positive button
-        Espresso.onView(ViewMatchers.withText("Save"))
+        // Add transaction using dialog's positive button
+        Espresso.onView(ViewMatchers.withText("Add"))
+            .perform(ViewActions.click());
+
+        // Navigate back to home screen
+        Espresso.onView(ViewMatchers.withId(R.id.navigation_expense))
             .perform(ViewActions.click());
 
         // Verify totals are updated
@@ -152,6 +158,10 @@ public class HomeScreenTest {
 
     @Test
     public void testAmountColors() {
+        // Navigate to transactions screen
+        Espresso.onView(ViewMatchers.withId(R.id.navigation_transactions))
+            .perform(ViewActions.click());
+
         // Create an expense transaction
         Espresso.onView(ViewMatchers.withId(R.id.fabAddTransaction))
             .perform(ViewActions.click());
@@ -161,16 +171,24 @@ public class HomeScreenTest {
         
         Espresso.onView(ViewMatchers.withId(R.id.etTransactionType))
             .perform(ViewActions.click());
-        Espresso.onView(ViewMatchers.withText("Expense"))
+        Espresso.onView(ViewMatchers.withText("DEBIT"))
             .perform(ViewActions.click());
         
-        // Save transaction using dialog's positive button
-        Espresso.onView(ViewMatchers.withText("Save"))
+        // Add transaction using dialog's positive button
+        Espresso.onView(ViewMatchers.withText("Add"))
+            .perform(ViewActions.click());
+
+        // Navigate back to home screen
+        Espresso.onView(ViewMatchers.withId(R.id.navigation_expense))
             .perform(ViewActions.click());
 
         // Verify expense amount is red
         Espresso.onView(ViewMatchers.withId(R.id.total_expense))
-            .check(ViewAssertions.matches(withTextColor(Color.RED)));
+            .check(ViewAssertions.matches(withTextColor(R.color.debit_color)));
+
+        // Navigate to transactions screen again
+        Espresso.onView(ViewMatchers.withId(R.id.navigation_transactions))
+            .perform(ViewActions.click());
 
         // Create an income transaction
         Espresso.onView(ViewMatchers.withId(R.id.fabAddTransaction))
@@ -178,19 +196,23 @@ public class HomeScreenTest {
         
         Espresso.onView(ViewMatchers.withId(R.id.etAmount))
             .perform(ViewActions.typeText("200.00"));
-        
+
         Espresso.onView(ViewMatchers.withId(R.id.etTransactionType))
-            .perform(ViewActions.click());
-        Espresso.onView(ViewMatchers.withText("Income"))
-            .perform(ViewActions.click());
+                .perform(ViewActions.longClick());
+        Espresso.onView(ViewMatchers.withText("CREDIT"))
+                .perform(ViewActions.click());
         
-        // Save transaction using dialog's positive button
-        Espresso.onView(ViewMatchers.withText("Save"))
+        // Add transaction using dialog's positive button
+        Espresso.onView(ViewMatchers.withText("Add"))
+            .perform(ViewActions.click());
+
+        // Navigate back to home screen
+        Espresso.onView(ViewMatchers.withId(R.id.navigation_expense))
             .perform(ViewActions.click());
 
         // Verify income amount is green
         Espresso.onView(ViewMatchers.withId(R.id.total_income))
-            .check(ViewAssertions.matches(withTextColor(Color.GREEN)));
+            .check(ViewAssertions.matches(withTextColor(R.color.credit_color)));
     }
 
     @Test
