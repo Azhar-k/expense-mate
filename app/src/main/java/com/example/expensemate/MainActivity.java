@@ -3,6 +3,7 @@ package com.example.expensemate;
 import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.MenuItem;
@@ -26,6 +27,7 @@ import com.example.expensemate.service.SmsMonitorService;
 public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
     private static final String TAG = "MainActivity";
     private static final int SMS_PERMISSION_REQUEST_CODE = 123;
+    private static final int FOREGROUND_SERVICE_PERMISSION_REQUEST_CODE = 124;
     private DrawerLayout drawerLayout;
     private ActionBarDrawerToggle drawerToggle;
     private BottomNavigationView bottomNavView;
@@ -82,11 +84,51 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             });
         }
 
-        // Check and request SMS permission
-        checkSmsPermission();
+        // Check and request permissions
+        checkAndRequestPermissions();
+    }
 
-        // Start SMS monitoring service
+    private void checkAndRequestPermissions() {
+        // Check SMS permission
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECEIVE_SMS)
+                != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this,
+                    new String[]{Manifest.permission.RECEIVE_SMS},
+                    SMS_PERMISSION_REQUEST_CODE);
+            return;
+        }
+
+        // Check foreground service data sync permission for Android 14+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.FOREGROUND_SERVICE_DATA_SYNC)
+                    != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(this,
+                        new String[]{Manifest.permission.FOREGROUND_SERVICE_DATA_SYNC},
+                        FOREGROUND_SERVICE_PERMISSION_REQUEST_CODE);
+                return;
+            }
+        }
+
+        // If all permissions are granted, start the service
         startSmsMonitorService();
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
+                                         @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        
+        if (requestCode == SMS_PERMISSION_REQUEST_CODE) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                // SMS permission granted, check for foreground service permission
+                checkAndRequestPermissions();
+            }
+        } else if (requestCode == FOREGROUND_SERVICE_PERMISSION_REQUEST_CODE) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                // Foreground service permission granted, start the service
+                startSmsMonitorService();
+            }
+        }
     }
 
     @Override
@@ -117,15 +159,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             drawerLayout.closeDrawer(GravityCompat.START);
         } else {
             super.onBackPressed();
-        }
-    }
-
-    private void checkSmsPermission() {
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECEIVE_SMS)
-                != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this,
-                    new String[]{Manifest.permission.RECEIVE_SMS},
-                    SMS_PERMISSION_REQUEST_CODE);
         }
     }
 
