@@ -15,6 +15,8 @@ import java.io.FileWriter;
 import java.util.Date;
 import java.util.List;
 
+import androidx.annotation.NonNull;
+
 @Database(entities = {Transaction.class, Category.class, RecurringPayment.class}, version = 1, exportSchema = false)
 @TypeConverters(Converters.class)
 public abstract class AppDatabase extends RoomDatabase {
@@ -59,30 +61,6 @@ public abstract class AppDatabase extends RoomDatabase {
                 "`isCompleted` INTEGER NOT NULL DEFAULT 0, " +
                 "`lastCompletedDate` INTEGER" +
                 ")");
-
-            // Insert default expense categories
-            String[] defaultExpenseCategories = {
-                "Default","Food", "Household", "Fuel", "Entertainment", "Personal", "Others"
-            };
-
-            for (String category : defaultExpenseCategories) {
-                database.execSQL(
-                    "INSERT INTO categories (name, type) VALUES (?, ?)",
-                    new Object[]{category, "EXPENSE"}
-                );
-            }
-
-            // Insert default income categories
-            String[] defaultIncomeCategories = {
-                "Default","Salary", "Business", "Investment", "Gift", "Others"
-            };
-
-            for (String category : defaultIncomeCategories) {
-                database.execSQL(
-                    "INSERT INTO categories (name, type) VALUES (?, ?)",
-                    new Object[]{category, "INCOME"}
-                );
-            }
 
             // Create all necessary indexes
             // Transaction indexes
@@ -130,6 +108,26 @@ public abstract class AppDatabase extends RoomDatabase {
     public abstract CategoryDao categoryDao();
     public abstract RecurringPaymentDao recurringPaymentDao();
 
+    private static void insertDefaultCategories(CategoryDao categoryDao) {
+        // Insert default expense categories
+        String[] defaultExpenseCategories = {
+            "Default", "Food", "Household", "Fuel", "Entertainment", "Personal", "Others"
+        };
+
+        for (String category : defaultExpenseCategories) {
+            categoryDao.insertCategory(new Category(category, "EXPENSE"));
+        }
+
+        // Insert default income categories
+        String[] defaultIncomeCategories = {
+            "Default", "Salary", "Business", "Investment", "Gift", "Others"
+        };
+
+        for (String category : defaultIncomeCategories) {
+            categoryDao.insertCategory(new Category(category, "INCOME"));
+        }
+    }
+
     public static AppDatabase getDatabase(final Context context) {
         if (INSTANCE == null) {
             synchronized (AppDatabase.class) {
@@ -137,6 +135,29 @@ public abstract class AppDatabase extends RoomDatabase {
                     INSTANCE = Room.databaseBuilder(context.getApplicationContext(),
                             AppDatabase.class, "expense_mate_database")
                             .addMigrations(INITIAL_MIGRATION)
+                            .fallbackToDestructiveMigration()
+                            .addCallback(new RoomDatabase.Callback() {
+                                @Override
+                                public void onCreate(@NonNull SupportSQLiteDatabase db) {
+                                    super.onCreate(db);
+                                    // Insert default categories when database is created
+                                    new Thread(() -> {
+                                        insertDefaultCategories(INSTANCE.categoryDao());
+                                    }).start();
+                                }
+
+                                @Override
+                                public void onOpen(@NonNull SupportSQLiteDatabase db) {
+                                    super.onOpen(db);
+                                    // Check if categories exist and insert if they don't
+                                    new Thread(() -> {
+                                        List<Category> categories = INSTANCE.categoryDao().getAllCategoriesSync();
+                                        if (categories == null || categories.isEmpty()) {
+                                            insertDefaultCategories(INSTANCE.categoryDao());
+                                        }
+                                    }).start();
+                                }
+                            })
                             .build();
                     new Thread(()->{
                         exportDatabaseData(context, INSTANCE);
