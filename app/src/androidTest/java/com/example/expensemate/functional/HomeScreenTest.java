@@ -1,7 +1,6 @@
 package com.example.expensemate.functional;
 
 import androidx.annotation.ColorRes;
-import androidx.test.ext.junit.rules.ActivityScenarioRule;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.espresso.Espresso;
 import androidx.test.espresso.action.ViewActions;
@@ -24,10 +23,11 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import java.util.Calendar;
 import android.Manifest;
-import android.graphics.Color;
 import android.view.View;
 import android.widget.TextView;
 import androidx.core.content.ContextCompat;
+import androidx.test.espresso.matcher.RootMatchers;
+import java.util.Locale;
 
 @RunWith(AndroidJUnit4.class)
 public class HomeScreenTest {
@@ -77,28 +77,28 @@ public class HomeScreenTest {
     }
 
     @Test
-    public void  testDefaultMonthYearSelection() {
+    public void testDefaultMonthYearSelection() {
         // Wait for activity to be fully launched
-        scenario.onActivity(activity -> {
-            // Get current month and year
-            Calendar calendar = Calendar.getInstance();
-            String currentMonth = String.format("%02d", calendar.get(Calendar.MONTH) + 1);
-            String currentYear = String.valueOf(calendar.get(Calendar.YEAR));
+        // No need for scenario.onActivity here, just use Espresso directly
 
-            // Verify period text shows current month and year
-            Espresso.onView(ViewMatchers.withId(R.id.tv_period))
-                .check(ViewAssertions.matches(ViewMatchers.withText(Matchers.containsString(currentMonth + " " + currentYear))));
+        // Get current month and year
+        Calendar calendar = Calendar.getInstance();
+        String currentMonth = calendar.getDisplayName(Calendar.MONTH, Calendar.LONG, Locale.getDefault());
+        String currentYear = String.valueOf(calendar.get(Calendar.YEAR));
 
-            // Verify totals are shown
-            Espresso.onView(ViewMatchers.withId(R.id.total_income))
-                .check(ViewAssertions.matches(ViewMatchers.isDisplayed()));
-            
-            Espresso.onView(ViewMatchers.withId(R.id.total_expense))
-                .check(ViewAssertions.matches(ViewMatchers.isDisplayed()));
-            
-            Espresso.onView(ViewMatchers.withId(R.id.total_balance))
-                .check(ViewAssertions.matches(ViewMatchers.isDisplayed()));
-        });
+        // Verify period text shows current month and year
+        Espresso.onView(ViewMatchers.withId(R.id.tv_period))
+            .check(ViewAssertions.matches(ViewMatchers.withText(Matchers.containsString(currentMonth + " " + currentYear))));
+
+        // Verify totals are shown
+        Espresso.onView(ViewMatchers.withId(R.id.total_income))
+            .check(ViewAssertions.matches(ViewMatchers.isDisplayed()));
+        
+        Espresso.onView(ViewMatchers.withId(R.id.total_expense))
+            .check(ViewAssertions.matches(ViewMatchers.isDisplayed()));
+        
+        Espresso.onView(ViewMatchers.withId(R.id.total_balance))
+            .check(ViewAssertions.matches(ViewMatchers.isDisplayed()));
     }
 
     @Test
@@ -119,45 +119,7 @@ public class HomeScreenTest {
     }
 
     @Test
-    public void testTotalCalculations() {
-        // Navigate to transactions screen
-        Espresso.onView(ViewMatchers.withId(R.id.navigation_transactions))
-            .perform(ViewActions.click());
-
-        // Create a test transaction
-        Espresso.onView(ViewMatchers.withId(R.id.fabAddTransaction))
-            .perform(ViewActions.click());
-        
-        // Fill transaction details
-        Espresso.onView(ViewMatchers.withId(R.id.etAmount))
-            .perform(ViewActions.typeText("100.00"));
-        
-        Espresso.onView(ViewMatchers.withId(R.id.etDescription))
-            .perform(ViewActions.typeText("Test Transaction"));
-        
-        Espresso.onView(ViewMatchers.withId(R.id.etTransactionType))
-            .perform(ViewActions.click());
-        Espresso.onView(ViewMatchers.withText("DEBIT"))
-            .perform(ViewActions.click());
-        
-        // Add transaction using dialog's positive button
-        Espresso.onView(ViewMatchers.withText("Add"))
-            .perform(ViewActions.click());
-
-        // Navigate back to home screen
-        Espresso.onView(ViewMatchers.withId(R.id.navigation_expense))
-            .perform(ViewActions.click());
-
-        // Verify totals are updated
-        Espresso.onView(ViewMatchers.withId(R.id.total_expense))
-            .check(ViewAssertions.matches(ViewMatchers.withText("₹100.00")));
-        
-        Espresso.onView(ViewMatchers.withId(R.id.total_balance))
-            .check(ViewAssertions.matches(ViewMatchers.withText("-₹100.00")));
-    }
-
-    @Test
-    public void testAmountColors() {
+    public void testExpenseScreen_on_adding_transactions() {
         // Navigate to transactions screen
         Espresso.onView(ViewMatchers.withId(R.id.navigation_transactions))
             .perform(ViewActions.click());
@@ -186,6 +148,13 @@ public class HomeScreenTest {
         Espresso.onView(ViewMatchers.withId(R.id.total_expense))
             .check(ViewAssertions.matches(withTextColor(R.color.debit_color)));
 
+        // Verify totals are updated
+        Espresso.onView(ViewMatchers.withId(R.id.total_expense))
+                .check(ViewAssertions.matches(ViewMatchers.withText("₹100.00")));
+
+        Espresso.onView(ViewMatchers.withId(R.id.total_balance))
+                .check(ViewAssertions.matches(ViewMatchers.withText("-₹100.00")));
+
         // Navigate to transactions screen again
         Espresso.onView(ViewMatchers.withId(R.id.navigation_transactions))
             .perform(ViewActions.click());
@@ -196,12 +165,19 @@ public class HomeScreenTest {
         
         Espresso.onView(ViewMatchers.withId(R.id.etAmount))
             .perform(ViewActions.typeText("200.00"));
-
-        Espresso.onView(ViewMatchers.withId(R.id.etTransactionType))
-                .perform(ViewActions.longClick());
-        Espresso.onView(ViewMatchers.withText("CREDIT"))
-                .perform(ViewActions.click());
         
+        // OPEN the transaction-type spinner/drop-down
+        Espresso.onView(ViewMatchers.withId(R.id.etTransactionType))
+            .perform(ViewActions.click());
+
+        // SELECT the "CREDIT" item from the popup list
+        Espresso.onData(Matchers.allOf(
+                Matchers.instanceOf(String.class),
+                Matchers.is("CREDIT")
+            ))
+            .inRoot(RootMatchers.isPlatformPopup())
+            .perform(ViewActions.click());
+
         // Add transaction using dialog's positive button
         Espresso.onView(ViewMatchers.withText("Add"))
             .perform(ViewActions.click());
@@ -213,6 +189,16 @@ public class HomeScreenTest {
         // Verify income amount is green
         Espresso.onView(ViewMatchers.withId(R.id.total_income))
             .check(ViewAssertions.matches(withTextColor(R.color.credit_color)));
+
+        // Verify totals are updated
+        Espresso.onView(ViewMatchers.withId(R.id.total_income))
+                .check(ViewAssertions.matches(ViewMatchers.withText("₹200.00")));
+
+        Espresso.onView(ViewMatchers.withId(R.id.total_balance))
+                .check(ViewAssertions.matches(ViewMatchers.withText("₹100.00")));
+        Espresso.onView(ViewMatchers.withId(R.id.total_balance))
+                .check(ViewAssertions.matches(withTextColor(R.color.credit_color)));
+
     }
 
     @Test
