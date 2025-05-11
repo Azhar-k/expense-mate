@@ -70,10 +70,10 @@
                 android:id="@+id/btnScanSms"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:padding="16dp"
                 android:text="Scan SMS"
                 android:textSize="16sp"
-                android:padding="16dp"
-                app:cornerRadius="8dp"/>
+                app:cornerRadius="8dp" />
 
             <TextView
                 android:id="@+id/tvScanStatus"

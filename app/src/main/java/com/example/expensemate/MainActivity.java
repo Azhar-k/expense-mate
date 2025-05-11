@@ -71,10 +71,13 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             // Add navigation listener to handle bottom nav visibility and drawer selection
             navController.addOnDestinationChangedListener((controller, destination, arguments) -> {
                 if (destination.getId() == R.id.navigation_categories || 
-                    destination.getId() == R.id.navigation_recurring_payments) {
+                    destination.getId() == R.id.navigation_recurring_payments ||
+                    destination.getId() == R.id.navigation_sms_scan) {
                     bottomNavView.setVisibility(View.GONE);
                     if (destination.getId() == R.id.navigation_categories) {
                         navigationView.setCheckedItem(R.id.nav_categories);
+                    } else if (destination.getId() == R.id.navigation_sms_scan) {
+                        navigationView.setCheckedItem(R.id.nav_sms_scan);
                     } else {
                         navigationView.setCheckedItem(R.id.nav_recurring_payments);
                     }
