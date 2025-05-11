@@ -15,6 +15,9 @@ public interface RecurringPaymentDao {
     @Query("SELECT SUM(amount) FROM recurring_payments WHERE isCompleted = 0")
     LiveData<Double> getRemainingAmount();
 
+    @Query("SELECT * FROM recurring_payments ORDER BY dueDay ASC")
+    List<RecurringPayment> getAllRecurringPaymentsSync();
+
     @Insert
     void insert(RecurringPayment payment);
 

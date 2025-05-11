@@ -48,4 +48,7 @@ public interface TransactionDao {
            "AND strftime('%m', datetime(date/1000, 'unixepoch')) = :month " +
            "AND strftime('%Y', datetime(date/1000, 'unixepoch')) = :year")
     Double getIncomeByMonthYearSync(String month, String year);
-} 
+
+    @Query("SELECT * FROM transactions ORDER BY date DESC")
+    List<Transaction> getAllTransactionsSync();
+}

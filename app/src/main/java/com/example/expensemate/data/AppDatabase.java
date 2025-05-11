@@ -1,12 +1,19 @@
 package com.example.expensemate.data;
 
 import android.content.Context;
+import android.util.Log;
+
 import androidx.room.Database;
 import androidx.room.Room;
 import androidx.room.RoomDatabase;
 import androidx.room.TypeConverters;
 import androidx.room.migration.Migration;
 import androidx.sqlite.db.SupportSQLiteDatabase;
+
+import java.io.File;
+import java.io.FileWriter;
+import java.util.Date;
+import java.util.List;
 
 @Database(entities = {Transaction.class, Category.class, RecurringPayment.class}, version = 10, exportSchema = false)
 @TypeConverters(Converters.class)
@@ -161,6 +168,33 @@ public abstract class AppDatabase extends RoomDatabase {
         }
     };
 
+    private static final Migration MIGRATION_9_10 = new Migration(9, 10) {
+        @Override
+        public void migrate(SupportSQLiteDatabase database) {
+            database.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `transactions_new` (" +
+                            "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                            "`amount` REAL NOT NULL, " +
+                            "`description` TEXT, " +
+                            "`date` INTEGER, " +
+                            "`accountNumber` TEXT, " +
+                            "`accountType` TEXT, " +
+                            "`transactionType` TEXT, " +
+                            "`receiverName` TEXT, " +
+                            "`smsBody` TEXT, " +
+                            "`smsSender` TEXT, " +
+                            "`category` TEXT, " + // No default value
+                            "`linkedRecurringPaymentId` INTEGER)"
+            );
+            database.execSQL(
+                    "INSERT INTO transactions_new (id, amount, description, date, accountNumber, accountType, transactionType, receiverName, smsBody, smsSender, category, linkedRecurringPaymentId) " +
+                            "SELECT id, amount, description, date, accountNumber, accountType, transactionType, receiverName, smsBody, smsSender, category, linkedRecurringPaymentId FROM transactions"
+            );
+            database.execSQL("DROP TABLE transactions");
+            database.execSQL("ALTER TABLE transactions_new RENAME TO transactions");
+        }
+    };
+
     private static final Migration MIGRATION_10_11 = new Migration(10, 11) {
         @Override
         public void migrate(SupportSQLiteDatabase database) {
@@ -211,33 +245,6 @@ public abstract class AppDatabase extends RoomDatabase {
         }
     };
 
-    private static final Migration MIGRATION_9_10 = new Migration(9, 10) {
-        @Override
-        public void migrate(SupportSQLiteDatabase database) {
-            database.execSQL(
-                    "CREATE TABLE IF NOT EXISTS `transactions_new` (" +
-                            "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
-                            "`amount` REAL NOT NULL, " +
-                            "`description` TEXT, " +
-                            "`date` INTEGER, " +
-                            "`accountNumber` TEXT, " +
-                            "`accountType` TEXT, " +
-                            "`transactionType` TEXT, " +
-                            "`receiverName` TEXT, " +
-                            "`smsBody` TEXT, " +
-                            "`smsSender` TEXT, " +
-                            "`category` TEXT, " + // No default value
-                            "`linkedRecurringPaymentId` INTEGER)"
-            );
-            database.execSQL(
-                    "INSERT INTO transactions_new (id, amount, description, date, accountNumber, accountType, transactionType, receiverName, smsBody, smsSender, category, linkedRecurringPaymentId) " +
-                            "SELECT id, amount, description, date, accountNumber, accountType, transactionType, receiverName, smsBody, smsSender, category, linkedRecurringPaymentId FROM transactions"
-            );
-            database.execSQL("DROP TABLE transactions");
-            database.execSQL("ALTER TABLE transactions_new RENAME TO transactions");
-        }
-    };
-
     public abstract TransactionDao transactionDao();
     public abstract CategoryDao categoryDao();
     public abstract RecurringPaymentDao recurringPaymentDao();
@@ -252,9 +259,86 @@ public abstract class AppDatabase extends RoomDatabase {
                                          MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7,
                                          MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12)
                             .build();
+                    new Thread(()->{
+                        exportDatabaseData(context, INSTANCE);
+                    }).start();
                 }
             }
         }
         return INSTANCE;
+    }
+
+    private static void exportDatabaseData(Context context, AppDatabase database) {
+        try {
+            StringBuilder data = new StringBuilder();
+            data.append("=== Database Export ").append(new Date()).append(" ===\n\n");
+
+            // Export transactions
+            data.append("=== TRANSACTIONS ===\n");
+            List<Transaction> transactions = database.transactionDao().getAllTransactionsSync();
+            for (Transaction t : transactions) {
+                data.append(String.format("ID: %d\n", t.getId()));
+                data.append(String.format("Amount: %.2f\n", t.getAmount()));
+                data.append(String.format("Description: %s\n", t.getDescription()));
+                data.append(String.format("Date: %s\n", t.getDate()));
+                data.append(String.format("Account Number: %s\n", t.getAccountNumber()));
+                data.append(String.format("Account Type: %s\n", t.getAccountType()));
+                data.append(String.format("Transaction Type: %s\n", t.getTransactionType()));
+                data.append(String.format("Receiver: %s\n", t.getReceiverName()));
+                data.append(String.format("Category: %s\n", t.getCategory()));
+                data.append(String.format("Linked Payment ID: %s\n", t.getLinkedRecurringPaymentId()));
+                data.append("---\n");
+            }
+
+            // Export categories
+            data.append("\n=== CATEGORIES ===\n");
+            List<Category> categories = database.categoryDao().getAllCategoriesSync();
+            for (Category c : categories) {
+                data.append(String.format("ID: %d\n", c.getId()));
+                data.append(String.format("Name: %s\n", c.getName()));
+                data.append(String.format("Type: %s\n", c.getType()));
+                data.append("---\n");
+            }
+
+            // Export recurring payments
+            data.append("\n=== RECURRING PAYMENTS ===\n");
+            List<RecurringPayment> payments = database.recurringPaymentDao().getAllRecurringPaymentsSync();
+            for (RecurringPayment p : payments) {
+                data.append(String.format("ID: %d\n", p.getId()));
+                data.append(String.format("Name: %s\n", p.getName()));
+                data.append(String.format("Amount: %.2f\n", p.getAmount()));
+                data.append(String.format("Due Day: %d\n", p.getDueDay()));
+                data.append(String.format("Expiry Date: %s\n", p.getExpiryDate()));
+                data.append(String.format("Is Completed: %b\n", p.isCompleted()));
+                data.append(String.format("Last Completed Date: %s\n", p.getLastCompletedDate()));
+                data.append("---\n");
+            }
+
+            // Log the data
+            Log.d("DatabaseExport data:", data.toString());
+
+            // Save to file
+            File exportDir = new File(context.getFilesDir(), "database_exports");
+            if (!exportDir.exists()) {
+                Log.d("DatabaseExport", "directory do not exist. Creting it");
+                exportDir.mkdirs();
+            }
+
+            String fileName = "database_export_" + System.currentTimeMillis() + ".txt";
+            File exportFile = new File(exportDir, fileName);
+
+            try (FileWriter writer = new FileWriter(exportFile)) {
+                writer.write(data.toString());
+            }
+
+            if (exportFile.exists()) {
+                Log.d("DatabaseExport", "File exists after writing: " + exportFile.getAbsolutePath());
+            } else {
+                Log.d("DatabaseExport", "File does NOT exist after writing!");
+            }
+            Log.d("DatabaseExport", "Data exported to: " + exportFile.getAbsolutePath());
+        } catch (Exception e) {
+            Log.e("DatabaseExport", "Error exporting data", e);
+        }
     }
 } 

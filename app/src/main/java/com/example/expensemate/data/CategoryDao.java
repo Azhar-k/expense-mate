@@ -25,4 +25,7 @@ public interface CategoryDao {
 
     @Delete
     void deleteCategory(Category category);
-} 
+
+    @Query("SELECT * FROM categories ORDER BY name ASC")
+    List<Category> getAllCategoriesSync();
+}
