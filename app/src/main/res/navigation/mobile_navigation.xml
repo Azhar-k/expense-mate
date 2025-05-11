@@ -30,6 +30,12 @@
         tools:layout="@layout/fragment_categories" />
 
     <fragment
+        android:id="@+id/navigation_sms_scan"
+        android:name="com.example.expensemate.ui.sms.SmsScanFragment"
+        android:label="Scan SMS"
+        tools:layout="@layout/fragment_sms_scan" />
+
+    <fragment
         android:id="@+id/navigation_recurring_payments"
         android:name="com.example.expensemate.ui.recurringpayment.RecurringPaymentsFragment"
         android:label="@string/recurring_payments"

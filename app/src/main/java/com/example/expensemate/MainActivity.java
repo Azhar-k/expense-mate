@@ -23,6 +23,7 @@ import androidx.navigation.ui.NavigationUI;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.navigation.NavigationView;
 import com.example.expensemate.service.SmsMonitorService;
+import android.widget.Toast;
 
 public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
     private static final String TAG = "MainActivity";
@@ -89,11 +90,14 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     }
 
     private void checkAndRequestPermissions() {
-        // Check SMS permission
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECEIVE_SMS)
-                != PackageManager.PERMISSION_GRANTED) {
+        // Check SMS permissions
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECEIVE_SMS) != PackageManager.PERMISSION_GRANTED ||
+            ContextCompat.checkSelfPermission(this, Manifest.permission.READ_SMS) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this,
-                    new String[]{Manifest.permission.RECEIVE_SMS},
+                    new String[]{
+                        Manifest.permission.RECEIVE_SMS,
+                        Manifest.permission.READ_SMS
+                    },
                     SMS_PERMISSION_REQUEST_CODE);
             return;
         }
@@ -119,9 +123,19 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         
         if (requestCode == SMS_PERMISSION_REQUEST_CODE) {
-            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                // SMS permission granted, check for foreground service permission
+            boolean allGranted = true;
+            for (int result : grantResults) {
+                if (result != PackageManager.PERMISSION_GRANTED) {
+                    allGranted = false;
+                    break;
+                }
+            }
+            if (allGranted) {
+                // All SMS permissions granted, check for foreground service permission
                 checkAndRequestPermissions();
+            } else {
+                Toast.makeText(this, "SMS permissions are required for the app to function properly", 
+                    Toast.LENGTH_LONG).show();
             }
         } else if (requestCode == FOREGROUND_SERVICE_PERMISSION_REQUEST_CODE) {
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
@@ -141,6 +155,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             navController.navigate(R.id.navigation_expense);
         } else if (id == R.id.nav_categories) {
             navController.navigate(R.id.navigation_categories);
+        } else if (id == R.id.nav_sms_scan) {
+            navController.navigate(R.id.navigation_sms_scan);
         } else if (id == R.id.nav_recurring_payments) {
             navController.navigate(R.id.navigation_recurring_payments);
         } else if (id == R.id.nav_settings) {
