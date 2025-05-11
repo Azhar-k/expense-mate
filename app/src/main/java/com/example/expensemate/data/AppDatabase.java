@@ -120,7 +120,7 @@ public abstract class AppDatabase extends RoomDatabase {
 
         // Insert default income categories
         String[] defaultIncomeCategories = {
-            "Default", "Salary", "Business", "Investment", "Gift", "Others"
+            "Default", "Salary", "Others"
         };
 
         for (String category : defaultIncomeCategories) {

@@ -4,6 +4,7 @@ import android.app.AlertDialog;
 import android.app.DatePickerDialog;
 import android.app.TimePickerDialog;
 import android.content.Context;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -224,8 +225,12 @@ public class TransactionsAdapter extends ListAdapter<Transaction, TransactionsAd
 
         public void bind(Transaction transaction) {
             binding.tvAmount.setText(String.format("₹%.2f", transaction.getAmount()));
-            binding.tvAmount.setTextColor(context.getColor(
-                    transaction.getTransactionType().equals("DEBIT") ? R.color.debit_color : R.color.credit_color));
+            if (transaction.getTransactionType() == null) {
+                Log.d("Transaction", "Transaction type is null. Not setting the colour. Id:"+ transaction.getId()+ ", Amount:"+ transaction.getAmount()+", Desc:"+transaction.getDescription());
+            } else {
+                binding.tvAmount.setTextColor(context.getColor(
+                        transaction.getTransactionType().equals("DEBIT") ? R.color.debit_color : R.color.credit_color));
+            }
             binding.tvDate.setText(String.format("Date: %s", dateFormat.format(transaction.getDate())));
             binding.tvCategory.setText(String.format("Category: %s", transaction.getCategory()));
             binding.tvDescription.setText(String.format("Description: %s", transaction.getDescription()));

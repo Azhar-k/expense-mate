@@ -17,6 +17,9 @@ public interface CategoryDao {
     @Query("SELECT * FROM categories WHERE type = :type ORDER BY name ASC")
     LiveData<List<Category>> getCategoriesByType(String type);
 
+    @Query("SELECT * FROM categories WHERE name = :name ORDER BY name ASC")
+    List<Category> getCategoriesByName(String name);
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     void insertCategory(Category category);
 

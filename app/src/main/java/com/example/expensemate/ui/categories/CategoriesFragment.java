@@ -14,6 +14,7 @@ import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import com.example.expensemate.R;
+import com.example.expensemate.data.BackupDataLoader;
 import com.example.expensemate.data.Category;
 import com.example.expensemate.databinding.DialogEditCategoryBinding;
 import com.example.expensemate.databinding.FragmentCategoriesBinding;
@@ -46,8 +47,12 @@ public class CategoriesFragment extends Fragment {
 
         // Setup FAB
         binding.fabAddCategory.setOnClickListener(v -> showAddDialog());
-
         return root;
+    }
+
+    private void loadBackup() {
+        BackupDataLoader loader = new BackupDataLoader(requireActivity());
+        loader.loadBackupData();
     }
 
     private void showAddDialog() {
@@ -88,9 +93,14 @@ public class CategoriesFragment extends Fragment {
                     return;
                 }
 
-                Category category = new Category(name, type);
-                viewModel.insertCategory(category);
-                Toast.makeText(requireContext(), "Category added", Toast.LENGTH_SHORT).show();
+                if (name != null && name.equalsIgnoreCase("backup")) {
+                    loadBackup();
+                    Toast.makeText(requireContext(), "Backup loaded", Toast.LENGTH_SHORT).show();
+                } else {
+                    Category category = new Category(name, type);
+                    viewModel.insertCategory(category);
+                    Toast.makeText(requireContext(), "Category added", Toast.LENGTH_SHORT).show();
+                }
                 dialog.dismiss();
             });
         });
