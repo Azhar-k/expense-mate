@@ -27,9 +27,11 @@ public class TransactionViewModel extends AndroidViewModel {
     private final MutableLiveData<Double> totalExpense = new MutableLiveData<>(0.0);
     private final MutableLiveData<Double> totalIncome = new MutableLiveData<>(0.0);
     private LiveData<List<CategorySum>> categorySums;
+    private final MutableLiveData<List<Transaction>> filteredTransactions = new MutableLiveData<>();
 
     public TransactionViewModel(Application application) {
         super(application);
+        Log.d(TAG, "Initializing TransactionViewModel");
         database = AppDatabase.getDatabase(application);
         transactionDao = database.transactionDao();
         executorService = Executors.newSingleThreadExecutor();
@@ -39,8 +41,18 @@ public class TransactionViewModel extends AndroidViewModel {
         Calendar calendar = Calendar.getInstance();
         SimpleDateFormat monthFormat = new SimpleDateFormat("MM", Locale.getDefault());
         SimpleDateFormat yearFormat = new SimpleDateFormat("yyyy", Locale.getDefault());
-        selectedMonth.setValue(monthFormat.format(calendar.getTime()));
-        selectedYear.setValue(yearFormat.format(calendar.getTime()));
+        String currentMonth = monthFormat.format(calendar.getTime());
+        String currentYear = yearFormat.format(calendar.getTime());
+        Log.d(TAG, "Setting initial period to: " + currentMonth + "/" + currentYear);
+        selectedMonth.setValue(currentMonth);
+        selectedYear.setValue(currentYear);
+        
+        // Initialize filtered transactions with current month/year
+        executorService.execute(() -> {
+            List<Transaction> transactions = transactionDao.getTransactionsByMonthYearSync(currentMonth, currentYear);
+            Log.d(TAG, "Initialized filtered transactions with count: " + (transactions != null ? transactions.size() : 0));
+            filteredTransactions.postValue(transactions);
+        });
         
         // Initialize LiveData with current month/year
         updatePeriodLiveData();
@@ -68,6 +80,9 @@ public class TransactionViewModel extends AndroidViewModel {
             
             // Update category sums
             categorySums = transactionDao.getCategorySumsByMonthYear(month, year);
+            Log.d(TAG, "Updated category sums LiveData");
+        } else {
+            Log.w(TAG, "Cannot update LiveData: month or year is null");
         }
     }
 
@@ -75,6 +90,16 @@ public class TransactionViewModel extends AndroidViewModel {
         Log.d(TAG, "Setting new period: " + month + "/" + year);
         selectedMonth.setValue(month);
         selectedYear.setValue(year);
+        
+        // Update filtered transactions
+        Log.d(TAG, "Updating filtered transactions LiveData");
+        executorService.execute(() -> {
+            List<Transaction> transactions = transactionDao.getTransactionsByMonthYearSync(month, year);
+            Log.d(TAG, "Fetched filtered transactions with count: " + (transactions != null ? transactions.size() : 0));
+            filteredTransactions.postValue(transactions);
+        });
+        
+        // Update other LiveData
         updatePeriodLiveData();
     }
 
@@ -88,6 +113,11 @@ public class TransactionViewModel extends AndroidViewModel {
 
     public LiveData<List<Transaction>> getAllTransactions() {
         return allTransactions;
+    }
+
+    public LiveData<List<Transaction>> getFilteredTransactions() {
+        Log.d(TAG, "Getting filtered transactions LiveData");
+        return filteredTransactions;
     }
 
     public void insertTransaction(Transaction transaction) {
