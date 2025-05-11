@@ -8,7 +8,7 @@ import androidx.room.TypeConverters;
 import androidx.room.migration.Migration;
 import androidx.sqlite.db.SupportSQLiteDatabase;
 
-@Database(entities = {Transaction.class, Category.class, RecurringPayment.class}, version = 9, exportSchema = false)
+@Database(entities = {Transaction.class, Category.class, RecurringPayment.class}, version = 10, exportSchema = false)
 @TypeConverters(Converters.class)
 public abstract class AppDatabase extends RoomDatabase {
     private static volatile AppDatabase INSTANCE;
@@ -161,6 +161,83 @@ public abstract class AppDatabase extends RoomDatabase {
         }
     };
 
+    private static final Migration MIGRATION_10_11 = new Migration(10, 11) {
+        @Override
+        public void migrate(SupportSQLiteDatabase database) {
+            // Create index for getCategorySumsByMonthYear
+            database.execSQL(
+                "CREATE INDEX IF NOT EXISTS `index_transactions_category_month_year` " +
+                "ON `transactions` (`category`, `transactionType`, `linkedRecurringPaymentId`, `date`)");
+
+            // Create index for getExpenseByMonthYearSync
+            database.execSQL(
+                "CREATE INDEX IF NOT EXISTS `index_transactions_expense_month_year` " +
+                "ON `transactions` (`transactionType`, `linkedRecurringPaymentId`, `date`)");
+
+            // Create index for getIncomeByMonthYearSync
+            database.execSQL(
+                "CREATE INDEX IF NOT EXISTS `index_transactions_income_month_year` " +
+                "ON `transactions` (`transactionType`, `date`)");
+
+            // Create index for getTransactionsByMonthYearSync
+            database.execSQL(
+                "CREATE INDEX IF NOT EXISTS `index_transactions_date` " +
+                "ON `transactions` (`date`)");
+        }
+    };
+
+    private static final Migration MIGRATION_11_12 = new Migration(11, 12) {
+        @Override
+        public void migrate(SupportSQLiteDatabase database) {
+            // Create index for getAllCategories
+            database.execSQL(
+                "CREATE INDEX IF NOT EXISTS `index_categories_name` " +
+                "ON `categories` (`name`)");
+
+            // Create index for getCategoriesByType
+            database.execSQL(
+                "CREATE INDEX IF NOT EXISTS `index_categories_type` " +
+                "ON `categories` (`type`)");
+
+            // Create index for getAllRecurringPayments
+            database.execSQL(
+                "CREATE INDEX IF NOT EXISTS `index_recurring_payments_isCompleted_dueDay` " +
+                "ON `recurring_payments` (`isCompleted`, `dueDay`)");
+
+            // Create index for getTotalAmount and getRemainingAmount
+            database.execSQL(
+                "CREATE INDEX IF NOT EXISTS `index_recurring_payments_amount` " +
+                "ON `recurring_payments` (`amount`)");
+        }
+    };
+
+    private static final Migration MIGRATION_9_10 = new Migration(9, 10) {
+        @Override
+        public void migrate(SupportSQLiteDatabase database) {
+            database.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `transactions_new` (" +
+                            "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                            "`amount` REAL NOT NULL, " +
+                            "`description` TEXT, " +
+                            "`date` INTEGER, " +
+                            "`accountNumber` TEXT, " +
+                            "`accountType` TEXT, " +
+                            "`transactionType` TEXT, " +
+                            "`receiverName` TEXT, " +
+                            "`smsBody` TEXT, " +
+                            "`smsSender` TEXT, " +
+                            "`category` TEXT, " + // No default value
+                            "`linkedRecurringPaymentId` INTEGER)"
+            );
+            database.execSQL(
+                    "INSERT INTO transactions_new (id, amount, description, date, accountNumber, accountType, transactionType, receiverName, smsBody, smsSender, category, linkedRecurringPaymentId) " +
+                            "SELECT id, amount, description, date, accountNumber, accountType, transactionType, receiverName, smsBody, smsSender, category, linkedRecurringPaymentId FROM transactions"
+            );
+            database.execSQL("DROP TABLE transactions");
+            database.execSQL("ALTER TABLE transactions_new RENAME TO transactions");
+        }
+    };
+
     public abstract TransactionDao transactionDao();
     public abstract CategoryDao categoryDao();
     public abstract RecurringPaymentDao recurringPaymentDao();
@@ -172,8 +249,8 @@ public abstract class AppDatabase extends RoomDatabase {
                     INSTANCE = Room.databaseBuilder(context.getApplicationContext(),
                             AppDatabase.class, "expense_mate_database")
                             .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, 
-                                         MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, 
-                                         MIGRATION_7_8, MIGRATION_8_9)
+                                         MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7,
+                                         MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12)
                             .build();
                 }
             }

@@ -21,7 +21,6 @@ public class TransactionViewModel extends AndroidViewModel {
     private final AppDatabase database;
     private final TransactionDao transactionDao;
     private final ExecutorService executorService;
-    private final LiveData<List<Transaction>> allTransactions;
     private final MutableLiveData<String> selectedMonth = new MutableLiveData<>();
     private final MutableLiveData<String> selectedYear = new MutableLiveData<>();
     private final MutableLiveData<Double> totalExpense = new MutableLiveData<>(0.0);
@@ -35,7 +34,6 @@ public class TransactionViewModel extends AndroidViewModel {
         database = AppDatabase.getDatabase(application);
         transactionDao = database.transactionDao();
         executorService = Executors.newSingleThreadExecutor();
-        allTransactions = transactionDao.getAllTransactions();
         
         // Initialize with current month and year
         Calendar calendar = Calendar.getInstance();
@@ -111,10 +109,6 @@ public class TransactionViewModel extends AndroidViewModel {
         return selectedYear;
     }
 
-    public LiveData<List<Transaction>> getAllTransactions() {
-        return allTransactions;
-    }
-
     public LiveData<List<Transaction>> getFilteredTransactions() {
         Log.d(TAG, "Getting filtered transactions LiveData");
         return filteredTransactions;
@@ -125,7 +119,13 @@ public class TransactionViewModel extends AndroidViewModel {
             try {
                 Log.d(TAG, "Inserting transaction: " + transaction.getAmount() + " " + transaction.getTransactionType());
                 transactionDao.insertTransaction(transaction);
-                // Update the current period totals
+                // Update the current period totals and filtered transactions
+                String month = selectedMonth.getValue();
+                String year = selectedYear.getValue();
+                if (month != null && year != null) {
+                    List<Transaction> transactions = transactionDao.getTransactionsByMonthYearSync(month, year);
+                    filteredTransactions.postValue(transactions);
+                }
                 updatePeriodLiveData();
             } catch (Exception e) {
                 Log.e(TAG, "Error inserting transaction", e);
@@ -138,7 +138,13 @@ public class TransactionViewModel extends AndroidViewModel {
             try {
                 Log.d(TAG, "Deleting transaction: " + transaction.getAmount() + " " + transaction.getTransactionType());
                 transactionDao.deleteTransaction(transaction);
-                // Update the current period totals
+                // Update the current period totals and filtered transactions
+                String month = selectedMonth.getValue();
+                String year = selectedYear.getValue();
+                if (month != null && year != null) {
+                    List<Transaction> transactions = transactionDao.getTransactionsByMonthYearSync(month, year);
+                    filteredTransactions.postValue(transactions);
+                }
                 updatePeriodLiveData();
             } catch (Exception e) {
                 Log.e(TAG, "Error deleting transaction", e);
@@ -164,7 +170,13 @@ public class TransactionViewModel extends AndroidViewModel {
                     newTransaction.getCategory(),
                     newTransaction.getLinkedRecurringPaymentId()
                 );
-                // Update the current period totals
+                // Update the current period totals and filtered transactions
+                String month = selectedMonth.getValue();
+                String year = selectedYear.getValue();
+                if (month != null && year != null) {
+                    List<Transaction> transactions = transactionDao.getTransactionsByMonthYearSync(month, year);
+                    filteredTransactions.postValue(transactions);
+                }
                 updatePeriodLiveData();
             } catch (Exception e) {
                 Log.e(TAG, "Error updating transaction", e);

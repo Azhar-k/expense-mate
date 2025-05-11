@@ -11,9 +11,6 @@ import java.util.List;
 
 @Dao
 public interface TransactionDao {
-    @Query("SELECT * FROM transactions ORDER BY date DESC")
-    LiveData<List<Transaction>> getAllTransactions();
-
     @Query("SELECT * FROM transactions " +
            "WHERE strftime('%m', datetime(date/1000, 'unixepoch')) = :month " +
            "AND strftime('%Y', datetime(date/1000, 'unixepoch')) = :year " +
