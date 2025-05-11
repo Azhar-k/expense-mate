@@ -62,9 +62,7 @@ public abstract class AppDatabase extends RoomDatabase {
 
             // Insert default expense categories
             String[] defaultExpenseCategories = {
-                "Food", "Household", "Movies", "Fuel", "Home Food",
-                "Home Household", "Family", "Home Entertainment",
-                "Vehicle", "Transport", "Entertainment", "Others"
+                "Default","Food", "Household", "Fuel", "Entertainment", "Personal", "Others"
             };
 
             for (String category : defaultExpenseCategories) {
@@ -76,7 +74,7 @@ public abstract class AppDatabase extends RoomDatabase {
 
             // Insert default income categories
             String[] defaultIncomeCategories = {
-                "Salary", "Business", "Investment", "Gift", "Others"
+                "Default","Salary", "Business", "Investment", "Gift", "Others"
             };
 
             for (String category : defaultIncomeCategories) {

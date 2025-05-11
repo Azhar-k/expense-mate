@@ -23,7 +23,7 @@ public class Transaction {
     private String smsHash; // Hash of SMS body and sender for duplicate detection
 
     public Transaction() {
-        this.category = "Others"; // Default category
+        this.category = "Default"; // Default category
         this.date = new Date(); // Initialize with current date
         this.linkedRecurringPaymentId = null;
         this.smsHash = null;
@@ -39,7 +39,7 @@ public class Transaction {
         this.receiverName = receiverName;
         this.smsBody = smsBody;
         this.smsSender = smsSender;
-        this.category = "Others"; // Default category
+        this.category = "Default"; // Default category
         this.linkedRecurringPaymentId = null;
         this.smsHash = generateSmsHash(smsBody, smsSender);
     }
@@ -114,7 +114,7 @@ public class Transaction {
     }
 
     public void setCategory(String category) {
-        this.category = category != null ? category : "Others";
+        this.category = category != null ? category : "Default";
     }
 
     public Long getLinkedRecurringPaymentId() {

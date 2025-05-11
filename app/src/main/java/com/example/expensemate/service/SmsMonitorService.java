@@ -160,7 +160,6 @@ public class SmsMonitorService extends Service {
             // Try ICICI pattern first
             var iciciMatcher = iciciPattern.matcher(smsBody);
             if (iciciMatcher.find()) {
-                String accountNumber = iciciMatcher.group(1);
                 double amount = Double.parseDouble(iciciMatcher.group(2));
                 String receiverName = iciciMatcher.group(4).trim();
                 Log.d(TAG, "Found ICICI transaction: " + amount + " to " + receiverName);
@@ -180,7 +179,6 @@ public class SmsMonitorService extends Service {
             var kotakMatcher = kotakPattern.matcher(smsBody);
             if (kotakMatcher.find()) {
                 double amount = Double.parseDouble(kotakMatcher.group(1));
-                String accountNumber = kotakMatcher.group(2);
                 String receiverName = kotakMatcher.group(3).trim();
                 Log.d(TAG, "Found Kotak transaction: " + amount + " to " + receiverName);
                 
