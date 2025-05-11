@@ -161,8 +161,6 @@ public class TransactionViewModel extends AndroidViewModel {
                     newTransaction.getAmount(),
                     newTransaction.getDescription(),
                     newTransaction.getDate(),
-                    newTransaction.getAccountNumber(),
-                    newTransaction.getAccountType(),
                     newTransaction.getTransactionType(),
                     newTransaction.getReceiverName(),
                     newTransaction.getSmsBody(),
@@ -194,6 +192,10 @@ public class TransactionViewModel extends AndroidViewModel {
 
     public LiveData<List<CategorySum>> getCategorySumsByMonthYear(String month, String year) {
         return transactionDao.getCategorySumsByMonthYear(month, year);
+    }
+
+    public int countTransactionsBySmsHash(String smsHash) {
+        return transactionDao.countTransactionsBySmsHash(smsHash);
     }
 
     @Override

@@ -14,36 +14,34 @@ public class Transaction {
     
     @TypeConverters(Converters.class)
     private Date date;
-    
-    private String accountNumber;
-    private String accountType; // "BANK" or "CREDIT_CARD"
     private String transactionType; // "DEBIT" or "CREDIT"
     private String receiverName;
     private String smsBody;
     private String smsSender;
     private String category; // New field for transaction category
     private Long linkedRecurringPaymentId; // ID of the linked recurring payment, null if not linked
+    private String smsHash; // Hash of SMS body and sender for duplicate detection
 
     public Transaction() {
         this.category = "Others"; // Default category
         this.date = new Date(); // Initialize with current date
         this.linkedRecurringPaymentId = null;
+        this.smsHash = null;
     }
 
-    public Transaction(double amount, String description, Date date, String accountNumber,
-                      String accountType, String transactionType, String receiverName,
+    public Transaction(double amount, String description, Date date,
+                      String transactionType, String receiverName,
                       String smsBody, String smsSender) {
         this.amount = amount;
         this.description = description;
         this.date = date != null ? date : new Date();
-        this.accountNumber = accountNumber;
-        this.accountType = accountType;
         this.transactionType = transactionType;
         this.receiverName = receiverName;
         this.smsBody = smsBody;
         this.smsSender = smsSender;
         this.category = "Others"; // Default category
         this.linkedRecurringPaymentId = null;
+        this.smsHash = generateSmsHash(smsBody, smsSender);
     }
 
     // Getters and Setters
@@ -77,22 +75,6 @@ public class Transaction {
 
     public void setDate(Date date) {
         this.date = date != null ? date : new Date();
-    }
-
-    public String getAccountNumber() {
-        return accountNumber;
-    }
-
-    public void setAccountNumber(String accountNumber) {
-        this.accountNumber = accountNumber;
-    }
-
-    public String getAccountType() {
-        return accountType;
-    }
-
-    public void setAccountType(String accountType) {
-        this.accountType = accountType;
     }
 
     public String getTransactionType() {
@@ -142,4 +124,20 @@ public class Transaction {
     public void setLinkedRecurringPaymentId(Long linkedRecurringPaymentId) {
         this.linkedRecurringPaymentId = linkedRecurringPaymentId;
     }
-} 
+
+    public String getSmsHash() {
+        return smsHash;
+    }
+
+    public void setSmsHash(String smsHash) {
+        this.smsHash = smsHash;
+    }
+
+    private String generateSmsHash(String smsBody, String smsSender) {
+        if (smsBody == null || smsSender == null) {
+            return null;
+        }
+        String combined = smsBody + "|" + smsSender;
+        return String.valueOf(combined.hashCode());
+    }
+}

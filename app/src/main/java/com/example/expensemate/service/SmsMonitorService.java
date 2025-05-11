@@ -124,6 +124,12 @@ public class SmsMonitorService extends Service {
         if (transaction != null) {
             Log.d(TAG, "Transaction extracted: " + transaction.getAmount() + " to " + transaction.getReceiverName());
             executorService.execute(() -> {
+                // Check for duplicate transaction
+                String smsHash = transaction.getSmsHash();
+                if (smsHash != null && transactionViewModel.countTransactionsBySmsHash(smsHash) > 0) {
+                    Log.d(TAG, "Duplicate transaction detected, skipping insertion");
+                    return;
+                }
                 transactionViewModel.insertTransaction(transaction);
                 Log.d(TAG, "Transaction inserted via ViewModel");
             });
@@ -163,8 +169,6 @@ public class SmsMonitorService extends Service {
                     amount,
                     "Debit transaction",
                     new Date(),
-                    accountNumber,
-                    "BANK",
                     "DEBIT",
                     receiverName,
                     smsBody,
@@ -184,8 +188,6 @@ public class SmsMonitorService extends Service {
                     amount,
                     "Debit transaction",
                     new Date(),
-                    accountNumber,
-                    "BANK",
                     "DEBIT",
                     receiverName,
                     smsBody,
@@ -204,8 +206,6 @@ public class SmsMonitorService extends Service {
                     amount,
                     "Debit transaction",
                     new Date(),
-                    extractAccountNumber(smsBody),
-                    "BANK",
                     "DEBIT",
                     receiverName,
                     smsBody,
@@ -218,13 +218,5 @@ public class SmsMonitorService extends Service {
             Log.e(TAG, "Error processing SMS: " + e.getMessage(), e);
         }
         return null;
-    }
-
-    private String extractAccountNumber(String smsBody) {
-        Pattern accountPattern = Pattern.compile("(?:A/c|Ac|Account)\\s*(?:No\\.?)?\\s*([A-Z0-9]+)");
-        var matcher = accountPattern.matcher(smsBody);
-        String accountNumber = matcher.find() ? matcher.group(1) : "Unknown";
-        Log.d(TAG, "Extracted account number: " + accountNumber);
-        return accountNumber;
     }
 } 

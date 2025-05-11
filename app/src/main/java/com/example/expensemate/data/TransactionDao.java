@@ -24,11 +24,10 @@ public interface TransactionDao {
     void deleteTransaction(Transaction transaction);
 
     @Query("UPDATE transactions SET amount = :amount, description = :description, date = :date, " +
-           "accountNumber = :accountNumber, accountType = :accountType, transactionType = :transactionType, " +
+           "transactionType = :transactionType, " +
            "receiverName = :receiverName, smsBody = :smsBody, smsSender = :smsSender, category = :category, " +
            "linkedRecurringPaymentId = :linkedRecurringPaymentId WHERE id = :id")
-    void updateTransaction(long id, double amount, String description, Date date, String accountNumber,
-                         String accountType, String transactionType, String receiverName,
+    void updateTransaction(long id, double amount, String description, Date date, String transactionType, String receiverName,
                          String smsBody, String smsSender, String category, Long linkedRecurringPaymentId);
 
     @Query("SELECT category, SUM(amount) as total FROM transactions " +
@@ -37,6 +36,9 @@ public interface TransactionDao {
            "AND strftime('%Y', datetime(date/1000, 'unixepoch')) = :year " +
            "GROUP BY category ORDER BY total DESC")
     LiveData<List<CategorySum>> getCategorySumsByMonthYear(String month, String year);
+
+    @Query("SELECT COUNT(*) FROM transactions WHERE smsHash = :smsHash")
+    int countTransactionsBySmsHash(String smsHash);
 
     // Synchronous methods for getting totals
     @Query("SELECT COALESCE(SUM(amount), 0) FROM transactions WHERE transactionType = 'DEBIT' AND linkedRecurringPaymentId IS NULL " +

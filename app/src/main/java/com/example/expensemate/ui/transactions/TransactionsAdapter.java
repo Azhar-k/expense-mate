@@ -181,8 +181,6 @@ public class TransactionsAdapter extends ListAdapter<Transaction, TransactionsAd
                             Double.parseDouble(amountStr),
                             description,
                             calendar.getTime(),
-                            "",
-                            "",
                             transactionType,
                             receiverName,
                             "", // Empty SMS body for manual transactions
@@ -423,8 +421,6 @@ public class TransactionsAdapter extends ListAdapter<Transaction, TransactionsAd
                                 Double.parseDouble(amountStr),
                                 description,
                                 calendar.getTime(),
-                                transaction.getAccountNumber(),
-                                transaction.getAccountType(),
                                 transactionType,
                                 receiverName,
                                 transaction.getSmsBody(),
