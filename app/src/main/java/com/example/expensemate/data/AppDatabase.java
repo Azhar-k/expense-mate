@@ -17,7 +17,7 @@ import java.util.List;
 
 import androidx.annotation.NonNull;
 
-@Database(entities = {Transaction.class, Category.class, RecurringPayment.class}, version = 1, exportSchema = false)
+@Database(entities = {Transaction.class, Category.class, RecurringPayment.class, Account.class}, version = 3, exportSchema = false)
 @TypeConverters(Converters.class)
 public abstract class AppDatabase extends RoomDatabase {
     private static volatile AppDatabase INSTANCE;
@@ -104,9 +104,39 @@ public abstract class AppDatabase extends RoomDatabase {
         }
     };
 
+    private static final Migration MIGRATION_1_2 = new Migration(1, 2) {
+        @Override
+        public void migrate(SupportSQLiteDatabase database) {
+            // Create accounts table
+            database.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `accounts` (" +
+                            "`id` INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, " +
+                            "`name` TEXT NOT NULL, " +
+                            "`accountNumber` TEXT, " +
+                            "`bank` TEXT, " +
+                            "`expiryDate` INTEGER, " +
+                            "`description` TEXT" +
+                            ")");
+
+            // Account indexes
+            database.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_accounts_name` " +
+                            "ON `accounts` (`name`)");
+        }
+    };
+
+    private static final Migration MIGRATION_2_3 = new Migration(2, 3) {
+        @Override
+        public void migrate(SupportSQLiteDatabase database) {
+            // Add isDefault column to accounts table
+            database.execSQL("ALTER TABLE accounts ADD COLUMN isDefault INTEGER NOT NULL DEFAULT 0");
+        }
+    };
+
     public abstract TransactionDao transactionDao();
     public abstract CategoryDao categoryDao();
     public abstract RecurringPaymentDao recurringPaymentDao();
+    public abstract AccountDao accountDao();
 
     private static void insertDefaultCategories(CategoryDao categoryDao) {
         // Insert default expense categories
@@ -128,32 +158,43 @@ public abstract class AppDatabase extends RoomDatabase {
         }
     }
 
+    private static void insertDefaultAccount(AccountDao accountDao) {
+        Account defaultAccount = new Account("Savings", "", "", null, "Default savings account");
+        accountDao.insert(defaultAccount);
+    }
+
     public static AppDatabase getDatabase(final Context context) {
         if (INSTANCE == null) {
             synchronized (AppDatabase.class) {
                 if (INSTANCE == null) {
                     INSTANCE = Room.databaseBuilder(context.getApplicationContext(),
                             AppDatabase.class, "expense_mate_database")
-                            .addMigrations(INITIAL_MIGRATION)
+                            .addMigrations(INITIAL_MIGRATION, MIGRATION_1_2, MIGRATION_2_3)
                             .fallbackToDestructiveMigration()
                             .addCallback(new RoomDatabase.Callback() {
                                 @Override
                                 public void onCreate(@NonNull SupportSQLiteDatabase db) {
                                     super.onCreate(db);
-                                    // Insert default categories when database is created
+                                    // Insert default data when database is created
                                     new Thread(() -> {
                                         insertDefaultCategories(INSTANCE.categoryDao());
+                                        insertDefaultAccount(INSTANCE.accountDao());
                                     }).start();
                                 }
 
                                 @Override
                                 public void onOpen(@NonNull SupportSQLiteDatabase db) {
                                     super.onOpen(db);
-                                    // Check if categories exist and insert if they don't
+                                    // Check if default data exists and insert if they don't
                                     new Thread(() -> {
                                         List<Category> categories = INSTANCE.categoryDao().getAllCategoriesSync();
                                         if (categories == null || categories.isEmpty()) {
                                             insertDefaultCategories(INSTANCE.categoryDao());
+                                        }
+                                        
+                                        List<Account> accounts = INSTANCE.accountDao().getAllAccountsSync();
+                                        if (accounts == null || accounts.isEmpty()) {
+                                            insertDefaultAccount(INSTANCE.accountDao());
                                         }
                                     }).start();
                                 }
@@ -210,6 +251,21 @@ public abstract class AppDatabase extends RoomDatabase {
                 data.append(String.format("Is Completed: %b\n", p.isCompleted()));
                 data.append(String.format("Last Completed Date: %s\n", p.getLastCompletedDate()));
                 data.append("---\n");
+            }
+
+            // Export accounts
+            data.append("\n=== ACCOUNTS ===\n");
+            List<Account> accounts = database.accountDao().getAllAccounts().getValue();
+            if (accounts != null) {
+                for (Account a : accounts) {
+                    data.append(String.format("ID: %d\n", a.getId()));
+                    data.append(String.format("Name: %s\n", a.getName()));
+                    data.append(String.format("Account Number: %s\n", a.getAccountNumber()));
+                    data.append(String.format("Bank: %s\n", a.getBank()));
+                    data.append(String.format("Expiry Date: %s\n", a.getExpiryDate()));
+                    data.append(String.format("Description: %s\n", a.getDescription()));
+                    data.append("---\n");
+                }
             }
 
             // Log the data

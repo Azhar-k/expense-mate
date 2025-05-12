@@ -72,12 +72,15 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             navController.addOnDestinationChangedListener((controller, destination, arguments) -> {
                 if (destination.getId() == R.id.navigation_categories || 
                     destination.getId() == R.id.navigation_recurring_payments ||
-                    destination.getId() == R.id.navigation_sms_scan) {
+                    destination.getId() == R.id.navigation_sms_scan ||
+                    destination.getId() == R.id.navigation_accounts) {
                     bottomNavView.setVisibility(View.GONE);
                     if (destination.getId() == R.id.navigation_categories) {
                         navigationView.setCheckedItem(R.id.nav_categories);
                     } else if (destination.getId() == R.id.navigation_sms_scan) {
                         navigationView.setCheckedItem(R.id.nav_sms_scan);
+                    } else if (destination.getId() == R.id.navigation_accounts) {
+                        navigationView.setCheckedItem(R.id.nav_accounts);
                     } else {
                         navigationView.setCheckedItem(R.id.nav_recurring_payments);
                     }
@@ -156,6 +159,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         
         if (id == R.id.nav_home) {
             navController.navigate(R.id.navigation_expense);
+        } else if (id == R.id.nav_accounts) {
+            navController.navigate(R.id.navigation_accounts);
         } else if (id == R.id.nav_categories) {
             navController.navigate(R.id.navigation_categories);
         } else if (id == R.id.nav_sms_scan) {
