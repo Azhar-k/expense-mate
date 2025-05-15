@@ -58,19 +58,36 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginBottom="20dp"
-        style="@style/CustomTextInputLayout"
-        android:hint="Category">
+        android:hint="Category"
+        style="@style/CustomTextInputLayout">
 
         <AutoCompleteTextView
             android:id="@+id/etCategory"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:inputType="none"
+            android:inputType="text"
             android:textColor="@color/black"
             android:textSize="18sp"
-            android:padding="16dp"
-            android:focusable="false"
-            android:clickable="true" />
+            android:padding="16dp" />
+
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/tilAccount"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="20dp"
+        android:hint="Account"
+        style="@style/CustomTextInputLayout">
+
+        <AutoCompleteTextView
+            android:id="@+id/etAccount"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="text"
+            android:textColor="@color/black"
+            android:textSize="18sp"
+            android:padding="16dp" />
 
     </com.google.android.material.textfield.TextInputLayout>
 
@@ -113,8 +130,8 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginBottom="20dp"
-        style="@style/CustomTextInputLayout"
-        android:hint="Transaction Type">
+        android:hint="Transaction Type"
+        style="@style/CustomTextInputLayout">
 
         <AutoCompleteTextView
             android:id="@+id/etTransactionType"

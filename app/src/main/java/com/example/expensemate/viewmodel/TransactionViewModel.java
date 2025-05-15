@@ -9,6 +9,7 @@ import com.example.expensemate.data.AppDatabase;
 import com.example.expensemate.data.Transaction;
 import com.example.expensemate.data.TransactionDao;
 import com.example.expensemate.data.CategorySum;
+import com.example.expensemate.data.Account;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.List;
@@ -27,6 +28,7 @@ public class TransactionViewModel extends AndroidViewModel {
     private final MutableLiveData<Double> totalIncome = new MutableLiveData<>(0.0);
     private LiveData<List<CategorySum>> categorySums;
     private final MutableLiveData<List<Transaction>> filteredTransactions = new MutableLiveData<>();
+    private final AccountViewModel accountViewModel;
 
     public TransactionViewModel(Application application) {
         super(application);
@@ -34,6 +36,7 @@ public class TransactionViewModel extends AndroidViewModel {
         database = AppDatabase.getDatabase(application);
         transactionDao = database.transactionDao();
         executorService = Executors.newSingleThreadExecutor();
+        accountViewModel = new AccountViewModel(application);
         
         // Initialize with current month and year
         Calendar calendar = Calendar.getInstance();
@@ -118,6 +121,13 @@ public class TransactionViewModel extends AndroidViewModel {
         executorService.execute(() -> {
             try {
                 Log.d(TAG, "Inserting transaction: " + transaction.getAmount() + " " + transaction.getTransactionType());
+                // If no account is set, use the default account
+                if (transaction.getAccountId() == null) {
+                    Account defaultAccount = accountViewModel.getDefaultAccount().getValue();
+                    if (defaultAccount != null) {
+                        transaction.setAccountId(defaultAccount.getId());
+                    }
+                }
                 transactionDao.insertTransaction(transaction);
                 // Update the current period totals and filtered transactions
                 String month = selectedMonth.getValue();
@@ -166,7 +176,8 @@ public class TransactionViewModel extends AndroidViewModel {
                     newTransaction.getSmsBody(),
                     newTransaction.getSmsSender(),
                     newTransaction.getCategory(),
-                    newTransaction.getLinkedRecurringPaymentId()
+                    newTransaction.getLinkedRecurringPaymentId(),
+                    newTransaction.getAccountId()
                 );
                 // Update the current period totals and filtered transactions
                 String month = selectedMonth.getValue();

@@ -7,7 +7,10 @@ import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.database.ContentObserver;
+import android.net.Uri;
 import android.os.Build;
+import android.os.Handler;
 import android.os.IBinder;
 import android.provider.Telephony;
 import android.util.Log;
@@ -16,6 +19,7 @@ import com.example.expensemate.R;
 import com.example.expensemate.MainActivity;
 import com.example.expensemate.data.Transaction;
 import com.example.expensemate.viewmodel.TransactionViewModel;
+import com.example.expensemate.viewmodel.AccountViewModel;
 import java.util.Date;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -26,18 +30,18 @@ public class SmsMonitorService extends Service {
     private static final int NOTIFICATION_ID = 1;
     private static final String CHANNEL_ID = "SmsMonitorChannel";
     
-    private SmsReceiver smsReceiver;
+    private ContentObserver smsObserver;
     private TransactionViewModel transactionViewModel;
+    private AccountViewModel accountViewModel;
     private ExecutorService executorService;
-    private boolean isReceiverRegistered = false;
 
     @Override
     public void onCreate() {
         super.onCreate();
         Log.d(TAG, "Service created");
         transactionViewModel = new TransactionViewModel(getApplication());
+        accountViewModel = new AccountViewModel(getApplication());
         executorService = Executors.newSingleThreadExecutor();
-        smsReceiver = new SmsReceiver((smsBody, sender) -> processSms(smsBody, sender));
         createNotificationChannel();
     }
 
@@ -48,15 +52,73 @@ public class SmsMonitorService extends Service {
         // Start as a foreground service
         startForeground(NOTIFICATION_ID, createNotification());
         
-        // Register receiver if not already registered
-        if (!isReceiverRegistered) {
-            IntentFilter filter = new IntentFilter(Telephony.Sms.Intents.SMS_RECEIVED_ACTION);
-            registerReceiver(smsReceiver, filter);
-            isReceiverRegistered = true;
-            Log.d(TAG, "SMS receiver registered");
-        }
+        setupSmsObserver();
         
         return START_STICKY;
+    }
+
+    private void setupSmsObserver() {
+        smsObserver = new ContentObserver(new Handler()) {
+            @Override
+            public void onChange(boolean selfChange, Uri uri) {
+                super.onChange(selfChange, uri);
+                Log.d(TAG, "SMS database changed");
+                processNewSms();
+            }
+        };
+
+        getContentResolver().registerContentObserver(
+            Telephony.Sms.CONTENT_URI,
+            true,
+            smsObserver
+        );
+    }
+
+    private void processNewSms() {
+        executorService.execute(() -> {
+            try {
+                // Get the latest SMS
+                android.database.Cursor cursor = getContentResolver().query(
+                    Telephony.Sms.CONTENT_URI,
+                    new String[]{
+                        Telephony.Sms.ADDRESS,
+                        Telephony.Sms.BODY,
+                        Telephony.Sms.DATE
+                    },
+                    null,
+                    null,
+                    Telephony.Sms.DATE + " DESC LIMIT 1"
+                );
+
+                if (cursor != null && cursor.moveToFirst()) {
+                    String sender = cursor.getString(cursor.getColumnIndexOrThrow(Telephony.Sms.ADDRESS));
+                    String body = cursor.getString(cursor.getColumnIndexOrThrow(Telephony.Sms.BODY));
+                    long date = cursor.getLong(cursor.getColumnIndexOrThrow(Telephony.Sms.DATE));
+                    cursor.close();
+
+                    Log.d(TAG, "Processing new SMS from: " + sender);
+                    Log.d(TAG, "SMS body: " + body);
+
+                    Transaction transaction = extractTransactionDetails(body, sender);
+                    if (transaction != null) {
+                        transaction.setDate(new Date(date));
+                        String smsHash = transaction.getSmsHash();
+                        if (smsHash != null && transactionViewModel.countTransactionsBySmsHash(smsHash) == 0) {
+                            // Set default account if available
+                            accountViewModel.getDefaultAccount().observeForever(defaultAccount -> {
+                                if (defaultAccount != null) {
+                                    transaction.setAccountId(defaultAccount.getId());
+                                }
+                                transactionViewModel.insertTransaction(transaction);
+                                accountViewModel.getDefaultAccount().removeObserver(defaultAccount1 -> {});
+                            });
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "Error processing SMS", e);
+            }
+        });
     }
 
     @Override
@@ -64,15 +126,8 @@ public class SmsMonitorService extends Service {
         super.onDestroy();
         Log.d(TAG, "Service destroyed");
         
-        // Only unregister if registered
-        if (isReceiverRegistered) {
-            try {
-                unregisterReceiver(smsReceiver);
-                isReceiverRegistered = false;
-                Log.d(TAG, "SMS receiver unregistered");
-            } catch (IllegalArgumentException e) {
-                Log.e(TAG, "Error unregistering receiver: " + e.getMessage());
-            }
+        if (smsObserver != null) {
+            getContentResolver().unregisterContentObserver(smsObserver);
         }
         
         if (executorService != null) {
@@ -113,29 +168,6 @@ public class SmsMonitorService extends Service {
             .setSmallIcon(R.drawable.ic_menu_transactions)
             .setContentIntent(pendingIntent)
             .build();
-    }
-
-    private void processSms(String smsBody, String sender) {
-        Log.d(TAG, "Processing SMS from: " + sender);
-        Log.d(TAG, "SMS body: " + smsBody);
-        
-        // Process all SMS messages without bank pattern checking
-        Transaction transaction = extractTransactionDetails(smsBody, sender);
-        if (transaction != null) {
-            Log.d(TAG, "Transaction extracted: " + transaction.getAmount() + " to " + transaction.getReceiverName());
-            executorService.execute(() -> {
-                // Check for duplicate transaction
-                String smsHash = transaction.getSmsHash();
-                if (smsHash != null && transactionViewModel.countTransactionsBySmsHash(smsHash) > 0) {
-                    Log.d(TAG, "Duplicate transaction detected, skipping insertion");
-                    return;
-                }
-                transactionViewModel.insertTransaction(transaction);
-                Log.d(TAG, "Transaction inserted via ViewModel");
-            });
-        } else {
-            Log.d(TAG, "No transaction details could be extracted");
-        }
     }
 
     private Transaction extractTransactionDetails(String smsBody, String sender) {

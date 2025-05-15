@@ -3,6 +3,7 @@ package com.example.expensemate.data;
 import androidx.room.Entity;
 import androidx.room.PrimaryKey;
 import androidx.room.TypeConverters;
+import androidx.room.Ignore;
 import java.util.Date;
 
 @Entity(tableName = "transactions")
@@ -21,14 +22,17 @@ public class Transaction {
     private String category; // New field for transaction category
     private Long linkedRecurringPaymentId; // ID of the linked recurring payment, null if not linked
     private String smsHash; // Hash of SMS body and sender for duplicate detection
+    private Long accountId; // ID of the linked account
 
     public Transaction() {
         this.category = "Default"; // Default category
         this.date = new Date(); // Initialize with current date
         this.linkedRecurringPaymentId = null;
         this.smsHash = null;
+        this.accountId = null;
     }
 
+    @Ignore
     public Transaction(double amount, String description, Date date,
                       String transactionType, String receiverName,
                       String smsBody, String smsSender) {
@@ -131,6 +135,14 @@ public class Transaction {
 
     public void setSmsHash(String smsHash) {
         this.smsHash = smsHash;
+    }
+
+    public Long getAccountId() {
+        return accountId;
+    }
+
+    public void setAccountId(Long accountId) {
+        this.accountId = accountId;
     }
 
     private String generateSmsHash(String smsBody, String smsSender) {

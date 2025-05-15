@@ -26,9 +26,9 @@ public interface TransactionDao {
     @Query("UPDATE transactions SET amount = :amount, description = :description, date = :date, " +
            "transactionType = :transactionType, " +
            "receiverName = :receiverName, smsBody = :smsBody, smsSender = :smsSender, category = :category, " +
-           "linkedRecurringPaymentId = :linkedRecurringPaymentId WHERE id = :id")
+           "linkedRecurringPaymentId = :linkedRecurringPaymentId, accountId = :accountId WHERE id = :id")
     void updateTransaction(long id, double amount, String description, Date date, String transactionType, String receiverName,
-                         String smsBody, String smsSender, String category, Long linkedRecurringPaymentId);
+                         String smsBody, String smsSender, String category, Long linkedRecurringPaymentId, Long accountId);
 
     @Query("SELECT category, SUM(amount) as total FROM transactions " +
            "WHERE transactionType = 'DEBIT' AND linkedRecurringPaymentId IS NULL " +
