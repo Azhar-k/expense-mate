@@ -225,10 +225,6 @@ public class TransactionViewModel extends AndroidViewModel {
         return totalIncome;
     }
 
-    public LiveData<List<CategorySum>> getCategorySumsByMonthYear(String month, String year) {
-        return transactionDao.getCategorySumsByMonthYear(month, year);
-    }
-
     public LiveData<List<CategorySum>> getCategorySumsByMonthYearAndAccount(String month, String year, Long accountId) {
         return transactionDao.getCategorySumsByMonthYearAndAccount(month, year, accountId);
     }

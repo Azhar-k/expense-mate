@@ -12,6 +12,8 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:hint="Select Account"
+        android:background="@color/background"
+        android:textColor="@color/black"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
@@ -31,6 +33,7 @@
         android:layout_marginTop="16dp"
         android:textSize="18sp"
         android:textStyle="bold"
+        android:textColor="@color/black"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/account_dropdown_layout" />
@@ -44,6 +47,7 @@
         android:contentDescription="Previous month"
         android:src="@drawable/ic_chevron_left"
         app:layout_constraintBottom_toBottomOf="@id/tv_period"
+        app:tint="@color/black"
         app:layout_constraintEnd_toStartOf="@id/tv_period"
         app:layout_constraintTop_toTopOf="@id/tv_period" />
 
@@ -57,6 +61,7 @@
         android:src="@drawable/ic_chevron_right"
         app:layout_constraintBottom_toBottomOf="@id/tv_period"
         app:layout_constraintStart_toEndOf="@id/tv_period"
+        app:tint="@color/black"
         app:layout_constraintTop_toTopOf="@id/tv_period" />
 
     <TextView
@@ -66,6 +71,7 @@
         android:layout_marginTop="24dp"
         android:text="Total Expense"
         android:textSize="16sp"
+        android:textColor="@color/secondary_text"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/tv_period" />
 
@@ -86,6 +92,7 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="24dp"
         android:text="Total Income"
+        android:textColor="@color/secondary_text"
         android:textSize="16sp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toBottomOf="@id/tv_period" />
@@ -107,6 +114,7 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="24dp"
         android:text="Balance"
+        android:textColor="@color/secondary_text"
         android:textSize="16sp"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/total_expense" />
