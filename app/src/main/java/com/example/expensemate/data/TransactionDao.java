@@ -52,26 +52,26 @@ public interface TransactionDao {
            "GROUP BY category ORDER BY total DESC")
     LiveData<List<CategorySum>> getCategorySumsByMonthYearAndAccount(String month, String year, Long accountId);
 
-    @Query("SELECT SUM(amount) FROM transactions " +
-           "WHERE transactionType = 'DEBIT' " +
+    @Query("SELECT COALESCE(SUM(amount), 0) FROM transactions " +
+           "WHERE transactionType = 'DEBIT' AND linkedRecurringPaymentId IS NULL " +
            "AND strftime('%m', datetime(date/1000, 'unixepoch')) = :month " +
            "AND strftime('%Y', datetime(date/1000, 'unixepoch')) = :year")
     Double getExpenseByMonthYearSync(String month, String year);
 
-    @Query("SELECT SUM(amount) FROM transactions " +
-           "WHERE transactionType = 'DEBIT' " +
+    @Query("SELECT COALESCE(SUM(amount), 0) FROM transactions " +
+           "WHERE transactionType = 'DEBIT' AND linkedRecurringPaymentId IS NULL " +
            "AND strftime('%m', datetime(date/1000, 'unixepoch')) = :month " +
            "AND strftime('%Y', datetime(date/1000, 'unixepoch')) = :year " +
            "AND (:accountId IS NULL OR accountId = :accountId)")
     Double getExpenseByMonthYearAndAccountSync(String month, String year, Long accountId);
 
-    @Query("SELECT SUM(amount) FROM transactions " +
+    @Query("SELECT COALESCE(SUM(amount), 0) FROM transactions " +
            "WHERE transactionType = 'CREDIT' " +
            "AND strftime('%m', datetime(date/1000, 'unixepoch')) = :month " +
            "AND strftime('%Y', datetime(date/1000, 'unixepoch')) = :year")
     Double getIncomeByMonthYearSync(String month, String year);
 
-    @Query("SELECT SUM(amount) FROM transactions " +
+    @Query("SELECT COALESCE(SUM(amount), 0) FROM transactions " +
            "WHERE transactionType = 'CREDIT' " +
            "AND strftime('%m', datetime(date/1000, 'unixepoch')) = :month " +
            "AND strftime('%Y', datetime(date/1000, 'unixepoch')) = :year " +
@@ -81,7 +81,6 @@ public interface TransactionDao {
     @Query("SELECT COUNT(*) FROM transactions WHERE smsHash = :smsHash")
     int countTransactionsBySmsHash(String smsHash);
 
-    // Synchronous methods for getting totals
     @Query("SELECT * FROM transactions ORDER BY date DESC")
     List<Transaction> getAllTransactionsSync();
 }
