@@ -15,6 +15,9 @@ public interface AccountDao {
     @Query("SELECT * FROM accounts WHERE isDefault = 1 LIMIT 1")
     LiveData<Account> getDefaultAccount();
 
+    @Query("SELECT * FROM accounts WHERE isDefault = 1 LIMIT 1")
+    Account getDefaultAccountSync();
+
     @Query("UPDATE accounts SET isDefault = 0 WHERE isDefault = 1")
     void clearDefaultAccount();
 

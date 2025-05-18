@@ -99,7 +99,7 @@ public class BackupDataLoader {
                 String key = parts[0].trim();
                 String value = parts[1].trim();
                 Log.d("Transaction", "key:"+key+" val:"+value);
-                Account defaultAccount = database.accountDao().getDefaultAccount().getValue();
+                Account defaultAccount = database.accountDao().getDefaultAccountSync();
                 if (defaultAccount != null) {
                     Log.d("Transaction", "default account exist. Id:"+defaultAccount.getId());
                     transaction.setAccountId(defaultAccount.getId());
