@@ -82,8 +82,17 @@ public class ExpenseFragment extends Fragment {
                 requireContext(),
                 android.R.layout.simple_dropdown_item_1line,
                 accountNames
-            );
+            ) {
+                @Override
+                public View getView(int position, View convertView, ViewGroup parent) {
+                    View view = super.getView(position, convertView, parent);
+                    TextView text = (TextView) view.findViewById(android.R.id.text1);
+                    text.setTextColor(requireContext().getResources().getColor(R.color.black));
+                    return view;
+                }
+            };
             accountDropdown.setAdapter(adapter);
+            accountDropdown.setDropDownBackgroundResource(android.R.color.white);
         });
 
         // Observe default account

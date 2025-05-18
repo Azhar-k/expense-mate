@@ -6,10 +6,13 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
+import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
+
+import com.example.expensemate.R;
 import com.example.expensemate.databinding.FragmentSummaryBinding;
 import com.example.expensemate.data.Account;
 import com.example.expensemate.viewmodel.AccountViewModel;
@@ -72,8 +75,17 @@ public class SummaryFragment extends Fragment {
                 requireContext(),
                 android.R.layout.simple_dropdown_item_1line,
                 accountNames
-            );
+            ) {
+                @Override
+                public View getView(int position, View convertView, ViewGroup parent) {
+                    View view = super.getView(position, convertView, parent);
+                    TextView text = (TextView) view.findViewById(android.R.id.text1);
+                    text.setTextColor(requireContext().getResources().getColor(R.color.black));
+                    return view;
+                }
+            };
             binding.accountDropdown.setAdapter(adapter);
+            binding.accountDropdown.setDropDownBackgroundResource(android.R.color.white);
         });
 
         // Observe default account
