@@ -99,6 +99,13 @@ public class BackupDataLoader {
                 String key = parts[0].trim();
                 String value = parts[1].trim();
                 Log.d("Transaction", "key:"+key+" val:"+value);
+                Account defaultAccount = database.accountDao().getDefaultAccount().getValue();
+                if (defaultAccount != null) {
+                    Log.d("Transaction", "default account exist. Id:"+defaultAccount.getId());
+                    transaction.setAccountId(defaultAccount.getId());
+                } else {
+                    Log.d("Transaction", "default account do not exist");
+                }
 
                 switch (key) {
                     case "ID":

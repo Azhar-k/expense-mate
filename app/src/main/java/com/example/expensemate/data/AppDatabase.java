@@ -168,6 +168,7 @@ public abstract class AppDatabase extends RoomDatabase {
 
     private static void insertDefaultAccount(AccountDao accountDao) {
         Account defaultAccount = new Account("Savings", "", "", null, "Default savings account");
+        defaultAccount.setDefault(true);
         accountDao.insert(defaultAccount);
     }
 
@@ -195,15 +196,15 @@ public abstract class AppDatabase extends RoomDatabase {
                                     super.onOpen(db);
                                     // Check if default data exists and insert if they don't
                                     new Thread(() -> {
-                                        List<Category> categories = INSTANCE.categoryDao().getAllCategoriesSync();
-                                        if (categories == null || categories.isEmpty()) {
-                                            insertDefaultCategories(INSTANCE.categoryDao());
-                                        }
-                                        
-                                        List<Account> accounts = INSTANCE.accountDao().getAllAccountsSync();
-                                        if (accounts == null || accounts.isEmpty()) {
-                                            insertDefaultAccount(INSTANCE.accountDao());
-                                        }
+//                                        List<Category> categories = INSTANCE.categoryDao().getAllCategoriesSync();
+//                                        if (categories == null || categories.isEmpty()) {
+//                                            insertDefaultCategories(INSTANCE.categoryDao());
+//                                        }
+//
+//                                        List<Account> accounts = INSTANCE.accountDao().getAllAccountsSync();
+//                                        if (accounts == null || accounts.isEmpty()) {
+//                                            insertDefaultAccount(INSTANCE.accountDao());
+//                                        }
                                     }).start();
                                 }
                             })
