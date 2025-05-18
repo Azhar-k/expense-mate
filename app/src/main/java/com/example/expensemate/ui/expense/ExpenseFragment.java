@@ -97,6 +97,7 @@ public class ExpenseFragment extends Fragment {
         // Handle account selection
         accountDropdown.setOnItemClickListener((parent, view, position, id) -> {
             Account selectedAccount = accounts.get(position);
+            Log.d(TAG, "Account selected: " + selectedAccount.getName());
             transactionViewModel.setSelectedAccount(selectedAccount.getId());
         });
         

@@ -90,23 +90,27 @@ public class SummaryFragment extends Fragment {
         // Handle account selection
         binding.accountDropdown.setOnItemClickListener((parent, view, position, id) -> {
             Account selectedAccount = accounts.get(position);
+            Log.d(TAG, "Account selected: " + selectedAccount.getName());
             viewModel.setSelectedAccount(selectedAccount.getId());
         });
 
-        // Observe category sums for the selected period
-        viewModel.getSelectedMonth().observe(getViewLifecycleOwner(), month -> {
+        // Observe selected account changes
+        viewModel.getSelectedAccountId().observe(getViewLifecycleOwner(), accountId -> {
+            Log.d(TAG, "Selected account changed to: " + accountId);
+            String month = viewModel.getSelectedMonth().getValue();
             String year = viewModel.getSelectedYear().getValue();
-            Long accountId = viewModel.getSelectedAccountId().getValue();
-            if (year != null) {
-                Log.d(TAG, "Observing category sums for period: " + month + "/" + year + " account: " + accountId);
-                viewModel.getCategorySumsByMonthYearAndAccount(month, year, accountId).observe(getViewLifecycleOwner(), categorySums -> {
-                    adapter.submitList(categorySums);
-                });
+            if (month != null && year != null) {
+                viewModel.getCategorySumsByMonthYearAndAccount(month, year, accountId)
+                    .observe(getViewLifecycleOwner(), categorySums -> {
+                        Log.d(TAG, "Category sums updated. Count: " + (categorySums != null ? categorySums.size() : 0));
+                        adapter.submitList(categorySums);
+                    });
             }
         });
 
         // Observe total expense
         viewModel.getTotalExpense().observe(getViewLifecycleOwner(), total -> {
+            Log.d(TAG, "Total expense changed: " + total);
             binding.tvTotalAmount.setText(String.format("₹%.2f", total != null ? total : 0.0));
         });
 

@@ -238,8 +238,34 @@ public class TransactionViewModel extends AndroidViewModel {
     }
 
     public void setSelectedAccount(Long accountId) {
+        Log.d(TAG, "Setting selected account: " + accountId);
         selectedAccountId.setValue(accountId);
-        updateFilteredTransactions();
+        
+        // Update all data for the new account
+        String month = selectedMonth.getValue();
+        String year = selectedYear.getValue();
+        
+        if (month != null && year != null) {
+            executorService.execute(() -> {
+                // Update filtered transactions
+                List<Transaction> transactions = transactionDao.getTransactionsByMonthYearAndAccountSync(
+                    month, 
+                    year,
+                    accountId
+                );
+                filteredTransactions.postValue(transactions);
+                
+                // Update expense total
+                Double expense = transactionDao.getExpenseByMonthYearAndAccountSync(month, year, accountId);
+                totalExpense.postValue(expense);
+                
+                // Update income total
+                Double income = transactionDao.getIncomeByMonthYearAndAccountSync(month, year, accountId);
+                totalIncome.postValue(income);
+                
+                // Category sums will be updated automatically through LiveData
+            });
+        }
     }
 
     public LiveData<Long> getSelectedAccountId() {
