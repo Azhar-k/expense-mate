@@ -5,29 +5,38 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ArrayAdapter;
+import android.widget.AutoCompleteTextView;
 import android.widget.ImageButton;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import com.example.expensemate.R;
+import com.example.expensemate.data.Account;
+import com.example.expensemate.viewmodel.AccountViewModel;
 import com.example.expensemate.viewmodel.TransactionViewModel;
 import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.List;
 import java.util.Locale;
 
 public class ExpenseFragment extends Fragment {
     private static final String TAG = "ExpenseFragment";
     private TransactionViewModel transactionViewModel;
+    private AccountViewModel accountViewModel;
     private TextView totalExpenseText;
     private TextView totalIncomeText;
     private TextView totalBalanceText;
     private TextView periodText;
     private ImageButton prevMonthButton;
     private ImageButton nextMonthButton;
+    private AutoCompleteTextView accountDropdown;
     private final NumberFormat formatter = NumberFormat.getCurrencyInstance(new Locale("en", "IN"));
     private Calendar currentPeriod;
+    private List<Account> accounts = new ArrayList<>();
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -39,8 +48,10 @@ public class ExpenseFragment extends Fragment {
         periodText = root.findViewById(R.id.tv_period);
         prevMonthButton = root.findViewById(R.id.btn_prev_month);
         nextMonthButton = root.findViewById(R.id.btn_next_month);
+        accountDropdown = root.findViewById(R.id.account_dropdown);
         
         transactionViewModel = new ViewModelProvider(requireActivity()).get(TransactionViewModel.class);
+        accountViewModel = new ViewModelProvider(requireActivity()).get(AccountViewModel.class);
         
         // Initialize current period
         currentPeriod = Calendar.getInstance();
@@ -59,18 +70,47 @@ public class ExpenseFragment extends Fragment {
             updatePeriodDisplay();
             updateSelectedPeriod();
         });
+
+        // Set up account dropdown
+        accountViewModel.getAllAccounts().observe(getViewLifecycleOwner(), accountList -> {
+            accounts = accountList;
+            List<String> accountNames = new ArrayList<>();
+            for (Account account : accounts) {
+                accountNames.add(account.getName());
+            }
+            ArrayAdapter<String> adapter = new ArrayAdapter<>(
+                requireContext(),
+                android.R.layout.simple_dropdown_item_1line,
+                accountNames
+            );
+            accountDropdown.setAdapter(adapter);
+        });
+
+        // Observe default account
+        accountViewModel.getDefaultAccount().observe(getViewLifecycleOwner(), defaultAccount -> {
+            if (defaultAccount != null) {
+                accountDropdown.setText(defaultAccount.getName(), false);
+                transactionViewModel.setSelectedAccount(defaultAccount.getId());
+            }
+        });
+
+        // Handle account selection
+        accountDropdown.setOnItemClickListener((parent, view, position, id) -> {
+            Account selectedAccount = accounts.get(position);
+            transactionViewModel.setSelectedAccount(selectedAccount.getId());
+        });
         
         // Observe total expense
         transactionViewModel.getTotalExpense().observe(getViewLifecycleOwner(), total -> {
             Log.d(TAG, "Total expense changed: " + total);
-            totalExpenseText.setText(formatter.format(total));
+            totalExpenseText.setText(formatter.format(total != null ? total : 0.0));
             updateBalance();
         });
 
         // Observe total income
         transactionViewModel.getTotalIncome().observe(getViewLifecycleOwner(), total -> {
             Log.d(TAG, "Total income changed: " + total);
-            totalIncomeText.setText(formatter.format(total));
+            totalIncomeText.setText(formatter.format(total != null ? total : 0.0));
             updateBalance();
         });
 

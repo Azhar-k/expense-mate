@@ -29,6 +29,7 @@ public class TransactionViewModel extends AndroidViewModel {
     private LiveData<List<CategorySum>> categorySums;
     private final MutableLiveData<List<Transaction>> filteredTransactions = new MutableLiveData<>();
     private final AccountViewModel accountViewModel;
+    private final MutableLiveData<Long> selectedAccountId = new MutableLiveData<>();
 
     public TransactionViewModel(Application application) {
         super(application);
@@ -48,9 +49,20 @@ public class TransactionViewModel extends AndroidViewModel {
         selectedMonth.setValue(currentMonth);
         selectedYear.setValue(currentYear);
         
-        // Initialize filtered transactions with current month/year
+        // Initialize with default account
+        accountViewModel.getDefaultAccount().observeForever(account -> {
+            if (account != null) {
+                selectedAccountId.setValue(account.getId());
+            }
+        });
+        
+        // Initialize filtered transactions with current month/year and default account
         executorService.execute(() -> {
-            List<Transaction> transactions = transactionDao.getTransactionsByMonthYearSync(currentMonth, currentYear);
+            List<Transaction> transactions = transactionDao.getTransactionsByMonthYearAndAccountSync(
+                currentMonth, 
+                currentYear,
+                selectedAccountId.getValue()
+            );
             Log.d(TAG, "Initialized filtered transactions with count: " + (transactions != null ? transactions.size() : 0));
             filteredTransactions.postValue(transactions);
         });
@@ -62,25 +74,27 @@ public class TransactionViewModel extends AndroidViewModel {
     private void updatePeriodLiveData() {
         String month = selectedMonth.getValue();
         String year = selectedYear.getValue();
+        Long accountId = selectedAccountId.getValue();
+        
         if (month != null && year != null) {
             Log.d(TAG, "Updating LiveData for period: " + month + "/" + year);
             
             // Update expense total
             executorService.execute(() -> {
-                Double expense = transactionDao.getExpenseByMonthYearSync(month, year);
+                Double expense = transactionDao.getExpenseByMonthYearAndAccountSync(month, year, accountId);
                 Log.d(TAG, "Fetched expense total: " + expense);
                 totalExpense.postValue(expense);
             });
             
             // Update income total
             executorService.execute(() -> {
-                Double income = transactionDao.getIncomeByMonthYearSync(month, year);
+                Double income = transactionDao.getIncomeByMonthYearAndAccountSync(month, year, accountId);
                 Log.d(TAG, "Fetched income total: " + income);
                 totalIncome.postValue(income);
             });
             
             // Update category sums
-            categorySums = transactionDao.getCategorySumsByMonthYear(month, year);
+            categorySums = transactionDao.getCategorySumsByMonthYearAndAccount(month, year, accountId);
             Log.d(TAG, "Updated category sums LiveData");
         } else {
             Log.w(TAG, "Cannot update LiveData: month or year is null");
@@ -92,16 +106,26 @@ public class TransactionViewModel extends AndroidViewModel {
         selectedMonth.setValue(month);
         selectedYear.setValue(year);
         
-        // Update filtered transactions
-        Log.d(TAG, "Updating filtered transactions LiveData");
+        // Update all data for the new period
         executorService.execute(() -> {
-            List<Transaction> transactions = transactionDao.getTransactionsByMonthYearSync(month, year);
-            Log.d(TAG, "Fetched filtered transactions with count: " + (transactions != null ? transactions.size() : 0));
+            // Update filtered transactions
+            List<Transaction> transactions = transactionDao.getTransactionsByMonthYearAndAccountSync(
+                month, 
+                year,
+                selectedAccountId.getValue()
+            );
             filteredTransactions.postValue(transactions);
+            
+            // Update expense total
+            Double expense = transactionDao.getExpenseByMonthYearAndAccountSync(month, year, selectedAccountId.getValue());
+            totalExpense.postValue(expense);
+            
+            // Update income total
+            Double income = transactionDao.getIncomeByMonthYearAndAccountSync(month, year, selectedAccountId.getValue());
+            totalIncome.postValue(income);
+            
+            // Category sums will be updated automatically through LiveData
         });
-        
-        // Update other LiveData
-        updatePeriodLiveData();
     }
 
     public LiveData<String> getSelectedMonth() {
@@ -205,8 +229,38 @@ public class TransactionViewModel extends AndroidViewModel {
         return transactionDao.getCategorySumsByMonthYear(month, year);
     }
 
+    public LiveData<List<CategorySum>> getCategorySumsByMonthYearAndAccount(String month, String year, Long accountId) {
+        return transactionDao.getCategorySumsByMonthYearAndAccount(month, year, accountId);
+    }
+
     public int countTransactionsBySmsHash(String smsHash) {
         return transactionDao.countTransactionsBySmsHash(smsHash);
+    }
+
+    public void setSelectedAccount(Long accountId) {
+        selectedAccountId.setValue(accountId);
+        updateFilteredTransactions();
+    }
+
+    public LiveData<Long> getSelectedAccountId() {
+        return selectedAccountId;
+    }
+
+    private void updateFilteredTransactions() {
+        String month = selectedMonth.getValue();
+        String year = selectedYear.getValue();
+        Long accountId = selectedAccountId.getValue();
+        
+        if (month != null && year != null) {
+            executorService.execute(() -> {
+                List<Transaction> transactions = transactionDao.getTransactionsByMonthYearAndAccountSync(
+                    month, 
+                    year,
+                    accountId
+                );
+                filteredTransactions.postValue(transactions);
+            });
+        }
     }
 
     @Override

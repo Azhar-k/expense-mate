@@ -5,6 +5,8 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ArrayAdapter;
+import android.widget.AutoCompleteTextView;
 import android.widget.ImageButton;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
@@ -12,25 +14,32 @@ import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import com.example.expensemate.databinding.FragmentSummaryBinding;
+import com.example.expensemate.data.Account;
+import com.example.expensemate.viewmodel.AccountViewModel;
 import com.example.expensemate.viewmodel.TransactionViewModel;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.List;
 import java.util.Locale;
 
 public class SummaryFragment extends Fragment {
     private static final String TAG = "SummaryFragment";
     private FragmentSummaryBinding binding;
     private TransactionViewModel viewModel;
+    private AccountViewModel accountViewModel;
     private CategorySumAdapter adapter;
     private Calendar currentPeriod;
+    private List<Account> accounts = new ArrayList<>();
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         binding = FragmentSummaryBinding.inflate(inflater, container, false);
         View root = binding.getRoot();
 
-        // Initialize ViewModel
+        // Initialize ViewModels
         viewModel = new ViewModelProvider(requireActivity()).get(TransactionViewModel.class);
+        accountViewModel = new ViewModelProvider(requireActivity()).get(AccountViewModel.class);
 
         // Initialize current period
         currentPeriod = Calendar.getInstance();
@@ -55,12 +64,42 @@ public class SummaryFragment extends Fragment {
         binding.rvCategorySums.setLayoutManager(new LinearLayoutManager(requireContext()));
         binding.rvCategorySums.setAdapter(adapter);
 
+        // Set up account dropdown
+        accountViewModel.getAllAccounts().observe(getViewLifecycleOwner(), accountList -> {
+            accounts = accountList;
+            List<String> accountNames = new ArrayList<>();
+            for (Account account : accounts) {
+                accountNames.add(account.getName());
+            }
+            ArrayAdapter<String> adapter = new ArrayAdapter<>(
+                requireContext(),
+                android.R.layout.simple_dropdown_item_1line,
+                accountNames
+            );
+            binding.accountDropdown.setAdapter(adapter);
+        });
+
+        // Observe default account
+        accountViewModel.getDefaultAccount().observe(getViewLifecycleOwner(), defaultAccount -> {
+            if (defaultAccount != null) {
+                binding.accountDropdown.setText(defaultAccount.getName(), false);
+                viewModel.setSelectedAccount(defaultAccount.getId());
+            }
+        });
+
+        // Handle account selection
+        binding.accountDropdown.setOnItemClickListener((parent, view, position, id) -> {
+            Account selectedAccount = accounts.get(position);
+            viewModel.setSelectedAccount(selectedAccount.getId());
+        });
+
         // Observe category sums for the selected period
         viewModel.getSelectedMonth().observe(getViewLifecycleOwner(), month -> {
             String year = viewModel.getSelectedYear().getValue();
+            Long accountId = viewModel.getSelectedAccountId().getValue();
             if (year != null) {
-                Log.d(TAG, "Observing category sums for period: " + month + "/" + year);
-                viewModel.getCategorySumsByMonthYear(month, year).observe(getViewLifecycleOwner(), categorySums -> {
+                Log.d(TAG, "Observing category sums for period: " + month + "/" + year + " account: " + accountId);
+                viewModel.getCategorySumsByMonthYearAndAccount(month, year, accountId).observe(getViewLifecycleOwner(), categorySums -> {
                     adapter.submitList(categorySums);
                 });
             }
@@ -68,7 +107,7 @@ public class SummaryFragment extends Fragment {
 
         // Observe total expense
         viewModel.getTotalExpense().observe(getViewLifecycleOwner(), total -> {
-            binding.tvTotalAmount.setText(String.format("₹%.2f", total));
+            binding.tvTotalAmount.setText(String.format("₹%.2f", total != null ? total : 0.0));
         });
 
         return root;
