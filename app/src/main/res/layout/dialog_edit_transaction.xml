@@ -58,17 +58,19 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginBottom="20dp"
-        android:hint="Category"
-        style="@style/CustomTextInputLayout">
+        style="@style/CustomTextInputLayout"
+        android:hint="Category">
 
         <AutoCompleteTextView
             android:id="@+id/etCategory"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:inputType="text"
+            android:inputType="none"
             android:textColor="@color/black"
             android:textSize="18sp"
-            android:padding="16dp" />
+            android:padding="16dp"
+            android:focusable="false"
+            android:clickable="true" />
 
     </com.google.android.material.textfield.TextInputLayout>
 
@@ -84,10 +86,12 @@
             android:id="@+id/etAccount"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:inputType="text"
+            android:inputType="none"
             android:textColor="@color/black"
             android:textSize="18sp"
-            android:padding="16dp" />
+            android:padding="16dp"
+            android:focusable="false"
+            android:clickable="true" />
 
     </com.google.android.material.textfield.TextInputLayout>
 
@@ -130,8 +134,8 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginBottom="20dp"
-        android:hint="Transaction Type"
-        style="@style/CustomTextInputLayout">
+        style="@style/CustomTextInputLayout"
+        android:hint="Transaction Type">
 
         <AutoCompleteTextView
             android:id="@+id/etTransactionType"

@@ -117,6 +117,17 @@ public class SummaryFragment extends Fragment {
             }
         });
 
+        // Observe category sums for the selected period
+        viewModel.getSelectedMonth().observe(getViewLifecycleOwner(), month -> {
+            String year = viewModel.getSelectedYear().getValue();
+            if (year != null) {
+                Log.d(TAG, "Observing category sums for period: " + month + "/" + year);
+                viewModel.getCategorySumsByMonthYearAndAccount(month, year, viewModel.getSelectedAccountId().getValue()).observe(getViewLifecycleOwner(), categorySums -> {
+                    adapter.submitList(categorySums);
+                });
+            }
+        });
+
         // Observe total expense
         viewModel.getTotalExpense().observe(getViewLifecycleOwner(), total -> {
             Log.d(TAG, "Total expense changed: " + total);

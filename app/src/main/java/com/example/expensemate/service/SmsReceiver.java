@@ -7,6 +7,11 @@ import android.provider.Telephony;
 import android.telephony.SmsMessage;
 
 public class SmsReceiver extends BroadcastReceiver {
+
+    public SmsReceiver() {
+        callback = (x, y)->{
+        };
+    }
     private final SmsCallback callback;
 
     public interface SmsCallback {

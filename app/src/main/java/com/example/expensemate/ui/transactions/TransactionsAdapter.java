@@ -552,46 +552,46 @@ public class TransactionsAdapter extends ListAdapter<Transaction, TransactionsAd
                                     break;
                                 }
                             }
-
-                            // Handle recurring payment linking
-                            if (!selectedPayment.equals("None")) {
-                                for (RecurringPayment payment : currentPayments) {
-                                    if (payment.getName().equals(selectedPayment)) {
-                                        // Link the payment to the transaction
-                                        updatedTransaction.setLinkedRecurringPaymentId(payment.getId());
-                                        // Mark the recurring payment as completed
-                                        payment.setCompleted(true);
-                                        payment.setLastCompletedDate(calendar.getTime());
-                                        recurringPaymentsViewModel.update(payment);
-                                        
-                                        // Update transaction and notify adapter
-                                        viewModel.updateTransaction(transaction, updatedTransaction);
-                                        Toast.makeText(context, "Transaction updated", Toast.LENGTH_SHORT).show();
-                                        dialog.dismiss();
-                                        return;
-                                    }
-                                }
-                            } else {
-                                // If unlinking a payment, mark it as not completed
-                                if (transaction.getLinkedRecurringPaymentId() != null) {
-                                    for (RecurringPayment payment : currentPayments) {
-                                        if (payment.getId() == transaction.getLinkedRecurringPaymentId()) {
-                                            payment.setCompleted(false);
-                                            payment.setLastCompletedDate(null);
-                                            recurringPaymentsViewModel.update(payment);
-                                            break;
-                                        }
-                                    }
-                                }
-                                updatedTransaction.setLinkedRecurringPaymentId(null);
-                                
-                                // Update transaction and notify adapter
-                                viewModel.updateTransaction(transaction, updatedTransaction);
-                                notifyItemChanged(getAdapterPosition());
-                                Toast.makeText(context, "Transaction updated", Toast.LENGTH_SHORT).show();
-                                dialog.dismiss();
-                            }
                         });
+
+                        // Handle recurring payment linking
+                        if (!selectedPayment.equals("None")) {
+                            for (RecurringPayment payment : currentPayments) {
+                                if (payment.getName().equals(selectedPayment)) {
+                                    // Link the payment to the transaction
+                                    updatedTransaction.setLinkedRecurringPaymentId(payment.getId());
+                                    // Mark the recurring payment as completed
+                                    payment.setCompleted(true);
+                                    payment.setLastCompletedDate(calendar.getTime());
+                                    recurringPaymentsViewModel.update(payment);
+
+                                    // Update transaction and notify adapter
+                                    viewModel.updateTransaction(transaction, updatedTransaction);
+                                    Toast.makeText(context, "Transaction updated", Toast.LENGTH_SHORT).show();
+                                    dialog.dismiss();
+                                    return;
+                                }
+                            }
+                        } else {
+                            // If unlinking a payment, mark it as not completed
+                            if (transaction.getLinkedRecurringPaymentId() != null) {
+                                for (RecurringPayment payment : currentPayments) {
+                                    if (payment.getId() == transaction.getLinkedRecurringPaymentId()) {
+                                        payment.setCompleted(false);
+                                        payment.setLastCompletedDate(null);
+                                        recurringPaymentsViewModel.update(payment);
+                                        break;
+                                    }
+                                }
+                            }
+                            updatedTransaction.setLinkedRecurringPaymentId(null);
+
+                            // Update transaction and notify adapter
+                            viewModel.updateTransaction(transaction, updatedTransaction);
+                            notifyItemChanged(getAdapterPosition());
+                            Toast.makeText(context, "Transaction updated", Toast.LENGTH_SHORT).show();
+                            dialog.dismiss();
+                        }
                     } catch (NumberFormatException e) {
                         Toast.makeText(context, "Invalid amount", Toast.LENGTH_SHORT).show();
                     }

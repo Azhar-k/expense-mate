@@ -69,8 +69,18 @@ public class SmsScanFragment extends Fragment {
             (view, year, month, dayOfMonth) -> {
                 calendar.set(year, month, dayOfMonth);
                 if (isFromDate) {
+                    // Set time to start of day (00:00:00)
+                    calendar.set(Calendar.HOUR_OF_DAY, 0);
+                    calendar.set(Calendar.MINUTE, 0);
+                    calendar.set(Calendar.SECOND, 0);
+                    calendar.set(Calendar.MILLISECOND, 0);
                     binding.etFromDate.setText(dateFormat.format(calendar.getTime()));
                 } else {
+                    // Set time to end of day (23:59:59.999)
+                    calendar.set(Calendar.HOUR_OF_DAY, 23);
+                    calendar.set(Calendar.MINUTE, 59);
+                    calendar.set(Calendar.SECOND, 59);
+                    calendar.set(Calendar.MILLISECOND, 999);
                     binding.etToDate.setText(dateFormat.format(calendar.getTime()));
                 }
             },
