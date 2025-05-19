@@ -16,6 +16,7 @@ import androidx.core.app.NotificationCompat;
 
 import com.example.expensemate.MainActivity;
 import com.example.expensemate.R;
+import com.example.expensemate.data.Account;
 import com.example.expensemate.data.Transaction;
 import com.example.expensemate.viewmodel.AccountViewModel;
 import com.example.expensemate.viewmodel.TransactionViewModel;
@@ -136,15 +137,11 @@ public class SmsMonitorService extends Service {
                     Log.d(TAG, "Duplicate transaction detected, skipping insertion");
                     return;
                 }
-                accountViewModel.getDefaultAccount().observeForever(
-                        defaultAccount -> {
-                            if (defaultAccount != null) {
-                                transaction.setAccountId(defaultAccount.getId());
-                            }
-                        }
-                );
-                accountViewModel.getDefaultAccount().removeObserver(defaultAccount1 -> {
-                });
+                Account defaultAccount = accountViewModel.getDefaultAccountSync();
+                if (defaultAccount != null) {
+                    transaction.setAccountId(defaultAccount.getId());
+                }
+
                 transactionViewModel.insertTransaction(transaction);
                 Log.d(TAG, "Transaction inserted via ViewModel");
             });

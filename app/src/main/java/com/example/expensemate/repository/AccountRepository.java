@@ -53,4 +53,8 @@ public class AccountRepository {
             }
         });
     }
-} 
+
+    public Account getDefaultAccountSync() {
+        return accountDao.getDefaultAccountSync();
+    }
+}
