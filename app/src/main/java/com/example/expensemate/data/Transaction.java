@@ -5,6 +5,7 @@ import androidx.room.PrimaryKey;
 import androidx.room.TypeConverters;
 import androidx.room.Ignore;
 import java.util.Date;
+import android.util.Log;
 
 @Entity(tableName = "transactions")
 public class Transaction {
@@ -147,9 +148,18 @@ public class Transaction {
 
     private String generateSmsHash(String smsBody, String smsSender) {
         if (smsBody == null || smsSender == null) {
+            Log.d("Transaction", "SMS hash generation failed: null body or sender");
             return null;
         }
-        String combined = smsBody + "|" + smsSender;
-        return String.valueOf(combined.hashCode());
+        // Normalize the strings by trimming and converting to lowercase
+        String normalizedBody = smsBody.trim().toLowerCase();
+        String normalizedSender = smsSender.trim().toLowerCase();
+        String combined = normalizedBody + "|" + normalizedSender;
+        String hash = String.valueOf(combined.hashCode());
+        Log.d("Transaction", "Generated SMS hash: " + hash);
+        Log.d("Transaction", "Original SMS body: [" + smsBody + "]");
+        Log.d("Transaction", "Original SMS sender: [" + smsSender + "]");
+        Log.d("Transaction", "Normalized combined: [" + combined + "]");
+        return hash;
     }
 }

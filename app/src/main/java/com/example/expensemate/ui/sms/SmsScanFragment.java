@@ -6,6 +6,7 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.Telephony;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -151,9 +152,19 @@ public class SmsScanFragment extends Fragment {
                             if (transaction != null) {
                                 transaction.setDate(new Date(date));
                                 String smsHash = transaction.getSmsHash();
-                                if (smsHash != null && viewModel.countTransactionsBySmsHash(smsHash) == 0) {
-                                    viewModel.insertTransaction(transaction);
-                                    createdCount++;
+                                Log.d("SmsScanFragment", "Checking for duplicate transaction with hash: " + smsHash);
+                                if (smsHash != null) {
+                                    int existingCount = viewModel.countTransactionsBySmsHash(smsHash);
+                                    Log.d("SmsScanFragment", "Found " + existingCount + " existing transactions with same hash");
+                                    if (existingCount == 0) {
+                                        viewModel.insertTransaction(transaction);
+                                        createdCount++;
+                                        Log.d("SmsScanFragment", "New transaction inserted");
+                                    } else {
+                                        Log.d("SmsScanFragment", "Duplicate transaction detected, skipping insertion");
+                                    }
+                                } else {
+                                    Log.d("SmsScanFragment", "No SMS hash generated for transaction");
                                 }
                             }
                         }

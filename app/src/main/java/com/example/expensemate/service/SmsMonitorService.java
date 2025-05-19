@@ -133,9 +133,16 @@ public class SmsMonitorService extends Service {
             executorService.execute(() -> {
                 // Check for duplicate transaction
                 String smsHash = transaction.getSmsHash();
-                if (smsHash != null && transactionViewModel.countTransactionsBySmsHash(smsHash) > 0) {
-                    Log.d(TAG, "Duplicate transaction detected, skipping insertion");
-                    return;
+                Log.d(TAG, "Checking for duplicate transaction with hash: " + smsHash);
+                if (smsHash != null) {
+                    int existingCount = transactionViewModel.countTransactionsBySmsHash(smsHash);
+                    Log.d(TAG, "Found " + existingCount + " existing transactions with same hash");
+                    if (existingCount > 0) {
+                        Log.d(TAG, "Duplicate transaction detected, skipping insertion");
+                        return;
+                    }
+                } else {
+                    Log.d(TAG, "No SMS hash generated for transaction");
                 }
                 Account defaultAccount = accountViewModel.getDefaultAccountSync();
                 if (defaultAccount != null) {
