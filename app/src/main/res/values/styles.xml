@@ -12,8 +12,16 @@
     <style name="AccountDropdownStyle" parent="Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu">
         <item name="hintTextColor">@color/black</item>
         <item name="boxStrokeColor">@color/black</item>
+        <item name="boxStrokeWidth">1dp</item>
         <item name="android:textColorHint">@color/black</item>
         <item name="hintEnabled">true</item>
         <item name="hintAnimationEnabled">false</item>
+        <item name="boxCornerRadiusTopStart">8dp</item>
+        <item name="boxCornerRadiusTopEnd">8dp</item>
+        <item name="boxCornerRadiusBottomStart">8dp</item>
+        <item name="boxCornerRadiusBottomEnd">8dp</item>
+        <item name="boxBackgroundColor">@color/background</item>
+        <item name="endIconTint">@color/black</item>
+        <item name="startIconTint">@color/black</item>
     </style>
 </resources> 
