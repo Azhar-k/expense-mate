@@ -12,14 +12,12 @@
 
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/account_dropdown_layout"
-            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+            style="@style/CustomTextInputLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_margin="16dp"
             android:hint="Select Account"
-            app:hintTextColor="@color/black"
-            android:background="@color/background"
-            android:textColor="@color/black">
+            android:background="@color/background">
 
             <AutoCompleteTextView
                 android:id="@+id/account_dropdown"

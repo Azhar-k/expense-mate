@@ -1,11 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="CustomTextInputLayout" parent="Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+    <style name="CustomTextInputLayout" parent="Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu">
+        <item name="hintTextColor">@color/black</item>
+        <item name="boxStrokeColor">@color/black</item>
+        <item name="android:textColorHint">@color/black</item>
         <item name="hintEnabled">true</item>
         <item name="hintAnimationEnabled">false</item>
-        <item name="boxStrokeColor">@color/black</item>
-        <item name="hintTextColor">#757575</item>
-        <item name="boxBackgroundColor">@color/white</item>
-        <item name="android:textColorHint">#757575</item>
     </style>
 </resources> 

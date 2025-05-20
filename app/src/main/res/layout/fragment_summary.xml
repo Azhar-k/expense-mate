@@ -9,13 +9,11 @@
 
     <com.google.android.material.textfield.TextInputLayout
         android:id="@+id/account_dropdown_layout"
-        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+        style="@style/CustomTextInputLayout"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:hint="Select Account"
-        app:hintTextColor="@color/black"
         android:background="@color/background"
-        android:textColor="@color/black"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
