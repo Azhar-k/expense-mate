@@ -20,7 +20,7 @@
         <item name="boxCornerRadiusTopEnd">8dp</item>
         <item name="boxCornerRadiusBottomStart">8dp</item>
         <item name="boxCornerRadiusBottomEnd">8dp</item>
-        <item name="boxBackgroundColor">@color/background</item>
+        <item name="boxBackgroundColor">@color/white</item>
         <item name="endIconTint">@color/black</item>
         <item name="startIconTint">@color/black</item>
     </style>
