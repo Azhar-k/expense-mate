@@ -12,7 +12,7 @@
 
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/account_dropdown_layout"
-            style="@style/CustomTextInputLayout"
+            style="@style/AccountDropdownStyle"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_margin="16dp"

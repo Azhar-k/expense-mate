@@ -9,7 +9,7 @@
 
     <com.google.android.material.textfield.TextInputLayout
         android:id="@+id/account_dropdown_layout"
-        style="@style/CustomTextInputLayout"
+        style="@style/AccountDropdownStyle"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:hint="Select Account"
