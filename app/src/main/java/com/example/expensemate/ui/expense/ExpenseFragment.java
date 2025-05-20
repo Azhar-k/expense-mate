@@ -78,6 +78,9 @@ public class ExpenseFragment extends Fragment {
             for (Account account : accounts) {
                 accountNames.add(account.getName());
             }
+            // Add "All" as the second option
+            accountNames.add(1, "All");
+            
             ArrayAdapter<String> adapter = new ArrayAdapter<>(
                 requireContext(),
                 android.R.layout.simple_dropdown_item_1line,
@@ -105,9 +108,17 @@ public class ExpenseFragment extends Fragment {
 
         // Handle account selection
         accountDropdown.setOnItemClickListener((parent, view, position, id) -> {
-            Account selectedAccount = accounts.get(position);
-            Log.d(TAG, "Account selected: " + selectedAccount.getName());
-            transactionViewModel.setSelectedAccount(selectedAccount.getId());
+            String selectedAccountName = parent.getItemAtPosition(position).toString();
+            if (selectedAccountName.equals("All")) {
+                transactionViewModel.setSelectedAccount(null); // null means no account filter
+            } else {
+                for (Account account : accounts) {
+                    if (account.getName().equals(selectedAccountName)) {
+                        transactionViewModel.setSelectedAccount(account.getId());
+                        break;
+                    }
+                }
+            }
         });
         
         // Observe total expense
