@@ -5,31 +5,44 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ArrayAdapter;
+import android.widget.AutoCompleteTextView;
+import android.widget.TextView;
+
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
+
+import com.example.expensemate.R;
 import com.example.expensemate.databinding.FragmentTransactionsBinding;
 import com.example.expensemate.viewmodel.TransactionViewModel;
+import com.example.expensemate.viewmodel.AccountViewModel;
+import com.example.expensemate.data.Account;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.List;
 import java.util.Locale;
 
 public class TransactionsFragment extends Fragment {
     private static final String TAG = "TransactionsFragment";
     private FragmentTransactionsBinding binding;
     private TransactionViewModel viewModel;
+    private AccountViewModel accountViewModel;
     private TransactionsAdapter adapter;
     private Calendar currentPeriod;
+    private List<Account> accounts = new ArrayList<>();
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         binding = FragmentTransactionsBinding.inflate(inflater, container, false);
         View root = binding.getRoot();
 
-        // Initialize ViewModel
+        // Initialize ViewModels
         viewModel = new ViewModelProvider(requireActivity()).get(TransactionViewModel.class);
-        Log.d(TAG, "ViewModel initialized");
+        accountViewModel = new ViewModelProvider(requireActivity()).get(AccountViewModel.class);
+        Log.d(TAG, "ViewModels initialized");
 
         // Initialize current period
         currentPeriod = Calendar.getInstance();
@@ -59,6 +72,57 @@ public class TransactionsFragment extends Fragment {
 
         // Set up FAB
         binding.fabAddTransaction.setOnClickListener(v -> adapter.showAddTransactionDialog());
+
+        // Set up account dropdown
+        accountViewModel.getAllAccounts().observe(getViewLifecycleOwner(), accountList -> {
+            accounts = accountList;
+            List<String> accountNames = new ArrayList<>();
+            for (Account account : accounts) {
+                accountNames.add(account.getName());
+            }
+            ArrayAdapter<String> accountAdapter = new ArrayAdapter<>(
+                requireContext(),
+                android.R.layout.simple_dropdown_item_1line,
+                accountNames
+            ){
+                @Override
+                public View getView(int position, View convertView, ViewGroup parent) {
+                    View view = super.getView(position, convertView, parent);
+                    TextView text = (TextView) view.findViewById(android.R.id.text1);
+                    text.setTextColor(requireContext().getResources().getColor(R.color.black));
+                    return view;
+                }
+            };
+            binding.accountDropdown.setAdapter(accountAdapter);
+            binding.accountDropdown.setDropDownBackgroundResource(android.R.color.white);
+
+            // Set default account
+            accountViewModel.getDefaultAccount().observe(getViewLifecycleOwner(), defaultAccount -> {
+                if (defaultAccount != null) {
+                    binding.accountDropdown.setText(defaultAccount.getName(), false);
+                    viewModel.setSelectedAccount(defaultAccount.getId());
+                } else if (!accountNames.isEmpty()) {
+                    binding.accountDropdown.setText(accountNames.get(0), false);
+                    for (Account account : accounts) {
+                        if (account.getName().equals(accountNames.get(0))) {
+                            viewModel.setSelectedAccount(account.getId());
+                            break;
+                        }
+                    }
+                }
+            });
+        });
+
+        // Set up account selection listener
+        binding.accountDropdown.setOnItemClickListener((parent, view, position, id) -> {
+            String selectedAccountName = parent.getItemAtPosition(position).toString();
+            for (Account account : accounts) {
+                if (account.getName().equals(selectedAccountName)) {
+                    viewModel.setSelectedAccount(account.getId());
+                    break;
+                }
+            }
+        });
 
         // Observe filtered transactions
         viewModel.getFilteredTransactions().observe(getViewLifecycleOwner(), transactions -> {
