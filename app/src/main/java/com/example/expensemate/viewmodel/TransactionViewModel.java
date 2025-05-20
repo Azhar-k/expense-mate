@@ -244,11 +244,17 @@ public class TransactionViewModel extends AndroidViewModel {
         if (month != null && year != null) {
             executorService.execute(() -> {
                 // Update filtered transactions
-                List<Transaction> transactions = transactionDao.getTransactionsByMonthYearAndAccountSync(
-                    month, 
-                    year,
-                    accountId
-                );
+                List<Transaction> transactions;
+                if (accountId == null) {
+                    // If accountId is null, get all transactions without account filter
+                    transactions = transactionDao.getTransactionsByMonthYearSync(month, year);
+                } else {
+                    transactions = transactionDao.getTransactionsByMonthYearAndAccountSync(
+                        month, 
+                        year,
+                        accountId
+                    );
+                }
                 filteredTransactions.postValue(transactions);
                 
                 // Update expense total

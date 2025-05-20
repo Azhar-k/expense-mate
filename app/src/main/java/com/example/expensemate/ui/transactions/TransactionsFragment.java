@@ -77,6 +77,8 @@ public class TransactionsFragment extends Fragment {
         accountViewModel.getAllAccounts().observe(getViewLifecycleOwner(), accountList -> {
             accounts = accountList;
             List<String> accountNames = new ArrayList<>();
+            // Add "All" as the first option
+            accountNames.add("All");
             for (Account account : accounts) {
                 accountNames.add(account.getName());
             }
@@ -96,30 +98,22 @@ public class TransactionsFragment extends Fragment {
             binding.accountDropdown.setAdapter(accountAdapter);
             binding.accountDropdown.setDropDownBackgroundResource(android.R.color.white);
 
-            // Set default account
-            accountViewModel.getDefaultAccount().observe(getViewLifecycleOwner(), defaultAccount -> {
-                if (defaultAccount != null) {
-                    binding.accountDropdown.setText(defaultAccount.getName(), false);
-                    viewModel.setSelectedAccount(defaultAccount.getId());
-                } else if (!accountNames.isEmpty()) {
-                    binding.accountDropdown.setText(accountNames.get(0), false);
-                    for (Account account : accounts) {
-                        if (account.getName().equals(accountNames.get(0))) {
-                            viewModel.setSelectedAccount(account.getId());
-                            break;
-                        }
-                    }
-                }
-            });
+            // Set "All" as default selection
+            binding.accountDropdown.setText("All", false);
+            viewModel.setSelectedAccount(null); // null means no account filter
         });
 
         // Set up account selection listener
         binding.accountDropdown.setOnItemClickListener((parent, view, position, id) -> {
             String selectedAccountName = parent.getItemAtPosition(position).toString();
-            for (Account account : accounts) {
-                if (account.getName().equals(selectedAccountName)) {
-                    viewModel.setSelectedAccount(account.getId());
-                    break;
+            if (selectedAccountName.equals("All")) {
+                viewModel.setSelectedAccount(null); // null means no account filter
+            } else {
+                for (Account account : accounts) {
+                    if (account.getName().equals(selectedAccountName)) {
+                        viewModel.setSelectedAccount(account.getId());
+                        break;
+                    }
                 }
             }
         });

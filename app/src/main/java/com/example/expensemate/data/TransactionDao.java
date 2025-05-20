@@ -20,7 +20,7 @@ public interface TransactionDao {
     @Query("SELECT * FROM transactions " +
            "WHERE strftime('%m', datetime(date/1000, 'unixepoch')) = :month " +
            "AND strftime('%Y', datetime(date/1000, 'unixepoch')) = :year " +
-           "AND (:accountId IS NULL OR accountId = :accountId) " +
+           "AND accountId = :accountId " +
            "ORDER BY date DESC")
     List<Transaction> getTransactionsByMonthYearAndAccountSync(String month, String year, Long accountId);
 
