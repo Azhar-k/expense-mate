@@ -8,13 +8,16 @@ import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.expensemate.R;
 import com.example.expensemate.data.CategorySum;
+import com.example.expensemate.data.Transaction;
 import com.example.expensemate.databinding.FragmentSummaryBinding;
 import com.example.expensemate.data.Account;
 import com.example.expensemate.viewmodel.AccountViewModel;
@@ -66,6 +69,27 @@ public class SummaryFragment extends Fragment {
         categoryAdapter = new CategorySumAdapter(false);
         binding.rvCategories.setLayoutManager(new LinearLayoutManager(requireContext()));
         binding.rvCategories.setAdapter(categoryAdapter);
+
+        // Set up category click listener
+        categoryAdapter.setOnCategoryClickListener(categorySum -> {
+            String month = viewModel.getSelectedMonth().getValue();
+            String year = viewModel.getSelectedYear().getValue();
+            Long accountId = viewModel.getSelectedAccountId().getValue();
+
+            if (month != null && year != null) {
+                // Get transactions for the selected category
+                viewModel.getTransactionsByCategoryAndPeriod(
+                    categorySum.getCategory(),
+                    month,
+                    year,
+                    accountId
+                ).observe(getViewLifecycleOwner(), transactions -> {
+                    if (transactions != null && !transactions.isEmpty()) {
+                        showCategoryTransactionsDialog(categorySum, transactions);
+                    }
+                });
+            }
+        });
 
         // Set up breakdown toggle
         binding.breakdownToggle.addOnButtonCheckedListener((group, checkedId, isChecked) -> {
@@ -191,6 +215,37 @@ public class SummaryFragment extends Fragment {
                 categoryAdapter.submitList(sums);
             });
         }
+    }
+
+    private void showCategoryTransactionsDialog(CategorySum categorySum, List<Transaction> transactions) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(requireContext());
+        builder.setTitle(categorySum.getCategory() + " Transactions");
+
+        // Create RecyclerView for transactions
+        RecyclerView recyclerView = new RecyclerView(requireContext());
+        recyclerView.setLayoutManager(new LinearLayoutManager(requireContext()));
+        recyclerView.setBackgroundColor(requireContext().getColor(android.R.color.white));
+        CategoryTransactionsAdapter adapter = new CategoryTransactionsAdapter(requireContext());
+        recyclerView.setAdapter(adapter);
+        adapter.submitList(transactions);
+
+        // Set dialog content
+        builder.setView(recyclerView);
+        builder.setPositiveButton("Close", null);
+        
+        AlertDialog dialog = builder.create();
+        dialog.setOnShowListener(dialogInterface -> {
+            dialog.getWindow().setBackgroundDrawableResource(android.R.color.white);
+            // Set title text color to black
+            int titleId = requireContext().getResources().getIdentifier("alertTitle", "id", "android");
+            if (titleId != 0) {
+                TextView titleView = dialog.findViewById(titleId);
+                if (titleView != null) {
+                    titleView.setTextColor(requireContext().getColor(android.R.color.black));
+                }
+            }
+        });
+        dialog.show();
     }
 
     @Override

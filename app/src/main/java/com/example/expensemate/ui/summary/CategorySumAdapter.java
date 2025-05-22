@@ -12,10 +12,19 @@ import com.example.expensemate.databinding.ItemCategorySumBinding;
 
 public class CategorySumAdapter extends ListAdapter<CategorySum, CategorySumAdapter.CategorySumViewHolder> {
     private boolean isIncome;
+    private OnCategoryClickListener listener;
+
+    public interface OnCategoryClickListener {
+        void onCategoryClick(CategorySum categorySum);
+    }
 
     public CategorySumAdapter(boolean isIncome) {
         super(new CategorySumDiffCallback());
         this.isIncome = isIncome;
+    }
+
+    public void setOnCategoryClickListener(OnCategoryClickListener listener) {
+        this.listener = listener;
     }
 
     public void setIncome(boolean isIncome) {
@@ -45,6 +54,13 @@ public class CategorySumAdapter extends ListAdapter<CategorySum, CategorySumAdap
         public CategorySumViewHolder(ItemCategorySumBinding binding) {
             super(binding.getRoot());
             this.binding = binding;
+
+            binding.getRoot().setOnClickListener(v -> {
+                int position = getAdapterPosition();
+                if (position != RecyclerView.NO_POSITION && listener != null) {
+                    listener.onCategoryClick(getItem(position));
+                }
+            });
         }
 
         public void bind(CategorySum categorySum) {
