@@ -11,11 +11,16 @@ import com.example.expensemate.data.CategorySum;
 import com.example.expensemate.databinding.ItemCategorySumBinding;
 
 public class CategorySumAdapter extends ListAdapter<CategorySum, CategorySumAdapter.CategorySumViewHolder> {
-    private final boolean isIncome;
+    private boolean isIncome;
 
     public CategorySumAdapter(boolean isIncome) {
         super(new CategorySumDiffCallback());
         this.isIncome = isIncome;
+    }
+
+    public void setIncome(boolean isIncome) {
+        this.isIncome = isIncome;
+        notifyDataSetChanged();
     }
 
     @NonNull

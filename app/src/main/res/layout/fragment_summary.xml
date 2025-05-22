@@ -110,43 +110,48 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toBottomOf="@id/total_income_label" />
 
-    <TextView
-        android:id="@+id/expense_categories_label"
+    <com.google.android.material.button.MaterialButtonToggleGroup
+        android:id="@+id/breakdown_toggle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="24dp"
+        app:singleSelection="true"
+        app:selectionRequired="true"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tv_total_amount">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_expense_breakdown"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Expenses"
+            android:textColor="@color/black"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_income_breakdown"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@color/black"
+            android:text="Income"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
+
+    </com.google.android.material.button.MaterialButtonToggleGroup>
+
+    <TextView
+        android:id="@+id/breakdown_label"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
         android:text="Expense Categories"
         android:textColor="@color/secondary_text"
         android:textSize="16sp"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/tv_total_amount" />
+        app:layout_constraintTop_toBottomOf="@id/breakdown_toggle" />
 
     <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/rv_expense_categories"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:layout_marginTop="8dp"
-        android:layout_marginBottom="8dp"
-        android:clipToPadding="false"
-        android:paddingBottom="16dp"
-        app:layout_constraintBottom_toTopOf="@id/income_categories_label"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/expense_categories_label"
-        app:layout_constraintHeight_percent="0.5" />
-
-    <TextView
-        android:id="@+id/income_categories_label"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Income Categories"
-        android:textColor="@color/secondary_text"
-        android:textSize="16sp"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/rv_expense_categories" />
-
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/rv_income_categories"
+        android:id="@+id/rv_categories"
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:layout_marginTop="8dp"
@@ -155,7 +160,6 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/income_categories_label"
-        app:layout_constraintHeight_percent="0.3" />
+        app:layout_constraintTop_toBottomOf="@id/breakdown_label" />
 
 </androidx.constraintlayout.widget.ConstraintLayout> 

@@ -9,10 +9,12 @@ import android.widget.ArrayAdapter;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.LiveData;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
 import com.example.expensemate.R;
+import com.example.expensemate.data.CategorySum;
 import com.example.expensemate.databinding.FragmentSummaryBinding;
 import com.example.expensemate.data.Account;
 import com.example.expensemate.viewmodel.AccountViewModel;
@@ -28,10 +30,10 @@ public class SummaryFragment extends Fragment {
     private FragmentSummaryBinding binding;
     private TransactionViewModel viewModel;
     private AccountViewModel accountViewModel;
-    private CategorySumAdapter expenseAdapter;
-    private CategorySumAdapter incomeAdapter;
+    private CategorySumAdapter categoryAdapter;
     private Calendar currentPeriod;
     private List<Account> accounts = new ArrayList<>();
+    private boolean showingExpenses = true;
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -60,13 +62,22 @@ public class SummaryFragment extends Fragment {
             updateSelectedPeriod();
         });
 
-        // Setup RecyclerViews
-        expenseAdapter = new CategorySumAdapter(false);
-        incomeAdapter = new CategorySumAdapter(true);
-        binding.rvExpenseCategories.setLayoutManager(new LinearLayoutManager(requireContext()));
-        binding.rvExpenseCategories.setAdapter(expenseAdapter);
-        binding.rvIncomeCategories.setLayoutManager(new LinearLayoutManager(requireContext()));
-        binding.rvIncomeCategories.setAdapter(incomeAdapter);
+        // Setup RecyclerView
+        categoryAdapter = new CategorySumAdapter(false);
+        binding.rvCategories.setLayoutManager(new LinearLayoutManager(requireContext()));
+        binding.rvCategories.setAdapter(categoryAdapter);
+
+        // Set up breakdown toggle
+        binding.breakdownToggle.addOnButtonCheckedListener((group, checkedId, isChecked) -> {
+            if (isChecked) {
+                showingExpenses = checkedId == R.id.btn_expense_breakdown;
+                updateBreakdownLabel();
+                updateCategoryList();
+            }
+        });
+
+        // Set initial selection
+        binding.breakdownToggle.check(R.id.btn_expense_breakdown);
 
         // Set up account dropdown
         accountViewModel.getAllAccounts().observe(getViewLifecycleOwner(), accountList -> {
@@ -120,20 +131,7 @@ public class SummaryFragment extends Fragment {
         // Observe selected account changes
         viewModel.getSelectedAccountId().observe(getViewLifecycleOwner(), accountId -> {
             Log.d(TAG, "Selected account changed to: " + accountId);
-            String month = viewModel.getSelectedMonth().getValue();
-            String year = viewModel.getSelectedYear().getValue();
-            if (month != null && year != null) {
-                viewModel.getCategorySumsByMonthYearAndAccount(month, year, accountId)
-                    .observe(getViewLifecycleOwner(), categorySums -> {
-                        Log.d(TAG, "Expense category sums updated. Count: " + (categorySums != null ? categorySums.size() : 0));
-                        expenseAdapter.submitList(categorySums);
-                    });
-                viewModel.getIncomeCategorySumsByMonthYearAndAccount(month, year, accountId)
-                    .observe(getViewLifecycleOwner(), categorySums -> {
-                        Log.d(TAG, "Income category sums updated. Count: " + (categorySums != null ? categorySums.size() : 0));
-                        incomeAdapter.submitList(categorySums);
-                    });
-            }
+            updateCategoryList();
         });
 
         // Observe category sums for the selected period
@@ -141,14 +139,7 @@ public class SummaryFragment extends Fragment {
             String year = viewModel.getSelectedYear().getValue();
             if (year != null) {
                 Log.d(TAG, "Observing category sums for period: " + month + "/" + year);
-                viewModel.getCategorySumsByMonthYearAndAccount(month, year, viewModel.getSelectedAccountId().getValue())
-                    .observe(getViewLifecycleOwner(), categorySums -> {
-                        expenseAdapter.submitList(categorySums);
-                    });
-                viewModel.getIncomeCategorySumsByMonthYearAndAccount(month, year, viewModel.getSelectedAccountId().getValue())
-                    .observe(getViewLifecycleOwner(), categorySums -> {
-                        incomeAdapter.submitList(categorySums);
-                    });
+                updateCategoryList();
             }
         });
 
@@ -179,6 +170,27 @@ public class SummaryFragment extends Fragment {
         String year = yearFormat.format(currentPeriod.getTime());
         Log.d(TAG, "Updating period to: " + month + "/" + year);
         viewModel.setSelectedMonthYear(month, year);
+    }
+
+    private void updateBreakdownLabel() {
+        binding.breakdownLabel.setText(showingExpenses ? "Expense Categories" : "Income Categories");
+    }
+
+    private void updateCategoryList() {
+        String month = viewModel.getSelectedMonth().getValue();
+        String year = viewModel.getSelectedYear().getValue();
+        Long accountId = viewModel.getSelectedAccountId().getValue();
+
+        if (month != null && year != null) {
+            LiveData<List<CategorySum>> categorySums = showingExpenses ?
+                viewModel.getCategorySumsByMonthYearAndAccount(month, year, accountId) :
+                viewModel.getIncomeCategorySumsByMonthYearAndAccount(month, year, accountId);
+
+            categorySums.observe(getViewLifecycleOwner(), sums -> {
+                categoryAdapter.setIncome(!showingExpenses);
+                categoryAdapter.submitList(sums);
+            });
+        }
     }
 
     @Override
