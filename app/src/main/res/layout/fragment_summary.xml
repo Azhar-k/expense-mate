@@ -124,19 +124,21 @@
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rv_expense_categories"
         android:layout_width="0dp"
-        android:layout_height="wrap_content"
+        android:layout_height="0dp"
         android:layout_marginTop="8dp"
+        android:layout_marginBottom="8dp"
         android:clipToPadding="false"
         android:paddingBottom="16dp"
+        app:layout_constraintBottom_toTopOf="@id/income_categories_label"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/expense_categories_label" />
+        app:layout_constraintTop_toBottomOf="@id/expense_categories_label"
+        app:layout_constraintHeight_percent="0.5" />
 
     <TextView
         android:id="@+id/income_categories_label"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="24dp"
         android:text="Income Categories"
         android:textColor="@color/secondary_text"
         android:textSize="16sp"
@@ -153,6 +155,7 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/income_categories_label" />
+        app:layout_constraintTop_toBottomOf="@id/income_categories_label"
+        app:layout_constraintHeight_percent="0.3" />
 
 </androidx.constraintlayout.widget.ConstraintLayout> 
