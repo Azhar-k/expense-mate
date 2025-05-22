@@ -28,7 +28,8 @@ public class SummaryFragment extends Fragment {
     private FragmentSummaryBinding binding;
     private TransactionViewModel viewModel;
     private AccountViewModel accountViewModel;
-    private CategorySumAdapter adapter;
+    private CategorySumAdapter expenseAdapter;
+    private CategorySumAdapter incomeAdapter;
     private Calendar currentPeriod;
     private List<Account> accounts = new ArrayList<>();
 
@@ -59,10 +60,13 @@ public class SummaryFragment extends Fragment {
             updateSelectedPeriod();
         });
 
-        // Setup RecyclerView
-        adapter = new CategorySumAdapter();
-        binding.rvCategorySums.setLayoutManager(new LinearLayoutManager(requireContext()));
-        binding.rvCategorySums.setAdapter(adapter);
+        // Setup RecyclerViews
+        expenseAdapter = new CategorySumAdapter(false);
+        incomeAdapter = new CategorySumAdapter(true);
+        binding.rvExpenseCategories.setLayoutManager(new LinearLayoutManager(requireContext()));
+        binding.rvExpenseCategories.setAdapter(expenseAdapter);
+        binding.rvIncomeCategories.setLayoutManager(new LinearLayoutManager(requireContext()));
+        binding.rvIncomeCategories.setAdapter(incomeAdapter);
 
         // Set up account dropdown
         accountViewModel.getAllAccounts().observe(getViewLifecycleOwner(), accountList -> {
@@ -121,8 +125,13 @@ public class SummaryFragment extends Fragment {
             if (month != null && year != null) {
                 viewModel.getCategorySumsByMonthYearAndAccount(month, year, accountId)
                     .observe(getViewLifecycleOwner(), categorySums -> {
-                        Log.d(TAG, "Category sums updated. Count: " + (categorySums != null ? categorySums.size() : 0));
-                        adapter.submitList(categorySums);
+                        Log.d(TAG, "Expense category sums updated. Count: " + (categorySums != null ? categorySums.size() : 0));
+                        expenseAdapter.submitList(categorySums);
+                    });
+                viewModel.getIncomeCategorySumsByMonthYearAndAccount(month, year, accountId)
+                    .observe(getViewLifecycleOwner(), categorySums -> {
+                        Log.d(TAG, "Income category sums updated. Count: " + (categorySums != null ? categorySums.size() : 0));
+                        incomeAdapter.submitList(categorySums);
                     });
             }
         });
@@ -132,9 +141,14 @@ public class SummaryFragment extends Fragment {
             String year = viewModel.getSelectedYear().getValue();
             if (year != null) {
                 Log.d(TAG, "Observing category sums for period: " + month + "/" + year);
-                viewModel.getCategorySumsByMonthYearAndAccount(month, year, viewModel.getSelectedAccountId().getValue()).observe(getViewLifecycleOwner(), categorySums -> {
-                    adapter.submitList(categorySums);
-                });
+                viewModel.getCategorySumsByMonthYearAndAccount(month, year, viewModel.getSelectedAccountId().getValue())
+                    .observe(getViewLifecycleOwner(), categorySums -> {
+                        expenseAdapter.submitList(categorySums);
+                    });
+                viewModel.getIncomeCategorySumsByMonthYearAndAccount(month, year, viewModel.getSelectedAccountId().getValue())
+                    .observe(getViewLifecycleOwner(), categorySums -> {
+                        incomeAdapter.submitList(categorySums);
+                    });
             }
         });
 
@@ -142,6 +156,12 @@ public class SummaryFragment extends Fragment {
         viewModel.getTotalExpense().observe(getViewLifecycleOwner(), total -> {
             Log.d(TAG, "Total expense changed: " + total);
             binding.tvTotalAmount.setText(String.format("₹%.2f", total != null ? total : 0.0));
+        });
+
+        // Observe total income
+        viewModel.getTotalIncome().observe(getViewLifecycleOwner(), total -> {
+            Log.d(TAG, "Total income changed: " + total);
+            binding.tvTotalIncome.setText(String.format("₹%.2f", total != null ? total : 0.0));
         });
 
         return root;

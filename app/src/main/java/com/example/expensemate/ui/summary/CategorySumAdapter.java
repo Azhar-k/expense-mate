@@ -6,13 +6,16 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.ListAdapter;
 import androidx.recyclerview.widget.RecyclerView;
+import com.example.expensemate.R;
 import com.example.expensemate.data.CategorySum;
 import com.example.expensemate.databinding.ItemCategorySumBinding;
 
 public class CategorySumAdapter extends ListAdapter<CategorySum, CategorySumAdapter.CategorySumViewHolder> {
+    private final boolean isIncome;
 
-    public CategorySumAdapter() {
+    public CategorySumAdapter(boolean isIncome) {
         super(new CategorySumDiffCallback());
+        this.isIncome = isIncome;
     }
 
     @NonNull
@@ -31,7 +34,7 @@ public class CategorySumAdapter extends ListAdapter<CategorySum, CategorySumAdap
         holder.bind(getItem(position));
     }
 
-    static class CategorySumViewHolder extends RecyclerView.ViewHolder {
+    class CategorySumViewHolder extends RecyclerView.ViewHolder {
         private final ItemCategorySumBinding binding;
 
         public CategorySumViewHolder(ItemCategorySumBinding binding) {
@@ -42,6 +45,9 @@ public class CategorySumAdapter extends ListAdapter<CategorySum, CategorySumAdap
         public void bind(CategorySum categorySum) {
             binding.tvCategory.setText(categorySum.getCategory());
             binding.tvAmount.setText(String.format("₹%.2f", categorySum.getTotal()));
+            binding.tvAmount.setTextColor(itemView.getContext().getColor(
+                isIncome ? R.color.credit_color : R.color.debit_color
+            ));
         }
     }
 

@@ -27,6 +27,7 @@ public class TransactionViewModel extends AndroidViewModel {
     private final MutableLiveData<Double> totalExpense = new MutableLiveData<>(0.0);
     private final MutableLiveData<Double> totalIncome = new MutableLiveData<>(0.0);
     private LiveData<List<CategorySum>> categorySums;
+    private LiveData<List<CategorySum>> incomeCategorySums;
     private final MutableLiveData<List<Transaction>> filteredTransactions = new MutableLiveData<>();
     private final AccountViewModel accountViewModel;
     private final MutableLiveData<Long> selectedAccountId = new MutableLiveData<>();
@@ -95,6 +96,7 @@ public class TransactionViewModel extends AndroidViewModel {
             
             // Update category sums
             categorySums = transactionDao.getCategorySumsByMonthYearAndAccount(month, year, accountId);
+            incomeCategorySums = transactionDao.getIncomeCategorySumsByMonthYearAndAccount(month, year, accountId);
             Log.d(TAG, "Updated category sums LiveData");
         } else {
             Log.w(TAG, "Cannot update LiveData: month or year is null");
@@ -227,6 +229,10 @@ public class TransactionViewModel extends AndroidViewModel {
 
     public LiveData<List<CategorySum>> getCategorySumsByMonthYearAndAccount(String month, String year, Long accountId) {
         return transactionDao.getCategorySumsByMonthYearAndAccount(month, year, accountId);
+    }
+
+    public LiveData<List<CategorySum>> getIncomeCategorySumsByMonthYearAndAccount(String month, String year, Long accountId) {
+        return transactionDao.getIncomeCategorySumsByMonthYearAndAccount(month, year, accountId);
     }
 
     public int countTransactionsBySmsHash(String smsHash) {

@@ -45,6 +45,13 @@ public interface TransactionDao {
            "GROUP BY category ORDER BY total DESC")
     LiveData<List<CategorySum>> getCategorySumsByMonthYearAndAccount(String month, String year, Long accountId);
 
+    @Query("SELECT category, SUM(amount) as total FROM transactions " +
+           "WHERE transactionType = 'CREDIT' " +
+           "AND strftime('%m', datetime(date/1000, 'unixepoch')) = :month " +
+           "AND strftime('%Y', datetime(date/1000, 'unixepoch')) = :year " +
+           "AND (:accountId IS NULL OR accountId = :accountId) " +
+           "GROUP BY category ORDER BY total DESC")
+    LiveData<List<CategorySum>> getIncomeCategorySumsByMonthYearAndAccount(String month, String year, Long accountId);
 
     @Query("SELECT COALESCE(SUM(amount), 0) FROM transactions " +
            "WHERE transactionType = 'DEBIT' AND linkedRecurringPaymentId IS NULL " +
@@ -52,7 +59,6 @@ public interface TransactionDao {
            "AND strftime('%Y', datetime(date/1000, 'unixepoch')) = :year " +
            "AND (:accountId IS NULL OR accountId = :accountId)")
     Double getExpenseByMonthYearAndAccountSync(String month, String year, Long accountId);
-
 
     @Query("SELECT COALESCE(SUM(amount), 0) FROM transactions " +
            "WHERE transactionType = 'CREDIT' " +
