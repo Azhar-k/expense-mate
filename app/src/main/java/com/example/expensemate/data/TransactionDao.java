@@ -69,11 +69,12 @@ public interface TransactionDao {
 
     @Query("SELECT * FROM transactions " +
            "WHERE category = :category " +
+           "AND transactionType = :transactionType " +
            "AND strftime('%m', datetime(date/1000, 'unixepoch')) = :month " +
            "AND strftime('%Y', datetime(date/1000, 'unixepoch')) = :year " +
            "AND (:accountId IS NULL OR accountId = :accountId) " +
            "ORDER BY date DESC")
-    LiveData<List<Transaction>> getTransactionsByCategoryAndPeriod(String category, String month, String year, Long accountId);
+    LiveData<List<Transaction>> getTransactionsByCategoryAndPeriod(String category, String month, String year, Long accountId, String transactionType);
 
     @Query("SELECT COUNT(*) FROM transactions WHERE smsHash = :smsHash")
     int countTransactionsBySmsHash(String smsHash);

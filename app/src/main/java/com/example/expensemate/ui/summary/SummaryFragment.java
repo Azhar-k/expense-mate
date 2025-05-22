@@ -82,7 +82,8 @@ public class SummaryFragment extends Fragment {
                     categorySum.getCategory(),
                     month,
                     year,
-                    accountId
+                    accountId,
+                    showingExpenses ? "DEBIT" : "CREDIT"
                 ).observe(getViewLifecycleOwner(), transactions -> {
                     if (transactions != null && !transactions.isEmpty()) {
                         showCategoryTransactionsDialog(categorySum, transactions);

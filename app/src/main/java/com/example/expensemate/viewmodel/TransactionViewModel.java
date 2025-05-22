@@ -235,8 +235,8 @@ public class TransactionViewModel extends AndroidViewModel {
         return transactionDao.getIncomeCategorySumsByMonthYearAndAccount(month, year, accountId);
     }
 
-    public LiveData<List<Transaction>> getTransactionsByCategoryAndPeriod(String category, String month, String year, Long accountId) {
-        return transactionDao.getTransactionsByCategoryAndPeriod(category, month, year, accountId);
+    public LiveData<List<Transaction>> getTransactionsByCategoryAndPeriod(String category, String month, String year, Long accountId, String transactionType) {
+        return transactionDao.getTransactionsByCategoryAndPeriod(category, month, year, accountId, transactionType);
     }
 
     public int countTransactionsBySmsHash(String smsHash) {
