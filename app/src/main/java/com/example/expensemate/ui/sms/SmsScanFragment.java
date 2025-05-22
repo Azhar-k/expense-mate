@@ -17,8 +17,8 @@ import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import com.example.expensemate.R;
-import com.example.expensemate.data.Transaction;
 import com.example.expensemate.databinding.FragmentSmsScanBinding;
+import com.example.expensemate.util.SmsTransactionHandler;
 import com.example.expensemate.viewmodel.TransactionViewModel;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
@@ -148,24 +148,8 @@ public class SmsScanFragment extends Fragment {
                             long date = cursor.getLong(cursor.getColumnIndexOrThrow(Telephony.Sms.DATE));
 
                             processedCount++;
-                            Transaction transaction = extractTransactionDetails(body, sender);
-                            if (transaction != null) {
-                                transaction.setDate(new Date(date));
-                                String smsHash = transaction.getSmsHash();
-                                Log.d("SmsScanFragment", "Checking for duplicate transaction with hash: " + smsHash);
-                                if (smsHash != null) {
-                                    int existingCount = viewModel.countTransactionsBySmsHash(smsHash);
-                                    Log.d("SmsScanFragment", "Found " + existingCount + " existing transactions with same hash");
-                                    if (existingCount == 0) {
-                                        viewModel.insertTransaction(transaction);
-                                        createdCount++;
-                                        Log.d("SmsScanFragment", "New transaction inserted");
-                                    } else {
-                                        Log.d("SmsScanFragment", "Duplicate transaction detected, skipping insertion");
-                                    }
-                                } else {
-                                    Log.d("SmsScanFragment", "No SMS hash generated for transaction");
-                                }
+                            if (SmsTransactionHandler.handleSms(body, sender, viewModel, new Date(date))) {
+                                createdCount++;
                             }
                         }
                     } finally {
@@ -199,81 +183,6 @@ public class SmsScanFragment extends Fragment {
                 e.printStackTrace();
             }
         });
-    }
-
-    private Transaction extractTransactionDetails(String smsBody, String sender) {
-        try {
-            // Pattern for ICICI Bank format
-            java.util.regex.Pattern iciciPattern = java.util.regex.Pattern.compile(
-                "ICICI Bank Acct XX(\\d+) debited for Rs (\\d+(?:\\.\\d{2})?) on (\\d{2}-[A-Za-z]{3}-\\d{2}); ([^;]+) credited"
-            );
-            
-            // Pattern for Kotak Bank format
-            java.util.regex.Pattern kotakPattern = java.util.regex.Pattern.compile(
-                "Sent Rs\\.?(\\d+(?:\\.\\d{2})?) from Kotak Bank AC ([A-Z0-9]+) to ([^\\s]+)"
-            );
-            
-            // Comprehensive pattern for various bank formats
-            java.util.regex.Pattern generalPattern = java.util.regex.Pattern.compile(
-                "(?i)(?:Rs\\.?|INR)\\s*(\\d+(?:\\.\\d{2})?)\\s*(?:has been|is|was)?\\s*(?:debited|spent|paid|sent|transferred|withdrawn)\\s*(?:from|in|to|at)?\\s*(?:your|the)?\\s*(?:account|a/c|ac|bank)?\\s*(?:[A-Z0-9]+)?\\s*(?:to|for|at)?\\s*([A-Za-z0-9@\\s\\.]+)"
-            );
-
-            // Try ICICI pattern first
-            var iciciMatcher = iciciPattern.matcher(smsBody);
-            if (iciciMatcher.find()) {
-                String accountNumber = iciciMatcher.group(1);
-                double amount = Double.parseDouble(iciciMatcher.group(2));
-                String receiverName = iciciMatcher.group(4).trim();
-                
-                return new Transaction(
-                    amount,
-                    "Debit transaction",
-                    new Date(),
-                    "DEBIT",
-                    receiverName,
-                    smsBody,
-                    sender
-                );
-            }
-
-            // Try Kotak pattern
-            var kotakMatcher = kotakPattern.matcher(smsBody);
-            if (kotakMatcher.find()) {
-                double amount = Double.parseDouble(kotakMatcher.group(1));
-                String accountNumber = kotakMatcher.group(2);
-                String receiverName = kotakMatcher.group(3).trim();
-                
-                return new Transaction(
-                    amount,
-                    "Debit transaction",
-                    new Date(),
-                    "DEBIT",
-                    receiverName,
-                    smsBody,
-                    sender
-                );
-            }
-
-            // Try general pattern if specific patterns don't match
-            var generalMatcher = generalPattern.matcher(smsBody);
-            if (generalMatcher.find()) {
-                double amount = Double.parseDouble(generalMatcher.group(1));
-                String receiverName = generalMatcher.group(2).trim();
-                
-                return new Transaction(
-                    amount,
-                    "Debit transaction",
-                    new Date(),
-                    "DEBIT",
-                    receiverName,
-                    smsBody,
-                    sender
-                );
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return null;
     }
 
     @Override

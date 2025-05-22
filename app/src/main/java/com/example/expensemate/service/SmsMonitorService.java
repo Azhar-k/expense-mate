@@ -16,15 +16,11 @@ import androidx.core.app.NotificationCompat;
 
 import com.example.expensemate.MainActivity;
 import com.example.expensemate.R;
-import com.example.expensemate.data.Account;
-import com.example.expensemate.data.Transaction;
-import com.example.expensemate.viewmodel.AccountViewModel;
+import com.example.expensemate.util.SmsTransactionHandler;
 import com.example.expensemate.viewmodel.TransactionViewModel;
 
-import java.util.Date;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.regex.Pattern;
 
 public class SmsMonitorService extends Service {
     private static final String TAG = "SmsMonitorService";
@@ -34,7 +30,6 @@ public class SmsMonitorService extends Service {
     private SmsReceiver smsReceiver;
     private TransactionViewModel transactionViewModel;
     private ExecutorService executorService;
-    private AccountViewModel accountViewModel;
     private boolean isReceiverRegistered = false;
 
     @Override
@@ -43,7 +38,6 @@ public class SmsMonitorService extends Service {
         Log.d(TAG, "Service created");
         transactionViewModel = new TransactionViewModel(getApplication());
         executorService = Executors.newSingleThreadExecutor();
-        accountViewModel = new AccountViewModel(getApplication());
         smsReceiver = new SmsReceiver((smsBody, sender) -> processSms(smsBody, sender));
         createNotificationChannel();
     }
@@ -123,117 +117,8 @@ public class SmsMonitorService extends Service {
     }
 
     private void processSms(String smsBody, String sender) {
-        Log.d(TAG, "Processing SMS from: " + sender);
-        Log.d(TAG, "SMS body: " + smsBody);
-
-        // Process all SMS messages without bank pattern checking
-        Transaction transaction = extractTransactionDetails(smsBody, sender);
-        if (transaction != null) {
-            Log.d(TAG, "Transaction extracted: " + transaction.getAmount() + " to " + transaction.getReceiverName());
-            executorService.execute(() -> {
-                // Check for duplicate transaction
-                String smsHash = transaction.getSmsHash();
-                Log.d(TAG, "Checking for duplicate transaction with hash: " + smsHash);
-                if (smsHash != null) {
-                    int existingCount = transactionViewModel.countTransactionsBySmsHash(smsHash);
-                    Log.d(TAG, "Found " + existingCount + " existing transactions with same hash");
-                    if (existingCount > 0) {
-                        Log.d(TAG, "Duplicate transaction detected, skipping insertion");
-                        return;
-                    }
-                } else {
-                    Log.d(TAG, "No SMS hash generated for transaction");
-                }
-                Account defaultAccount = accountViewModel.getDefaultAccountSync();
-                if (defaultAccount != null) {
-                    transaction.setAccountId(defaultAccount.getId());
-                }
-
-                transactionViewModel.insertTransaction(transaction);
-                Log.d(TAG, "Transaction inserted via ViewModel");
-            });
-        } else {
-            Log.d(TAG, "No transaction details could be extracted");
-        }
-    }
-
-    private Transaction extractTransactionDetails(String smsBody, String sender) {
-        try {
-            Log.d(TAG, "Extracting transaction details from SMS");
-
-            // Pattern for ICICI Bank format
-            Pattern iciciPattern = Pattern.compile(
-                    "ICICI Bank Acct XX(\\d+) debited for Rs (\\d+(?:\\.\\d{2})?) on (\\d{2}-[A-Za-z]{3}-\\d{2}); ([^;]+) credited"
-            );
-
-            // Pattern for Kotak Bank format
-            Pattern kotakPattern = Pattern.compile(
-                    "Sent Rs\\.?(\\d+(?:\\.\\d{2})?) from Kotak Bank AC ([A-Z0-9]+) to ([^\\s]+)"
-            );
-
-            // Comprehensive pattern for various bank formats
-            Pattern generalPattern = Pattern.compile(
-                    "(?i)(?:Rs\\.?|INR)\\s*(\\d+(?:\\.\\d{2})?)\\s*(?:has been|is|was)?\\s*(?:debited|spent|paid|sent|transferred|withdrawn)\\s*(?:from|in|to|at)?\\s*(?:your|the)?\\s*(?:account|a/c|ac|bank)?\\s*(?:[A-Z0-9]+)?\\s*(?:to|for|at)?\\s*([A-Za-z0-9@\\s\\.]+)"
-            );
-
-            // Try ICICI pattern first
-            var iciciMatcher = iciciPattern.matcher(smsBody);
-            if (iciciMatcher.find()) {
-                double amount = Double.parseDouble(iciciMatcher.group(2));
-                String receiverName = iciciMatcher.group(4).trim();
-                Log.d(TAG, "Found ICICI transaction: " + amount + " to " + receiverName);
-
-                return new Transaction(
-                        amount,
-                        "Debit transaction",
-                        new Date(),
-                        "DEBIT",
-                        receiverName,
-                        smsBody,
-                        sender
-                );
-            }
-
-            // Try Kotak pattern
-            var kotakMatcher = kotakPattern.matcher(smsBody);
-            if (kotakMatcher.find()) {
-                double amount = Double.parseDouble(kotakMatcher.group(1));
-                String receiverName = kotakMatcher.group(3).trim();
-                Log.d(TAG, "Found Kotak transaction: " + amount + " to " + receiverName);
-
-                return new Transaction(
-                        amount,
-                        "Debit transaction",
-                        new Date(),
-                        "DEBIT",
-                        receiverName,
-                        smsBody,
-                        sender
-                );
-            }
-
-            // Try general pattern if specific patterns don't match
-            var generalMatcher = generalPattern.matcher(smsBody);
-            if (generalMatcher.find()) {
-                double amount = Double.parseDouble(generalMatcher.group(1));
-                String receiverName = generalMatcher.group(2).trim();
-                Log.d(TAG, "Found general transaction: " + amount + " to " + receiverName);
-
-                return new Transaction(
-                        amount,
-                        "Debit transaction",
-                        new Date(),
-                        "DEBIT",
-                        receiverName,
-                        smsBody,
-                        sender
-                );
-            }
-
-            Log.d(TAG, "No transaction pattern matched in SMS");
-        } catch (Exception e) {
-            Log.e(TAG, "Error processing SMS: " + e.getMessage(), e);
-        }
-        return null;
+        executorService.execute(() -> {
+            SmsTransactionHandler.handleSms(smsBody, sender, transactionViewModel, null);
+        });
     }
 } 
