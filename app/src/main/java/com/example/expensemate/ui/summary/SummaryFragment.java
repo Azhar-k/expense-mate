@@ -219,7 +219,14 @@ public class SummaryFragment extends Fragment {
 
     private void showCategoryTransactionsDialog(CategorySum categorySum, List<Transaction> transactions) {
         AlertDialog.Builder builder = new AlertDialog.Builder(requireContext());
-        builder.setTitle(categorySum.getCategory() + " Transactions");
+        
+        // Create custom title view
+        TextView titleView = new TextView(requireContext());
+        titleView.setText(categorySum.getCategory() + " Transactions");
+        titleView.setTextColor(requireContext().getColor(android.R.color.black));
+        titleView.setTextSize(20);
+        titleView.setPadding(50, 30, 50, 30);
+        builder.setCustomTitle(titleView);
 
         // Create RecyclerView for transactions
         RecyclerView recyclerView = new RecyclerView(requireContext());
@@ -236,14 +243,6 @@ public class SummaryFragment extends Fragment {
         AlertDialog dialog = builder.create();
         dialog.setOnShowListener(dialogInterface -> {
             dialog.getWindow().setBackgroundDrawableResource(android.R.color.white);
-            // Set title text color to black
-            int titleId = requireContext().getResources().getIdentifier("alertTitle", "id", "android");
-            if (titleId != 0) {
-                TextView titleView = dialog.findViewById(titleId);
-                if (titleView != null) {
-                    titleView.setTextColor(requireContext().getColor(android.R.color.black));
-                }
-            }
         });
         dialog.show();
     }
