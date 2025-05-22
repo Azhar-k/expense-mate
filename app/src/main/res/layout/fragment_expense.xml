@@ -47,8 +47,8 @@
         android:background="?attr/selectableItemBackgroundBorderless"
         android:contentDescription="Previous month"
         android:src="@drawable/ic_chevron_left"
-        app:layout_constraintBottom_toBottomOf="@id/tv_period"
         app:tint="@color/black"
+        app:layout_constraintBottom_toBottomOf="@id/tv_period"
         app:layout_constraintEnd_toStartOf="@id/tv_period"
         app:layout_constraintTop_toTopOf="@id/tv_period" />
 
@@ -60,74 +60,76 @@
         android:background="?attr/selectableItemBackgroundBorderless"
         android:contentDescription="Next month"
         android:src="@drawable/ic_chevron_right"
+        app:tint="@color/black"
         app:layout_constraintBottom_toBottomOf="@id/tv_period"
         app:layout_constraintStart_toEndOf="@id/tv_period"
-        app:tint="@color/black"
         app:layout_constraintTop_toTopOf="@id/tv_period" />
 
-    <TextView
-        android:id="@+id/total_expense_label"
+    <LinearLayout
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="24dp"
-        android:text="Total Expense"
-        android:textSize="16sp"
-        android:textColor="@color/secondary_text"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/tv_period" />
-
-    <TextView
-        android:id="@+id/total_expense"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:textColor="@color/debit_color"
-        android:textSize="24sp"
-        android:textStyle="bold"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/total_expense_label" />
-
-    <TextView
-        android:id="@+id/total_income_label"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="24dp"
-        android:text="Total Income"
-        android:textColor="@color/secondary_text"
-        android:textSize="16sp"
+        android:layout_height="300dp"
+        android:layout_marginBottom="30dp"
+        android:gravity="center"
+        android:orientation="vertical"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/tv_period" />
-
-    <TextView
-        android:id="@+id/total_income"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:textColor="@color/credit_color"
-        android:textSize="24sp"
-        android:textStyle="bold"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/total_income_label" />
-
-    <TextView
-        android:id="@+id/total_balance_label"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="24dp"
-        android:text="Balance"
-        android:textColor="@color/secondary_text"
-        android:textSize="16sp"
+        app:layout_constraintHorizontal_bias="0.497"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/total_expense" />
+        app:layout_constraintTop_toBottomOf="@id/tv_period"
+        app:layout_constraintVertical_bias="0.238">
 
-    <TextView
-        android:id="@+id/total_balance"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:textSize="24sp"
-        android:textStyle="bold"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/total_balance_label" />
+        <TextView
+            android:id="@+id/total_expense_label"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Total Expense"
+            android:textColor="@color/secondary_text"
+            android:textSize="24sp" />
+
+        <TextView
+            android:id="@+id/total_expense"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:textColor="@color/debit_color"
+            android:textSize="30sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/total_income_label"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:text="Total Income"
+            android:textColor="@color/secondary_text"
+            android:textSize="24sp" />
+
+        <TextView
+            android:id="@+id/total_income"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:textColor="@color/credit_color"
+            android:textSize="30sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/total_balance_label"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:text="Balance"
+            android:textColor="@color/secondary_text"
+            android:textSize="24sp" />
+
+        <TextView
+            android:id="@+id/total_balance"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:textSize="30sp"
+            android:textStyle="bold" />
+
+    </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout> 
