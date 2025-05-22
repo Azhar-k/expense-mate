@@ -70,6 +70,7 @@ public interface TransactionDao {
     @Query("SELECT * FROM transactions " +
            "WHERE category = :category " +
            "AND transactionType = :transactionType " +
+            "AND linkedRecurringPaymentId IS NULL " +
            "AND strftime('%m', datetime(date/1000, 'unixepoch')) = :month " +
            "AND strftime('%Y', datetime(date/1000, 'unixepoch')) = :year " +
            "AND (:accountId IS NULL OR accountId = :accountId) " +
