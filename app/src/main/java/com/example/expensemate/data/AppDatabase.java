@@ -210,98 +210,11 @@ public abstract class AppDatabase extends RoomDatabase {
                             })
                             .build();
                     new Thread(()->{
-                        exportDatabaseData(context, INSTANCE);
+                        BackupDataLoader.exportDatabaseData(context, INSTANCE);
                     }).start();
                 }
             }
         }
         return INSTANCE;
-    }
-
-    private static void exportDatabaseData(Context context, AppDatabase database) {
-        try {
-            StringBuilder data = new StringBuilder();
-            data.append("=== Database Export ").append(new Date()).append(" ===\n\n");
-
-            // Export transactions
-            data.append("=== TRANSACTIONS ===\n");
-            List<Transaction> transactions = database.transactionDao().getAllTransactionsSync();
-            for (Transaction t : transactions) {
-                data.append(String.format("ID: %d\n", t.getId()));
-                data.append(String.format("Amount: %.2f\n", t.getAmount()));
-                data.append(String.format("Description: %s\n", t.getDescription()));
-                data.append(String.format("Date: %s\n", t.getDate()));
-                data.append(String.format("Transaction Type: %s\n", t.getTransactionType()));
-                data.append(String.format("Receiver: %s\n", t.getReceiverName()));
-                data.append(String.format("Category: %s\n", t.getCategory()));
-                data.append(String.format("Linked Payment ID: %s\n", t.getLinkedRecurringPaymentId()));
-                data.append("---\n");
-            }
-
-            // Export categories
-            data.append("\n=== CATEGORIES ===\n");
-            List<Category> categories = database.categoryDao().getAllCategoriesSync();
-            for (Category c : categories) {
-                data.append(String.format("ID: %d\n", c.getId()));
-                data.append(String.format("Name: %s\n", c.getName()));
-                data.append(String.format("Type: %s\n", c.getType()));
-                data.append("---\n");
-            }
-
-            // Export recurring payments
-            data.append("\n=== RECURRING PAYMENTS ===\n");
-            List<RecurringPayment> payments = database.recurringPaymentDao().getAllRecurringPaymentsSync();
-            for (RecurringPayment p : payments) {
-                data.append(String.format("ID: %d\n", p.getId()));
-                data.append(String.format("Name: %s\n", p.getName()));
-                data.append(String.format("Amount: %.2f\n", p.getAmount()));
-                data.append(String.format("Due Day: %d\n", p.getDueDay()));
-                data.append(String.format("Expiry Date: %s\n", p.getExpiryDate()));
-                data.append(String.format("Is Completed: %b\n", p.isCompleted()));
-                data.append(String.format("Last Completed Date: %s\n", p.getLastCompletedDate()));
-                data.append("---\n");
-            }
-
-            // Export accounts
-            data.append("\n=== ACCOUNTS ===\n");
-            List<Account> accounts = database.accountDao().getAllAccounts().getValue();
-            if (accounts != null) {
-                for (Account a : accounts) {
-                    data.append(String.format("ID: %d\n", a.getId()));
-                    data.append(String.format("Name: %s\n", a.getName()));
-                    data.append(String.format("Account Number: %s\n", a.getAccountNumber()));
-                    data.append(String.format("Bank: %s\n", a.getBank()));
-                    data.append(String.format("Expiry Date: %s\n", a.getExpiryDate()));
-                    data.append(String.format("Description: %s\n", a.getDescription()));
-                    data.append("---\n");
-                }
-            }
-
-            // Log the data
-            Log.d("DatabaseExport data:", data.toString());
-
-            // Save to file
-            File exportDir = new File(context.getFilesDir(), "database_exports");
-            if (!exportDir.exists()) {
-                Log.d("DatabaseExport", "directory do not exist. Creting it");
-                exportDir.mkdirs();
-            }
-
-            String fileName = "database_export_" + System.currentTimeMillis() + ".txt";
-            File exportFile = new File(exportDir, fileName);
-
-            try (FileWriter writer = new FileWriter(exportFile)) {
-                writer.write(data.toString());
-            }
-
-            if (exportFile.exists()) {
-                Log.d("DatabaseExport", "File exists after writing: " + exportFile.getAbsolutePath());
-            } else {
-                Log.d("DatabaseExport", "File does NOT exist after writing!");
-            }
-            Log.d("DatabaseExport", "Data exported to: " + exportFile.getAbsolutePath());
-        } catch (Exception e) {
-            Log.e("DatabaseExport", "Error exporting data", e);
-        }
     }
 } 
