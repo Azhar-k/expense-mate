@@ -30,18 +30,17 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="24dp"
-                    android:text="Balance"
-                    android:textColor="@color/secondary_text"
-                    android:textSize="24sp" />
+                    android:text="Total Balance"
+                    android:textSize="16sp"
+                    android:textColor="@color/secondary_text"/>
 
                 <TextView
                     android:id="@+id/tvTotalBalance"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
-                    android:textSize="30sp"
-                    android:textStyle="bold" />
+                    android:textSize="32sp"
+                    android:textStyle="bold"/>
 
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
@@ -53,23 +52,62 @@
             android:orientation="horizontal"
             android:layout_marginBottom="16dp">
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnStartDate"
+            <com.google.android.material.card.MaterialCardView
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:layout_marginEnd="8dp"
-                android:text="Start Date"
-                style="@style/Widget.MaterialComponents.Button.OutlinedButton"/>
+                app:cardElevation="2dp"
+                app:cardCornerRadius="8dp"
+                app:cardBackgroundColor="@color/white">
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnEndDate"
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnStartDate"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textColor="@color/black"
+                    android:textSize="14sp"
+                    android:padding="12dp"
+                    android:insetTop="0dp"
+                    android:insetBottom="0dp"
+                    android:insetLeft="0dp"
+                    android:insetRight="0dp"
+                    android:backgroundTint="@color/white"
+                    app:rippleColor="@color/ripple_color"
+                    app:strokeColor="@color/divider_color"
+                    app:strokeWidth="1dp"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"/>
+
+            </com.google.android.material.card.MaterialCardView>
+
+            <com.google.android.material.card.MaterialCardView
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:layout_marginStart="8dp"
-                android:text="End Date"
-                style="@style/Widget.MaterialComponents.Button.OutlinedButton"/>
+                app:cardElevation="2dp"
+                app:cardCornerRadius="8dp"
+                app:cardBackgroundColor="@color/white">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnEndDate"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textColor="@color/black"
+                    android:textSize="14sp"
+                    android:padding="12dp"
+                    android:insetTop="0dp"
+                    android:insetBottom="0dp"
+                    android:insetLeft="0dp"
+                    android:insetRight="0dp"
+                    android:backgroundTint="@color/white"
+                    app:rippleColor="@color/ripple_color"
+                    app:strokeColor="@color/divider_color"
+                    app:strokeWidth="1dp"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"/>
+
+            </com.google.android.material.card.MaterialCardView>
+
         </LinearLayout>
 
         <!-- Transactions List -->
