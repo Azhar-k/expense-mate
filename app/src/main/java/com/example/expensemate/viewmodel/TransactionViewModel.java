@@ -12,6 +12,7 @@ import com.example.expensemate.data.CategorySum;
 import com.example.expensemate.data.Account;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.ExecutorService;
@@ -225,6 +226,18 @@ public class TransactionViewModel extends AndroidViewModel {
 
     public LiveData<Double> getTotalIncome() {
         return totalIncome;
+    }
+
+    public double getTotalIncomeForAccount(long accountId) {
+        return transactionDao.getTotalIncomeForAccountSync(accountId);
+    }
+
+    public double getTotalExpenseForAccount(long accountId) {
+        return transactionDao.getTotalExpenseForAccountSync(accountId);
+    }
+
+    public LiveData<List<Transaction>> getTransactionsByDateRangeAndAccount(Date startDate, Date endDate, long accountId) {
+        return transactionDao.getTransactionsByDateRangeAndAccount(startDate, endDate, accountId);
     }
 
     public LiveData<List<CategorySum>> getCategorySumsByMonthYearAndAccount(String month, String year, Long accountId) {

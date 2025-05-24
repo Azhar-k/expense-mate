@@ -193,12 +193,6 @@ public class AccountsFragment extends Fragment implements AccountsAdapter.OnAcco
     }
 
     @Override
-    public void onSetDefaultClick(Account account) {
-        accountViewModel.setDefaultAccount(account.getId());
-        Toast.makeText(getContext(), "Default account updated", Toast.LENGTH_SHORT).show();
-    }
-
-    @Override
     public void onDeleteClick(Account account) {
         if (account.isDefault()) {
             Toast.makeText(getContext(), "Cannot delete default account", Toast.LENGTH_SHORT).show();
@@ -213,5 +207,25 @@ public class AccountsFragment extends Fragment implements AccountsAdapter.OnAcco
                 })
                 .setNegativeButton("Cancel", null)
                 .show();
+    }
+
+    @Override
+    public void onSetDefaultClick(Account account) {
+        accountViewModel.setDefaultAccount(account.getId());
+        Toast.makeText(getContext(), "Default account updated", Toast.LENGTH_SHORT).show();
+    }
+
+    @Override
+    public void onAccountClick(Account account) {
+        AccountDetailsFragment fragment = new AccountDetailsFragment();
+        Bundle args = new Bundle();
+        args.putLong("accountId", account.getId());
+        fragment.setArguments(args);
+        
+        requireActivity().getSupportFragmentManager()
+            .beginTransaction()
+            .replace(R.id.nav_host_fragment, fragment)
+            .addToBackStack(null)
+            .commit();
     }
 } 

@@ -85,6 +85,13 @@ public class AccountsAdapter extends ListAdapter<Account, AccountsAdapter.Accoun
             deleteButton = itemView.findViewById(R.id.btn_delete);
             setDefaultButton = itemView.findViewById(R.id.btn_set_default);
 
+            itemView.setOnClickListener(v -> {
+                int position = getAdapterPosition();
+                if (position != RecyclerView.NO_POSITION && listener != null) {
+                    listener.onAccountClick(getItem(position));
+                }
+            });
+
             editButton.setOnClickListener(v -> {
                 int position = getAdapterPosition();
                 if (position != RecyclerView.NO_POSITION && listener != null) {
@@ -154,5 +161,6 @@ public class AccountsAdapter extends ListAdapter<Account, AccountsAdapter.Accoun
         void onEditClick(Account account);
         void onDeleteClick(Account account);
         void onSetDefaultClick(Account account);
+        void onAccountClick(Account account);
     }
 } 
