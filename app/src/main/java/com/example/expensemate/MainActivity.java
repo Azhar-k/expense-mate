@@ -20,6 +20,9 @@ import androidx.navigation.NavController;
 import androidx.navigation.NavDestination;
 import androidx.navigation.fragment.NavHostFragment;
 import androidx.navigation.ui.NavigationUI;
+import androidx.fragment.app.Fragment;
+
+import com.example.expensemate.ui.accounts.AccountDetailsFragment;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.navigation.NavigationView;
 import com.example.expensemate.service.SmsMonitorService;
@@ -154,9 +157,35 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     @Override
     public boolean onNavigationItemSelected(@NonNull MenuItem item) {
         int id = item.getItemId();
-        NavController navController = ((NavHostFragment) getSupportFragmentManager()
-                .findFragmentById(R.id.nav_host_fragment)).getNavController();
         
+        // Get the current fragment
+        Fragment currentFragment = getSupportFragmentManager().findFragmentById(R.id.nav_host_fragment);
+        
+        // If we're in AccountDetailsFragment, pop it first and then navigate
+        if (currentFragment instanceof AccountDetailsFragment) {
+            getSupportFragmentManager().popBackStackImmediate();
+            // After popping, get the NavHostFragment again
+            NavHostFragment navHostFragment = (NavHostFragment) getSupportFragmentManager()
+                    .findFragmentById(R.id.nav_host_fragment);
+            if (navHostFragment != null) {
+                NavController navController = navHostFragment.getNavController();
+                navigateToDestination(id, navController);
+            }
+        } else {
+            // If we're not in AccountDetailsFragment, navigate normally
+            NavHostFragment navHostFragment = (NavHostFragment) getSupportFragmentManager()
+                    .findFragmentById(R.id.nav_host_fragment);
+            if (navHostFragment != null) {
+                NavController navController = navHostFragment.getNavController();
+                navigateToDestination(id, navController);
+            }
+        }
+
+        drawerLayout.closeDrawer(GravityCompat.START);
+        return true;
+    }
+
+    private void navigateToDestination(int id, NavController navController) {
         if (id == R.id.nav_home) {
             navController.navigate(R.id.navigation_expense);
         } else if (id == R.id.nav_accounts) {
@@ -172,9 +201,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         } else if (id == R.id.nav_about) {
             // TODO: Handle about
         }
-
-        drawerLayout.closeDrawer(GravityCompat.START);
-        return true;
     }
 
     @Override
