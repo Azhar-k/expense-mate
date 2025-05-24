@@ -85,6 +85,7 @@ public interface TransactionDao {
 
     @Query("SELECT COALESCE(SUM(amount), 0) FROM transactions " +
            "WHERE transactionType = 'CREDIT' " +
+            "AND linkedRecurringPaymentId IS NULL " +
            "AND accountId = :accountId")
     double getTotalIncomeForAccountSync(long accountId);
 
@@ -96,7 +97,6 @@ public interface TransactionDao {
 
     @Query("SELECT * FROM transactions " +
            "WHERE date BETWEEN :startDate AND :endDate " +
-            "AND linkedRecurringPaymentId IS NULL " +
            "AND accountId = :accountId " +
            "ORDER BY date DESC")
     LiveData<List<Transaction>> getTransactionsByDateRangeAndAccount(Date startDate, Date endDate, long accountId);
