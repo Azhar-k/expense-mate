@@ -104,6 +104,14 @@ public class AccountDetailsFragment extends Fragment {
                             startDate.set(year, month, dayOfMonth);
                         }
                     }
+                    // Set end date to end of day when dates are same
+                    if (startDate.get(Calendar.YEAR) == endDate.get(Calendar.YEAR) &&
+                        startDate.get(Calendar.MONTH) == endDate.get(Calendar.MONTH) &&
+                        startDate.get(Calendar.DAY_OF_MONTH) == endDate.get(Calendar.DAY_OF_MONTH)) {
+                        endDate.set(Calendar.HOUR_OF_DAY, 23);
+                        endDate.set(Calendar.MINUTE, 59);
+                        endDate.set(Calendar.SECOND, 59);
+                    }
                     updateDateButtonTexts();
                     loadTransactions();
                 },
@@ -145,6 +153,13 @@ public class AccountDetailsFragment extends Fragment {
             binding.tvEmptyState.setVisibility(
                 transactions != null && transactions.isEmpty() ? View.VISIBLE : View.GONE
             );
+            // Always scroll to top when transactions change
+            if (transactions != null && !transactions.isEmpty()) {
+                binding.rvTransactions.postDelayed(() -> {
+                    binding.rvTransactions.scrollToPosition(0);
+                    binding.rvTransactions.smoothScrollToPosition(0);
+                }, 100);
+            }
         });
     }
 
