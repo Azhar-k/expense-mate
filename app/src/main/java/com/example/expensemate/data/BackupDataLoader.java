@@ -94,6 +94,7 @@ public class BackupDataLoader {
     private void processTransaction(String data) {
         try {
             Transaction transaction = new Transaction();
+            transaction.setAccountId(database.accountDao().getDefaultAccountSync().getId());
             String[] lines = data.split("\n");
             for (String line : lines) {
                 String[] parts = line.split(": ", 2);
@@ -134,6 +135,16 @@ public class BackupDataLoader {
                         break;
                     case "Category":
                         transaction.setCategory(value);
+                        break;
+                    case "Account id" :
+                        if (!value.equals("null")) {
+                            transaction.setAccountId(Long.parseLong(value));
+                        }
+                        break;
+                    case "Is excluded from summary":
+                        if (!value.equals("null")) {
+                            transaction.setExcludedFromSummary(Boolean.parseBoolean(value));
+                        }
                         break;
                     case "Linked Payment ID":
                         if (!value.equals("null")) {
@@ -260,6 +271,8 @@ public class BackupDataLoader {
                 data.append(String.format("Transaction Type: %s\n", t.getTransactionType()));
                 data.append(String.format("Receiver: %s\n", t.getReceiverName()));
                 data.append(String.format("Category: %s\n", t.getCategory()));
+                data.append(String.format("Is excluded from summary: %s\n", t.isExcludedFromSummary()));
+                data.append(String.format("Account id: %s\n", t.getAccountId()));
                 data.append(String.format("Linked Payment ID: %s\n", t.getLinkedRecurringPaymentId()));
                 data.append("---\n");
             }
@@ -290,7 +303,7 @@ public class BackupDataLoader {
 
             // Export accounts
             data.append("\n=== ACCOUNTS ===\n");
-            List<Account> accounts = database.accountDao().getAllAccounts().getValue();
+            List<Account> accounts = database.accountDao().getAllAccountsSync();
             if (accounts != null) {
                 for (Account a : accounts) {
                     data.append(String.format("ID: %d\n", a.getId()));
