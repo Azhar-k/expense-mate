@@ -95,6 +95,7 @@
                     android:text="Filters"
                     android:textSize="18sp"
                     android:textStyle="bold"
+                    android:textColor="@color/black"
                     android:layout_marginBottom="8dp"/>
 
                 <com.google.android.material.textfield.TextInputLayout
@@ -107,8 +108,9 @@
                     <AutoCompleteTextView
                         android:id="@+id/etTransactionType"
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
+                        android:layout_height="48dp"
                         android:hint="Transaction Type"
+                        android:textColor="@color/black"
                         android:inputType="none"
                         android:focusable="false"
                         android:clickable="true"/>
@@ -125,7 +127,8 @@
                         android:id="@+id/etDescription"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:hint="Description"/>
+                        android:hint="Description"
+                        android:textColor="@color/black"/>
                 </com.google.android.material.textfield.TextInputLayout>
 
                 <com.google.android.material.textfield.TextInputLayout
@@ -139,7 +142,8 @@
                         android:id="@+id/etReceiver"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:hint="Receiver/Sender"/>
+                        android:hint="Receiver/Sender"
+                        android:textColor="@color/black"/>
                 </com.google.android.material.textfield.TextInputLayout>
 
                 <com.google.android.material.textfield.TextInputLayout
@@ -152,8 +156,27 @@
                     <AutoCompleteTextView
                         android:id="@+id/etCategory"
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
+                        android:layout_height="48dp"
                         android:hint="Category"
+                        android:textColor="@color/black"
+                        android:inputType="none"
+                        android:focusable="false"
+                        android:clickable="true"/>
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/tilRecurringPayment"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="8dp"
+                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+
+                    <AutoCompleteTextView
+                        android:id="@+id/etRecurringPayment"
+                        android:layout_width="match_parent"
+                        android:layout_height="48dp"
+                        android:hint="Linked Recurring Payment"
+                        android:textColor="@color/black"
                         android:inputType="none"
                         android:focusable="false"
                         android:clickable="true"/>
@@ -171,6 +194,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:hint="Amount"
+                        android:textColor="@color/black"
                         android:inputType="numberDecimal"/>
                 </com.google.android.material.textfield.TextInputLayout>
 
@@ -187,6 +211,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="Apply Filters"
+                    android:textColor="@color/white"
                     android:layout_marginTop="8dp"/>
 
                 <com.google.android.material.button.MaterialButton
@@ -195,6 +220,7 @@
                     android:layout_height="wrap_content"
                     android:text="Clear Filters"
                     style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    android:textColor="@color/black"
                     android:layout_marginTop="4dp"/>
 
             </LinearLayout>
@@ -226,7 +252,7 @@
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|end"
         android:layout_marginEnd="16dp"
-        android:layout_marginBottom="140dp"
+        android:layout_marginBottom="160dp"
         android:contentDescription="Filter Transactions"
         app:srcCompat="@drawable/ic_filter" />
 

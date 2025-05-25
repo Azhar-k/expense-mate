@@ -126,10 +126,11 @@ public interface TransactionDao {
             "AND (:amount IS NULL OR amount = :amount) " +
             "AND (:transactionType IS NULL OR transactionType = :transactionType) " +
             "AND (:isExcludedFromSummary IS NULL OR isExcludedFromSummary = :isExcludedFromSummary) " +
+            "AND (:linkedRecurringPaymentId IS NULL OR linkedRecurringPaymentId = :linkedRecurringPaymentId) " +
             "ORDER BY date DESC")
     List<Transaction> getFilteredTransactions(String month, String year, Long accountId, 
             String description, String receiverName, String category, Double amount,
-            String transactionType, Boolean isExcludedFromSummary);
+            String transactionType, Boolean isExcludedFromSummary, Long linkedRecurringPaymentId);
 
     /****************************************************************************************************/
     // Queries for purposes other than screen

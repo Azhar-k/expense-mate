@@ -19,8 +19,11 @@ import com.example.expensemate.databinding.FragmentTransactionsBinding;
 import com.example.expensemate.viewmodel.TransactionViewModel;
 import com.example.expensemate.viewmodel.AccountViewModel;
 import com.example.expensemate.viewmodel.CategoryViewModel;
+import com.example.expensemate.viewmodel.RecurringPaymentsViewModel;
 import com.example.expensemate.data.Account;
 import com.example.expensemate.data.Category;
+import com.example.expensemate.data.Transaction;
+import com.example.expensemate.data.RecurringPayment;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -205,6 +208,32 @@ public class TransactionsFragment extends Fragment {
             binding.etCategory.setDropDownBackgroundResource(android.R.color.white);
         });
 
+        // Set up recurring payment dropdown
+        RecurringPaymentsViewModel recurringPaymentsViewModel = new ViewModelProvider(this).get(RecurringPaymentsViewModel.class);
+        recurringPaymentsViewModel.getRecurringPayments().observe(getViewLifecycleOwner(), payments -> {
+            List<String> recurringPaymentNames = new ArrayList<>();
+            recurringPaymentNames.add("None"); // Add "None" as first option
+            for (RecurringPayment payment : payments) {
+                recurringPaymentNames.add(payment.getName());
+            }
+            ArrayAdapter<String> recurringPaymentAdapter = new ArrayAdapter<>(
+                requireContext(),
+                android.R.layout.simple_dropdown_item_1line,
+                recurringPaymentNames
+            ) {
+                @Override
+                public View getView(int position, View convertView, ViewGroup parent) {
+                    View view = super.getView(position, convertView, parent);
+                    TextView text = (TextView) view.findViewById(android.R.id.text1);
+                    text.setTextColor(requireContext().getResources().getColor(R.color.black));
+                    return view;
+                }
+            };
+            binding.etRecurringPayment.setAdapter(recurringPaymentAdapter);
+            binding.etRecurringPayment.setOnClickListener(v -> binding.etRecurringPayment.showDropDown());
+            binding.etRecurringPayment.setDropDownBackgroundResource(android.R.color.white);
+        });
+
         // Apply filters button
         binding.btnApplyFilters.setOnClickListener(v -> {
             String description = binding.etDescription.getText() != null ? 
@@ -217,6 +246,8 @@ public class TransactionsFragment extends Fragment {
                 binding.etAmount.getText().toString().trim() : "";
             String transactionType = binding.etTransactionType.getText() != null ? 
                 binding.etTransactionType.getText().toString().trim() : "";
+            String recurringPayment = binding.etRecurringPayment.getText() != null ? 
+                binding.etRecurringPayment.getText().toString().trim() : "";
             
             Double amount = null;
             if (!amountStr.isEmpty()) {
@@ -228,13 +259,25 @@ public class TransactionsFragment extends Fragment {
                 }
             }
 
+            // Find the recurring payment ID if one is selected
+            Long linkedRecurringPaymentId = null;
+            if (!recurringPayment.isEmpty() && !recurringPayment.equals("None")) {
+                for (RecurringPayment payment : recurringPaymentsViewModel.getRecurringPayments().getValue()) {
+                    if (payment.getName().equals(recurringPayment)) {
+                        linkedRecurringPaymentId = payment.getId();
+                        break;
+                    }
+                }
+            }
+
             viewModel.setFilters(
                 description.isEmpty() ? null : description,
                 receiver.isEmpty() ? null : receiver,
                 category.isEmpty() ? null : category,
                 amount,
                 transactionType.isEmpty() ? null : transactionType,
-                binding.switchExcludeFromSummary.isChecked()
+                binding.switchExcludeFromSummary.isChecked(),
+                linkedRecurringPaymentId
             );
             
             // Hide filter card after applying filters
@@ -248,6 +291,7 @@ public class TransactionsFragment extends Fragment {
             binding.etCategory.setText("");
             binding.etAmount.setText("");
             binding.etTransactionType.setText("");
+            binding.etRecurringPayment.setText("");
             binding.switchExcludeFromSummary.setChecked(false);
             viewModel.clearFilters();
             

@@ -38,6 +38,7 @@ public class TransactionViewModel extends AndroidViewModel {
     private Double filterAmount;
     private String filterTransactionType;
     private Boolean filterExcludeFromSummary;
+    private Long filterLinkedRecurringPaymentId;
 
     public TransactionViewModel(Application application) {
         super(application);
@@ -299,14 +300,24 @@ public class TransactionViewModel extends AndroidViewModel {
         return selectedAccountId;
     }
 
+    public LiveData<List<Transaction>> getAllTransactionsSyncOrderByDateAsc() {
+        MutableLiveData<List<Transaction>> result = new MutableLiveData<>();
+        executorService.execute(() -> {
+            List<Transaction> transactions = transactionDao.getAllTransactionsSyncOrderByDateAsc();
+            result.postValue(transactions);
+        });
+        return result;
+    }
+
     public void setFilters(String description, String receiverName, String category, Double amount,
-            String transactionType, Boolean isExcludedFromSummary) {
+            String transactionType, Boolean isExcludedFromSummary, Long linkedRecurringPaymentId) {
         this.filterDescription = description;
         this.filterReceiverName = receiverName;
         this.filterCategory = category;
         this.filterAmount = amount;
         this.filterTransactionType = transactionType;
         this.filterExcludeFromSummary = isExcludedFromSummary;
+        this.filterLinkedRecurringPaymentId = linkedRecurringPaymentId;
         applyFilters();
     }
 
@@ -317,6 +328,7 @@ public class TransactionViewModel extends AndroidViewModel {
         this.filterAmount = null;
         this.filterTransactionType = null;
         this.filterExcludeFromSummary = null;
+        this.filterLinkedRecurringPaymentId = null;
         applyFilters();
     }
 
@@ -330,7 +342,7 @@ public class TransactionViewModel extends AndroidViewModel {
                 List<Transaction> transactions = transactionDao.getFilteredTransactions(
                     month, year, accountId,
                     filterDescription, filterReceiverName, filterCategory, filterAmount,
-                    filterTransactionType, filterExcludeFromSummary
+                    filterTransactionType, filterExcludeFromSummary, filterLinkedRecurringPaymentId
                 );
                 filteredTransactions.postValue(transactions);
             }
