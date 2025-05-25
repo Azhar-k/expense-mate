@@ -18,7 +18,9 @@ import com.example.expensemate.R;
 import com.example.expensemate.databinding.FragmentTransactionsBinding;
 import com.example.expensemate.viewmodel.TransactionViewModel;
 import com.example.expensemate.viewmodel.AccountViewModel;
+import com.example.expensemate.viewmodel.CategoryViewModel;
 import com.example.expensemate.data.Account;
+import com.example.expensemate.data.Category;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -30,6 +32,7 @@ public class TransactionsFragment extends Fragment {
     private FragmentTransactionsBinding binding;
     private TransactionViewModel viewModel;
     private AccountViewModel accountViewModel;
+    private CategoryViewModel categoryViewModel;
     private TransactionsAdapter adapter;
     private Calendar currentPeriod;
     private List<Account> accounts = new ArrayList<>();
@@ -42,6 +45,7 @@ public class TransactionsFragment extends Fragment {
         // Initialize ViewModels
         viewModel = new ViewModelProvider(requireActivity()).get(TransactionViewModel.class);
         accountViewModel = new ViewModelProvider(requireActivity()).get(AccountViewModel.class);
+        categoryViewModel = new ViewModelProvider(requireActivity()).get(CategoryViewModel.class);
         Log.d(TAG, "ViewModels initialized");
 
         // Initialize current period
@@ -158,6 +162,49 @@ public class TransactionsFragment extends Fragment {
     }
 
     private void setupFilters() {
+        // Set up transaction type dropdown
+        String[] transactionTypes = {"DEBIT", "CREDIT"};
+        ArrayAdapter<String> transactionTypeAdapter = new ArrayAdapter<>(
+            requireContext(),
+            android.R.layout.simple_dropdown_item_1line,
+            transactionTypes
+        ) {
+            @Override
+            public View getView(int position, View convertView, ViewGroup parent) {
+                View view = super.getView(position, convertView, parent);
+                TextView text = (TextView) view.findViewById(android.R.id.text1);
+                text.setTextColor(requireContext().getResources().getColor(R.color.black));
+                return view;
+            }
+        };
+        binding.etTransactionType.setAdapter(transactionTypeAdapter);
+        binding.etTransactionType.setOnClickListener(v -> binding.etTransactionType.showDropDown());
+        binding.etTransactionType.setDropDownBackgroundResource(android.R.color.white);
+
+        // Set up category dropdown
+        categoryViewModel.getCategoriesByType("EXPENSE").observe(getViewLifecycleOwner(), categories -> {
+            List<String> categoryNames = new ArrayList<>();
+            for (Category category : categories) {
+                categoryNames.add(category.getName());
+            }
+            ArrayAdapter<String> categoryAdapter = new ArrayAdapter<>(
+                requireContext(),
+                android.R.layout.simple_dropdown_item_1line,
+                categoryNames
+            ) {
+                @Override
+                public View getView(int position, View convertView, ViewGroup parent) {
+                    View view = super.getView(position, convertView, parent);
+                    TextView text = (TextView) view.findViewById(android.R.id.text1);
+                    text.setTextColor(requireContext().getResources().getColor(R.color.black));
+                    return view;
+                }
+            };
+            binding.etCategory.setAdapter(categoryAdapter);
+            binding.etCategory.setOnClickListener(v -> binding.etCategory.showDropDown());
+            binding.etCategory.setDropDownBackgroundResource(android.R.color.white);
+        });
+
         // Apply filters button
         binding.btnApplyFilters.setOnClickListener(v -> {
             String description = binding.etDescription.getText() != null ? 
@@ -168,6 +215,8 @@ public class TransactionsFragment extends Fragment {
                 binding.etCategory.getText().toString().trim() : "";
             String amountStr = binding.etAmount.getText() != null ? 
                 binding.etAmount.getText().toString().trim() : "";
+            String transactionType = binding.etTransactionType.getText() != null ? 
+                binding.etTransactionType.getText().toString().trim() : "";
             
             Double amount = null;
             if (!amountStr.isEmpty()) {
@@ -183,7 +232,9 @@ public class TransactionsFragment extends Fragment {
                 description.isEmpty() ? null : description,
                 receiver.isEmpty() ? null : receiver,
                 category.isEmpty() ? null : category,
-                amount
+                amount,
+                transactionType.isEmpty() ? null : transactionType,
+                binding.switchExcludeFromSummary.isChecked()
             );
             
             // Hide filter card after applying filters
@@ -196,6 +247,8 @@ public class TransactionsFragment extends Fragment {
             binding.etReceiver.setText("");
             binding.etCategory.setText("");
             binding.etAmount.setText("");
+            binding.etTransactionType.setText("");
+            binding.switchExcludeFromSummary.setChecked(false);
             viewModel.clearFilters();
             
             // Hide filter card after clearing filters

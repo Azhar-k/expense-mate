@@ -124,9 +124,12 @@ public interface TransactionDao {
             "AND (:receiverName IS NULL OR receiverName LIKE '%' || :receiverName || '%') " +
             "AND (:category IS NULL OR category LIKE '%' || :category || '%') " +
             "AND (:amount IS NULL OR amount = :amount) " +
+            "AND (:transactionType IS NULL OR transactionType = :transactionType) " +
+            "AND (:isExcludedFromSummary IS NULL OR isExcludedFromSummary = :isExcludedFromSummary) " +
             "ORDER BY date DESC")
     List<Transaction> getFilteredTransactions(String month, String year, Long accountId, 
-            String description, String receiverName, String category, Double amount);
+            String description, String receiverName, String category, Double amount,
+            String transactionType, Boolean isExcludedFromSummary);
 
     /****************************************************************************************************/
     // Queries for purposes other than screen

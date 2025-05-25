@@ -36,6 +36,8 @@ public class TransactionViewModel extends AndroidViewModel {
     private String filterReceiverName;
     private String filterCategory;
     private Double filterAmount;
+    private String filterTransactionType;
+    private Boolean filterExcludeFromSummary;
 
     public TransactionViewModel(Application application) {
         super(application);
@@ -297,11 +299,14 @@ public class TransactionViewModel extends AndroidViewModel {
         return selectedAccountId;
     }
 
-    public void setFilters(String description, String receiverName, String category, Double amount) {
+    public void setFilters(String description, String receiverName, String category, Double amount,
+            String transactionType, Boolean isExcludedFromSummary) {
         this.filterDescription = description;
         this.filterReceiverName = receiverName;
         this.filterCategory = category;
         this.filterAmount = amount;
+        this.filterTransactionType = transactionType;
+        this.filterExcludeFromSummary = isExcludedFromSummary;
         applyFilters();
     }
 
@@ -310,6 +315,8 @@ public class TransactionViewModel extends AndroidViewModel {
         this.filterReceiverName = null;
         this.filterCategory = null;
         this.filterAmount = null;
+        this.filterTransactionType = null;
+        this.filterExcludeFromSummary = null;
         applyFilters();
     }
 
@@ -322,7 +329,8 @@ public class TransactionViewModel extends AndroidViewModel {
             if (month != null && year != null) {
                 List<Transaction> transactions = transactionDao.getFilteredTransactions(
                     month, year, accountId,
-                    filterDescription, filterReceiverName, filterCategory, filterAmount
+                    filterDescription, filterReceiverName, filterCategory, filterAmount,
+                    filterTransactionType, filterExcludeFromSummary
                 );
                 filteredTransactions.postValue(transactions);
             }
