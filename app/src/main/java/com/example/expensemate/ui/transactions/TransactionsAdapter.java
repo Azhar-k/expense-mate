@@ -339,13 +339,16 @@ public class TransactionsAdapter extends ListAdapter<Transaction, TransactionsAd
             }
 
             // Set up exclude from summary checkbox
+            binding.cbExcludeFromSummary.setOnCheckedChangeListener(null); // Remove any existing listener
             binding.cbExcludeFromSummary.setChecked(transaction.isExcludedFromSummary());
             binding.cbExcludeFromSummary.setOnCheckedChangeListener((buttonView, isChecked) -> {
-                transaction.setExcludedFromSummary(isChecked);
-                viewModel.updateTransaction(transaction, transaction);
-                Toast.makeText(context, 
-                    isChecked ? "Transaction excluded from summary" : "Transaction included in summary", 
-                    Toast.LENGTH_SHORT).show();
+                if (isChecked != transaction.isExcludedFromSummary()) { // Only update if state actually changed
+                    transaction.setExcludedFromSummary(isChecked);
+                    viewModel.updateTransaction(transaction, transaction);
+                    Toast.makeText(context, 
+                        isChecked ? "Transaction excluded from summary" : "Transaction included in summary", 
+                        Toast.LENGTH_SHORT).show();
+                }
             });
         }
 
