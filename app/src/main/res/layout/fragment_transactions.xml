@@ -81,7 +81,8 @@
             android:layout_margin="8dp"
             android:visibility="gone"
             app:cardCornerRadius="12dp"
-            app:cardElevation="2dp">
+            app:cardElevation="2dp"
+            app:cardBackgroundColor="@color/white">
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -102,16 +103,18 @@
                     android:id="@+id/tilTransactionType"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginBottom="8dp"
-                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+                    android:layout_marginBottom="20dp"
+                    style="@style/CustomTextInputLayout"
+                    android:hint="Transaction Type">
 
                     <AutoCompleteTextView
                         android:id="@+id/etTransactionType"
                         android:layout_width="match_parent"
-                        android:layout_height="48dp"
-                        android:hint="Transaction Type"
-                        android:textColor="@color/black"
+                        android:layout_height="wrap_content"
                         android:inputType="none"
+                        android:textColor="@color/black"
+                        android:textSize="18sp"
+                        android:padding="16dp"
                         android:focusable="false"
                         android:clickable="true"/>
                 </com.google.android.material.textfield.TextInputLayout>
@@ -120,46 +123,54 @@
                     android:id="@+id/tilDescription"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginBottom="8dp"
-                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+                    android:layout_marginBottom="20dp"
+                    style="@style/CustomTextInputLayout"
+                    android:hint="Description">
 
                     <com.google.android.material.textfield.TextInputEditText
                         android:id="@+id/etDescription"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:hint="Description"
-                        android:textColor="@color/black"/>
+                        android:inputType="text"
+                        android:textColor="@color/black"
+                        android:textSize="18sp"
+                        android:padding="16dp"/>
                 </com.google.android.material.textfield.TextInputLayout>
 
                 <com.google.android.material.textfield.TextInputLayout
                     android:id="@+id/tilReceiver"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginBottom="8dp"
-                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+                    android:layout_marginBottom="20dp"
+                    style="@style/CustomTextInputLayout"
+                    android:hint="Receiver/Sender">
 
                     <com.google.android.material.textfield.TextInputEditText
                         android:id="@+id/etReceiver"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:hint="Receiver/Sender"
-                        android:textColor="@color/black"/>
+                        android:inputType="text"
+                        android:textColor="@color/black"
+                        android:textSize="18sp"
+                        android:padding="16dp"/>
                 </com.google.android.material.textfield.TextInputLayout>
 
                 <com.google.android.material.textfield.TextInputLayout
                     android:id="@+id/tilCategory"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginBottom="8dp"
-                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+                    android:layout_marginBottom="20dp"
+                    style="@style/CustomTextInputLayout"
+                    android:hint="Category">
 
                     <AutoCompleteTextView
                         android:id="@+id/etCategory"
                         android:layout_width="match_parent"
-                        android:layout_height="48dp"
-                        android:hint="Category"
-                        android:textColor="@color/black"
+                        android:layout_height="wrap_content"
                         android:inputType="none"
+                        android:textColor="@color/black"
+                        android:textSize="18sp"
+                        android:padding="16dp"
                         android:focusable="false"
                         android:clickable="true"/>
                 </com.google.android.material.textfield.TextInputLayout>
@@ -168,16 +179,18 @@
                     android:id="@+id/tilRecurringPayment"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginBottom="8dp"
-                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+                    android:layout_marginBottom="20dp"
+                    style="@style/CustomTextInputLayout"
+                    android:hint="Linked Recurring Payment">
 
                     <AutoCompleteTextView
                         android:id="@+id/etRecurringPayment"
                         android:layout_width="match_parent"
-                        android:layout_height="48dp"
-                        android:hint="Linked Recurring Payment"
-                        android:textColor="@color/black"
+                        android:layout_height="wrap_content"
                         android:inputType="none"
+                        android:textColor="@color/black"
+                        android:textSize="18sp"
+                        android:padding="16dp"
                         android:focusable="false"
                         android:clickable="true"/>
                 </com.google.android.material.textfield.TextInputLayout>
@@ -186,16 +199,18 @@
                     android:id="@+id/tilAmount"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginBottom="8dp"
-                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+                    android:layout_marginBottom="20dp"
+                    style="@style/CustomTextInputLayout"
+                    android:hint="Amount">
 
                     <com.google.android.material.textfield.TextInputEditText
                         android:id="@+id/etAmount"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:hint="Amount"
+                        android:inputType="numberDecimal"
                         android:textColor="@color/black"
-                        android:inputType="numberDecimal"/>
+                        android:textSize="18sp"
+                        android:padding="16dp"/>
                 </com.google.android.material.textfield.TextInputLayout>
 
                 <com.google.android.material.switchmaterial.SwitchMaterial
