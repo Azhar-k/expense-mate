@@ -118,6 +118,7 @@ public class SmsMonitorService extends Service {
 
     private void processSms(String smsBody, String sender) {
         executorService.execute(() -> {
+            Log.d(TAG, "Processing SMS automatically: " + smsBody);
             SmsTransactionHandler.handleSms(smsBody, sender, transactionViewModel, null);
         });
     }

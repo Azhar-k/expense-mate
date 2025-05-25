@@ -148,6 +148,7 @@ public class SmsScanFragment extends Fragment {
                             long date = cursor.getLong(cursor.getColumnIndexOrThrow(Telephony.Sms.DATE));
 
                             processedCount++;
+                            Log.d("SmsScanFragment", "Processing the scanned SMS: " + body);
                             if (SmsTransactionHandler.handleSms(body, sender, viewModel, new Date(date))) {
                                 createdCount++;
                             }

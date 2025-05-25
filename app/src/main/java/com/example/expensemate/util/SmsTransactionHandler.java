@@ -49,7 +49,8 @@ public class SmsTransactionHandler {
      */
     public static boolean handleSms(String smsBody, String sender, TransactionViewModel viewModel, Date date) {
         Log.d(TAG, "Processing SMS from: " + sender);
-        Log.d(TAG, "SMS body: " + smsBody);
+        Log.d(TAG, "SMS body length: " + (smsBody != null ? smsBody.length() : 0));
+        Log.d(TAG, "Full SMS body: [" + smsBody + "]");
 
         Transaction transaction = extractTransactionDetails(smsBody, sender);
         if (transaction != null) {
@@ -58,6 +59,8 @@ public class SmsTransactionHandler {
             }
             Log.d(TAG, "Transaction extracted: " + transaction.getAmount() + " " + 
                   transaction.getTransactionType() + " to/from " + transaction.getReceiverName());
+            Log.d(TAG, "Transaction SMS body length: " + (transaction.getSmsBody() != null ? transaction.getSmsBody().length() : 0));
+            Log.d(TAG, "Transaction SMS body: [" + transaction.getSmsBody() + "]");
             return processTransaction(transaction, viewModel);
         } else {
             Log.d(TAG, "No transaction details could be extracted");
