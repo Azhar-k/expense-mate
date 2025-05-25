@@ -27,8 +27,6 @@ public class TransactionViewModel extends AndroidViewModel {
     private final MutableLiveData<String> selectedYear = new MutableLiveData<>();
     private final MutableLiveData<Double> totalExpense = new MutableLiveData<>(0.0);
     private final MutableLiveData<Double> totalIncome = new MutableLiveData<>(0.0);
-    private LiveData<List<CategorySum>> categorySums;
-    private LiveData<List<CategorySum>> incomeCategorySums;
     private final MutableLiveData<List<Transaction>> filteredTransactions = new MutableLiveData<>();
     private final AccountViewModel accountViewModel;
     private final MutableLiveData<Long> selectedAccountId = new MutableLiveData<>();
@@ -60,7 +58,7 @@ public class TransactionViewModel extends AndroidViewModel {
         
         // Initialize filtered transactions with current month/year and default account
         executorService.execute(() -> {
-            List<Transaction> transactions = transactionDao.getTransactionsByMonthYearAndAccountSync(
+            List<Transaction> transactions = transactionDao.getTransactionsByAccountForTransactionScreen(
                 currentMonth, 
                 currentYear,
                 selectedAccountId.getValue()
@@ -83,21 +81,17 @@ public class TransactionViewModel extends AndroidViewModel {
             
             // Update expense total
             executorService.execute(() -> {
-                Double expense = transactionDao.getExpenseByMonthYearAndAccountSync(month, year, accountId);
+                Double expense = transactionDao.getExpenseForExpenseScreen(month, year, accountId);
                 Log.d(TAG, "Fetched expense total: " + expense);
                 totalExpense.postValue(expense);
             });
             
             // Update income total
             executorService.execute(() -> {
-                Double income = transactionDao.getIncomeByMonthYearAndAccountSync(month, year, accountId);
+                Double income = transactionDao.getIncomeForExpenseScreen(month, year, accountId);
                 Log.d(TAG, "Fetched income total: " + income);
                 totalIncome.postValue(income);
             });
-            
-            // Update category sums
-            categorySums = transactionDao.getCategorySumsByMonthYearAndAccount(month, year, accountId);
-            incomeCategorySums = transactionDao.getIncomeCategorySumsByMonthYearAndAccount(month, year, accountId);
             Log.d(TAG, "Updated category sums LiveData");
         } else {
             Log.w(TAG, "Cannot update LiveData: month or year is null");
@@ -112,7 +106,7 @@ public class TransactionViewModel extends AndroidViewModel {
         // Update all data for the new period
         executorService.execute(() -> {
             // Update filtered transactions
-            List<Transaction> transactions = transactionDao.getTransactionsByMonthYearAndAccountSync(
+            List<Transaction> transactions = transactionDao.getTransactionsByAccountForTransactionScreen(
                 month, 
                 year,
                 selectedAccountId.getValue()
@@ -120,11 +114,11 @@ public class TransactionViewModel extends AndroidViewModel {
             filteredTransactions.postValue(transactions);
             
             // Update expense total
-            Double expense = transactionDao.getExpenseByMonthYearAndAccountSync(month, year, selectedAccountId.getValue());
+            Double expense = transactionDao.getExpenseForExpenseScreen(month, year, selectedAccountId.getValue());
             totalExpense.postValue(expense);
             
             // Update income total
-            Double income = transactionDao.getIncomeByMonthYearAndAccountSync(month, year, selectedAccountId.getValue());
+            Double income = transactionDao.getIncomeForExpenseScreen(month, year, selectedAccountId.getValue());
             totalIncome.postValue(income);
             
             // Category sums will be updated automatically through LiveData
@@ -160,7 +154,7 @@ public class TransactionViewModel extends AndroidViewModel {
                 String month = selectedMonth.getValue();
                 String year = selectedYear.getValue();
                 if (month != null && year != null) {
-                    List<Transaction> transactions = transactionDao.getTransactionsByMonthYearSync(month, year);
+                    List<Transaction> transactions = transactionDao.getTransactionsForTransactionScreen(month, year);
                     filteredTransactions.postValue(transactions);
                 }
                 updatePeriodLiveData();
@@ -179,7 +173,7 @@ public class TransactionViewModel extends AndroidViewModel {
                 String month = selectedMonth.getValue();
                 String year = selectedYear.getValue();
                 if (month != null && year != null) {
-                    List<Transaction> transactions = transactionDao.getTransactionsByMonthYearSync(month, year);
+                    List<Transaction> transactions = transactionDao.getTransactionsForTransactionScreen(month, year);
                     filteredTransactions.postValue(transactions);
                 }
                 updatePeriodLiveData();
@@ -211,7 +205,7 @@ public class TransactionViewModel extends AndroidViewModel {
                 String month = selectedMonth.getValue();
                 String year = selectedYear.getValue();
                 if (month != null && year != null) {
-                    List<Transaction> transactions = transactionDao.getTransactionsByMonthYearSync(month, year);
+                    List<Transaction> transactions = transactionDao.getTransactionsForTransactionScreen(month, year);
                     filteredTransactions.postValue(transactions);
                 }
                 updatePeriodLiveData();
@@ -230,27 +224,27 @@ public class TransactionViewModel extends AndroidViewModel {
     }
 
     public double getTotalIncomeForAccount(long accountId) {
-        return transactionDao.getTotalIncomeForAccountSync(accountId);
+        return transactionDao.getTotalIncomeForAccountDetailsScreen(accountId);
     }
 
     public double getTotalExpenseForAccount(long accountId) {
-        return transactionDao.getTotalExpenseForAccountSync(accountId);
+        return transactionDao.getTotalExpenseForAccountDetailsScreen(accountId);
     }
 
     public LiveData<List<Transaction>> getTransactionsByDateRangeAndAccount(Date startDate, Date endDate, long accountId) {
-        return transactionDao.getTransactionsByDateRangeAndAccount(startDate, endDate, accountId);
+        return transactionDao.getTransactionsForAccountDetailsScreen(startDate, endDate, accountId);
     }
 
     public LiveData<List<CategorySum>> getCategorySumsByMonthYearAndAccount(String month, String year, Long accountId) {
-        return transactionDao.getCategorySumsByMonthYearAndAccount(month, year, accountId);
+        return transactionDao.getExpenseCategorySumForSummaryScreen(month, year, accountId);
     }
 
     public LiveData<List<CategorySum>> getIncomeCategorySumsByMonthYearAndAccount(String month, String year, Long accountId) {
-        return transactionDao.getIncomeCategorySumsByMonthYearAndAccount(month, year, accountId);
+        return transactionDao.getIncomeCategorySumForSummaryScreen(month, year, accountId);
     }
 
     public LiveData<List<Transaction>> getTransactionsByCategoryAndPeriod(String category, String month, String year, Long accountId, String transactionType) {
-        return transactionDao.getTransactionsByCategoryAndPeriod(category, month, year, accountId, transactionType);
+        return transactionDao.getTransactionsByCategoryForSummaryScreen(category, month, year, accountId, transactionType);
     }
 
     public int countTransactionsBySmsHash(String smsHash) {
@@ -271,9 +265,9 @@ public class TransactionViewModel extends AndroidViewModel {
                 List<Transaction> transactions;
                 if (accountId == null) {
                     // If accountId is null, get all transactions without account filter
-                    transactions = transactionDao.getTransactionsByMonthYearSync(month, year);
+                    transactions = transactionDao.getTransactionsForTransactionScreen(month, year);
                 } else {
-                    transactions = transactionDao.getTransactionsByMonthYearAndAccountSync(
+                    transactions = transactionDao.getTransactionsByAccountForTransactionScreen(
                         month, 
                         year,
                         accountId
@@ -282,11 +276,11 @@ public class TransactionViewModel extends AndroidViewModel {
                 filteredTransactions.postValue(transactions);
                 
                 // Update expense total
-                Double expense = transactionDao.getExpenseByMonthYearAndAccountSync(month, year, accountId);
+                Double expense = transactionDao.getExpenseForExpenseScreen(month, year, accountId);
                 totalExpense.postValue(expense);
                 
                 // Update income total
-                Double income = transactionDao.getIncomeByMonthYearAndAccountSync(month, year, accountId);
+                Double income = transactionDao.getIncomeForExpenseScreen(month, year, accountId);
                 totalIncome.postValue(income);
                 
                 // Category sums will be updated automatically through LiveData
@@ -296,23 +290,6 @@ public class TransactionViewModel extends AndroidViewModel {
 
     public LiveData<Long> getSelectedAccountId() {
         return selectedAccountId;
-    }
-
-    private void updateFilteredTransactions() {
-        String month = selectedMonth.getValue();
-        String year = selectedYear.getValue();
-        Long accountId = selectedAccountId.getValue();
-        
-        if (month != null && year != null) {
-            executorService.execute(() -> {
-                List<Transaction> transactions = transactionDao.getTransactionsByMonthYearAndAccountSync(
-                    month, 
-                    year,
-                    accountId
-                );
-                filteredTransactions.postValue(transactions);
-            });
-        }
     }
 
     @Override

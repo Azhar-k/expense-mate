@@ -3,8 +3,6 @@ package com.example.expensemate.data;
 import android.content.Context;
 import android.util.Log;
 
-import androidx.lifecycle.LiveData;
-
 import com.example.expensemate.R;
 
 import java.io.BufferedReader;
@@ -262,7 +260,7 @@ public class BackupDataLoader {
 
             // Export transactions
             data.append("=== TRANSACTIONS ===\n");
-            List<Transaction> transactions = database.transactionDao().getAllTransactionsSync();
+            List<Transaction> transactions = database.transactionDao().getAllTransactionsSyncOrderByDateAsc();
             for (Transaction t : transactions) {
                 data.append(String.format("ID: %d\n", t.getId()));
                 data.append(String.format("Amount: %.2f\n", t.getAmount()));
