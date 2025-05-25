@@ -282,9 +282,27 @@ public class TransactionsAdapter extends ListAdapter<Transaction, TransactionsAd
             }
             binding.tvDate.setText(String.format("Date: %s", dateFormat.format(transaction.getDate())));
             binding.tvCategory.setText(String.format("Category: %s", transaction.getCategory()));
-            binding.tvDescription.setText(String.format("Description: %s", transaction.getDescription()));
+            
+            // Truncate description if longer than 40 characters
+            String description = transaction.getDescription();
+            if (description != null && description.length() > 40) {
+                binding.tvDescription.setText(String.format("Description: %s...", description.substring(0, 40)));
+                binding.btnViewDescription.setVisibility(View.VISIBLE);
+                binding.btnViewDescription.setOnClickListener(v -> {
+                    new AlertDialog.Builder(context)
+                        .setTitle("Full Description")
+                        .setMessage(description)
+                        .setPositiveButton("OK", null)
+                        .show();
+                });
+            } else {
+                binding.tvDescription.setText(String.format("Description: %s", description));
+                binding.btnViewDescription.setVisibility(View.GONE);
+            }
+            
             binding.tvTransactionType.setText(String.format("Type: %s", transaction.getTransactionType()));
-            binding.tvReceiver.setText(String.format("Receiver: %s", transaction.getReceiverName()));
+            String label = transaction.getTransactionType().equals("CREDIT") ? "Sender" : "Receiver";
+            binding.tvReceiver.setText(String.format("%s: %s", label, transaction.getReceiverName()));
 
             // Show account information
             if (transaction.getAccountId() != null) {
