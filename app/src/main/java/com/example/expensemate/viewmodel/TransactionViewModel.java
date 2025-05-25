@@ -31,6 +31,12 @@ public class TransactionViewModel extends AndroidViewModel {
     private final AccountViewModel accountViewModel;
     private final MutableLiveData<Long> selectedAccountId = new MutableLiveData<>();
 
+    // Filter fields
+    private String filterDescription;
+    private String filterReceiverName;
+    private String filterCategory;
+    private Double filterAmount;
+
     public TransactionViewModel(Application application) {
         super(application);
         Log.d(TAG, "Initializing TransactionViewModel");
@@ -134,7 +140,6 @@ public class TransactionViewModel extends AndroidViewModel {
     }
 
     public LiveData<List<Transaction>> getFilteredTransactions() {
-        Log.d(TAG, "Getting filtered transactions LiveData");
         return filteredTransactions;
     }
 
@@ -290,6 +295,38 @@ public class TransactionViewModel extends AndroidViewModel {
 
     public LiveData<Long> getSelectedAccountId() {
         return selectedAccountId;
+    }
+
+    public void setFilters(String description, String receiverName, String category, Double amount) {
+        this.filterDescription = description;
+        this.filterReceiverName = receiverName;
+        this.filterCategory = category;
+        this.filterAmount = amount;
+        applyFilters();
+    }
+
+    public void clearFilters() {
+        this.filterDescription = null;
+        this.filterReceiverName = null;
+        this.filterCategory = null;
+        this.filterAmount = null;
+        applyFilters();
+    }
+
+    private void applyFilters() {
+        executorService.execute(() -> {
+            String month = selectedMonth.getValue();
+            String year = selectedYear.getValue();
+            Long accountId = selectedAccountId.getValue();
+            
+            if (month != null && year != null) {
+                List<Transaction> transactions = transactionDao.getFilteredTransactions(
+                    month, year, accountId,
+                    filterDescription, filterReceiverName, filterCategory, filterAmount
+                );
+                filteredTransactions.postValue(transactions);
+            }
+        });
     }
 
     @Override

@@ -73,6 +73,18 @@ public class TransactionsFragment extends Fragment {
         // Set up FAB
         binding.fabAddTransaction.setOnClickListener(v -> adapter.showAddTransactionDialog());
 
+        // Set up filter FAB
+        binding.fabFilter.setOnClickListener(v -> {
+            if (binding.cardFilter.getVisibility() == View.VISIBLE) {
+                binding.cardFilter.setVisibility(View.GONE);
+            } else {
+                binding.cardFilter.setVisibility(View.VISIBLE);
+            }
+        });
+
+        // Set up filter functionality
+        setupFilters();
+
         // Set up account dropdown
         accountViewModel.getAllAccounts().observe(getViewLifecycleOwner(), accountList -> {
             accounts = accountList;
@@ -143,6 +155,52 @@ public class TransactionsFragment extends Fragment {
         String year = yearFormat.format(currentPeriod.getTime());
         Log.d(TAG, "Updating selected period to: " + month + "/" + year);
         viewModel.setSelectedMonthYear(month, year);
+    }
+
+    private void setupFilters() {
+        // Apply filters button
+        binding.btnApplyFilters.setOnClickListener(v -> {
+            String description = binding.etDescription.getText() != null ? 
+                binding.etDescription.getText().toString().trim() : "";
+            String receiver = binding.etReceiver.getText() != null ? 
+                binding.etReceiver.getText().toString().trim() : "";
+            String category = binding.etCategory.getText() != null ? 
+                binding.etCategory.getText().toString().trim() : "";
+            String amountStr = binding.etAmount.getText() != null ? 
+                binding.etAmount.getText().toString().trim() : "";
+            
+            Double amount = null;
+            if (!amountStr.isEmpty()) {
+                try {
+                    amount = Double.parseDouble(amountStr);
+                } catch (NumberFormatException e) {
+                    binding.etAmount.setError("Invalid amount");
+                    return;
+                }
+            }
+
+            viewModel.setFilters(
+                description.isEmpty() ? null : description,
+                receiver.isEmpty() ? null : receiver,
+                category.isEmpty() ? null : category,
+                amount
+            );
+            
+            // Hide filter card after applying filters
+            binding.cardFilter.setVisibility(View.GONE);
+        });
+
+        // Clear filters button
+        binding.btnClearFilters.setOnClickListener(v -> {
+            binding.etDescription.setText("");
+            binding.etReceiver.setText("");
+            binding.etCategory.setText("");
+            binding.etAmount.setText("");
+            viewModel.clearFilters();
+            
+            // Hide filter card after clearing filters
+            binding.cardFilter.setVisibility(View.GONE);
+        });
     }
 
     @Override

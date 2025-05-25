@@ -116,6 +116,18 @@ public interface TransactionDao {
             "ORDER BY date DESC")
     List<Transaction> getTransactionsForTransactionScreen(String month, String year);
 
+    @Query("SELECT * FROM transactions " +
+            "WHERE strftime('%m', datetime(date/1000, 'unixepoch')) = :month " +
+            "AND strftime('%Y', datetime(date/1000, 'unixepoch')) = :year " +
+            "AND (:accountId IS NULL OR accountId = :accountId) " +
+            "AND (:description IS NULL OR description LIKE '%' || :description || '%') " +
+            "AND (:receiverName IS NULL OR receiverName LIKE '%' || :receiverName || '%') " +
+            "AND (:category IS NULL OR category LIKE '%' || :category || '%') " +
+            "AND (:amount IS NULL OR amount = :amount) " +
+            "ORDER BY date DESC")
+    List<Transaction> getFilteredTransactions(String month, String year, Long accountId, 
+            String description, String receiverName, String category, Double amount);
+
     /****************************************************************************************************/
     // Queries for purposes other than screen
 
