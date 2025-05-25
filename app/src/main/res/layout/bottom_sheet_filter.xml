@@ -40,6 +40,48 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="8dp"
+            android:hint="From Date"
+            app:startIconDrawable="@drawable/ic_calendar"
+            app:startIconTint="@color/primary"
+            style="@style/CustomTextInputLayout">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etFromDate"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="none"
+                android:textColor="@color/black"
+                android:textSize="16sp"
+                android:padding="12dp"
+                android:focusable="false"
+                android:background="@drawable/edit_text_background" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:hint="To Date"
+            app:startIconDrawable="@drawable/ic_calendar"
+            app:startIconTint="@color/primary"
+            style="@style/CustomTextInputLayout">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etToDate"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="none"
+                android:textColor="@color/black"
+                android:textSize="16sp"
+                android:padding="12dp"
+                android:focusable="false"
+                android:background="@drawable/edit_text_background" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
             android:hint="Transaction Type"
             style="@style/CustomTextInputLayout">
 

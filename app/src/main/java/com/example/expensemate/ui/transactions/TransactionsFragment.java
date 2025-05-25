@@ -35,6 +35,9 @@ import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.switchmaterial.SwitchMaterial;
 import android.widget.ImageButton;
+import android.app.DatePickerDialog;
+import com.google.android.material.datepicker.MaterialDatePicker;
+import java.util.TimeZone;
 
 public class TransactionsFragment extends Fragment {
     private static final String TAG = "TransactionsFragment";
@@ -172,6 +175,8 @@ public class TransactionsFragment extends Fragment {
         bottomSheetDialog.setContentView(bottomSheetView);
 
         // Initialize views
+        TextInputEditText etFromDate = bottomSheetView.findViewById(R.id.etFromDate);
+        TextInputEditText etToDate = bottomSheetView.findViewById(R.id.etToDate);
         AutoCompleteTextView etTransactionType = bottomSheetView.findViewById(R.id.etTransactionType);
         TextInputEditText etDescription = bottomSheetView.findViewById(R.id.etDescription);
         TextInputEditText etReceiver = bottomSheetView.findViewById(R.id.etReceiver);
@@ -182,6 +187,39 @@ public class TransactionsFragment extends Fragment {
         MaterialButton btnApplyFilters = bottomSheetView.findViewById(R.id.btnApplyFilters);
         MaterialButton btnClearFilters = bottomSheetView.findViewById(R.id.btnClearFilters);
         ImageButton btnClose = bottomSheetView.findViewById(R.id.btnClose);
+
+        // Set up date pickers
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
+        
+        etFromDate.setOnClickListener(v -> {
+            MaterialDatePicker<Long> datePicker = MaterialDatePicker.Builder.datePicker()
+                .setTitleText("Select From Date")
+                .setSelection(MaterialDatePicker.todayInUtcMilliseconds())
+                .build();
+            
+            datePicker.addOnPositiveButtonClickListener(selection -> {
+                Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+                calendar.setTimeInMillis(selection);
+                etFromDate.setText(dateFormat.format(calendar.getTime()));
+            });
+            
+            datePicker.show(getChildFragmentManager(), "FROM_DATE_PICKER");
+        });
+
+        etToDate.setOnClickListener(v -> {
+            MaterialDatePicker<Long> datePicker = MaterialDatePicker.Builder.datePicker()
+                .setTitleText("Select To Date")
+                .setSelection(MaterialDatePicker.todayInUtcMilliseconds())
+                .build();
+            
+            datePicker.addOnPositiveButtonClickListener(selection -> {
+                Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+                calendar.setTimeInMillis(selection);
+                etToDate.setText(dateFormat.format(calendar.getTime()));
+            });
+            
+            datePicker.show(getChildFragmentManager(), "TO_DATE_PICKER");
+        });
 
         // Set up transaction type dropdown
         String[] transactionTypes = {"DEBIT", "CREDIT"};
@@ -269,6 +307,10 @@ public class TransactionsFragment extends Fragment {
                 etTransactionType.getText().toString().trim() : "";
             String recurringPayment = etRecurringPayment.getText() != null ? 
                 etRecurringPayment.getText().toString().trim() : "";
+            String fromDate = etFromDate.getText() != null ? 
+                etFromDate.getText().toString().trim() : "";
+            String toDate = etToDate.getText() != null ? 
+                etToDate.getText().toString().trim() : "";
             
             Double amount = null;
             if (!amountStr.isEmpty()) {
@@ -298,7 +340,9 @@ public class TransactionsFragment extends Fragment {
                 amount,
                 transactionType.isEmpty() ? null : transactionType,
                 switchExcludeFromSummary.isChecked(),
-                linkedRecurringPaymentId
+                linkedRecurringPaymentId,
+                fromDate.isEmpty() ? null : fromDate,
+                toDate.isEmpty() ? null : toDate
             );
             
             bottomSheetDialog.dismiss();
@@ -312,6 +356,8 @@ public class TransactionsFragment extends Fragment {
             etAmount.setText("");
             etTransactionType.setText("");
             etRecurringPayment.setText("");
+            etFromDate.setText("");
+            etToDate.setText("");
             switchExcludeFromSummary.setChecked(false);
             viewModel.clearFilters();
             bottomSheetDialog.dismiss();

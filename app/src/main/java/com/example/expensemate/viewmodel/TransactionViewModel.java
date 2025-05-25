@@ -17,6 +17,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.ArrayList;
+import java.text.ParseException;
 
 public class TransactionViewModel extends AndroidViewModel {
     private static final String TAG = "TransactionViewModel";
@@ -32,13 +34,15 @@ public class TransactionViewModel extends AndroidViewModel {
     private final MutableLiveData<Long> selectedAccountId = new MutableLiveData<>();
 
     // Filter fields
-    private String filterDescription;
-    private String filterReceiverName;
-    private String filterCategory;
-    private Double filterAmount;
-    private String filterTransactionType;
-    private Boolean filterExcludeFromSummary;
-    private Long filterLinkedRecurringPaymentId;
+    private String description;
+    private String receiver;
+    private String category;
+    private Double amount;
+    private String transactionType;
+    private boolean excludeFromSummary;
+    private Long linkedRecurringPaymentId;
+    private String fromDate;
+    private String toDate;
 
     public TransactionViewModel(Application application) {
         super(application);
@@ -309,44 +313,112 @@ public class TransactionViewModel extends AndroidViewModel {
         return result;
     }
 
-    public void setFilters(String description, String receiverName, String category, Double amount,
-            String transactionType, Boolean isExcludedFromSummary, Long linkedRecurringPaymentId) {
-        this.filterDescription = description;
-        this.filterReceiverName = receiverName;
-        this.filterCategory = category;
-        this.filterAmount = amount;
-        this.filterTransactionType = transactionType;
-        this.filterExcludeFromSummary = isExcludedFromSummary;
-        this.filterLinkedRecurringPaymentId = linkedRecurringPaymentId;
+    public void setFilters(String description, String receiver, String category, Double amount,
+                          String transactionType, boolean excludeFromSummary, Long linkedRecurringPaymentId,
+                          String fromDate, String toDate) {
+        this.description = description;
+        this.receiver = receiver;
+        this.category = category;
+        this.amount = amount;
+        this.transactionType = transactionType;
+        this.excludeFromSummary = excludeFromSummary;
+        this.linkedRecurringPaymentId = linkedRecurringPaymentId;
+        this.fromDate = fromDate;
+        this.toDate = toDate;
         applyFilters();
     }
 
     public void clearFilters() {
-        this.filterDescription = null;
-        this.filterReceiverName = null;
-        this.filterCategory = null;
-        this.filterAmount = null;
-        this.filterTransactionType = null;
-        this.filterExcludeFromSummary = null;
-        this.filterLinkedRecurringPaymentId = null;
+        this.description = null;
+        this.receiver = null;
+        this.category = null;
+        this.amount = null;
+        this.transactionType = null;
+        this.excludeFromSummary = false;
+        this.linkedRecurringPaymentId = null;
+        this.fromDate = null;
+        this.toDate = null;
         applyFilters();
     }
 
     private void applyFilters() {
         executorService.execute(() -> {
-            String month = selectedMonth.getValue();
-            String year = selectedYear.getValue();
-            Long accountId = selectedAccountId.getValue();
-            
-            if (month != null && year != null) {
-                List<Transaction> transactions = transactionDao.getFilteredTransactions(
-                    month, year, accountId,
-                    filterDescription, filterReceiverName, filterCategory, filterAmount,
-                    filterTransactionType, filterExcludeFromSummary, filterLinkedRecurringPaymentId
-                );
-                filteredTransactions.postValue(transactions);
+            List<Transaction> filteredList = new ArrayList<>();
+            List<Transaction> allTransactions = transactionDao.getAllTransactionsSyncOrderByDateAsc();
+
+            for (Transaction transaction : allTransactions) {
+                if (matchesFilters(transaction)) {
+                    filteredList.add(transaction);
+                }
             }
+
+            filteredTransactions.postValue(filteredList);
         });
+    }
+
+    private boolean matchesFilters(Transaction transaction) {
+        // Check if transaction matches all active filters
+        if (description != null && !transaction.getDescription().toLowerCase().contains(description.toLowerCase())) {
+            return false;
+        }
+        if (receiver != null && !transaction.getReceiverName().toLowerCase().contains(receiver.toLowerCase())) {
+            return false;
+        }
+        if (category != null && !transaction.getCategory().equals(category)) {
+            return false;
+        }
+        if (amount != null && transaction.getAmount() != amount) {
+            return false;
+        }
+        if (transactionType != null && !transaction.getTransactionType().equals(transactionType)) {
+            return false;
+        }
+        if (excludeFromSummary && !transaction.isExcludedFromSummary()) {
+            return false;
+        }
+        if (linkedRecurringPaymentId != null && 
+            (transaction.getLinkedRecurringPaymentId() == null || 
+             !transaction.getLinkedRecurringPaymentId().equals(linkedRecurringPaymentId))) {
+            return false;
+        }
+        if (fromDate != null || toDate != null) {
+            try {
+                SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
+                Date transactionDate = transaction.getDate();
+                
+                if (fromDate != null) {
+                    Date from = dateFormat.parse(fromDate);
+                    Calendar fromCal = Calendar.getInstance();
+                    fromCal.setTime(from);
+                    fromCal.set(Calendar.HOUR_OF_DAY, 0);
+                    fromCal.set(Calendar.MINUTE, 0);
+                    fromCal.set(Calendar.SECOND, 0);
+                    fromCal.set(Calendar.MILLISECOND, 0);
+                    
+                    if (transactionDate.before(fromCal.getTime())) {
+                        return false;
+                    }
+                }
+                
+                if (toDate != null) {
+                    Date to = dateFormat.parse(toDate);
+                    Calendar toCal = Calendar.getInstance();
+                    toCal.setTime(to);
+                    toCal.set(Calendar.HOUR_OF_DAY, 23);
+                    toCal.set(Calendar.MINUTE, 59);
+                    toCal.set(Calendar.SECOND, 59);
+                    toCal.set(Calendar.MILLISECOND, 999);
+                    
+                    if (transactionDate.after(toCal.getTime())) {
+                        return false;
+                    }
+                }
+            } catch (ParseException e) {
+                e.printStackTrace();
+                return false;
+            }
+        }
+        return true;
     }
 
     @Override
