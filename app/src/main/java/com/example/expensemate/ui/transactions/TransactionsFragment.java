@@ -30,6 +30,12 @@ import java.util.Calendar;
 import java.util.List;
 import java.util.Locale;
 
+import com.google.android.material.bottomsheet.BottomSheetDialog;
+import com.google.android.material.button.MaterialButton;
+import com.google.android.material.textfield.TextInputEditText;
+import com.google.android.material.switchmaterial.SwitchMaterial;
+import android.widget.ImageButton;
+
 public class TransactionsFragment extends Fragment {
     private static final String TAG = "TransactionsFragment";
     private FragmentTransactionsBinding binding;
@@ -81,16 +87,7 @@ public class TransactionsFragment extends Fragment {
         binding.fabAddTransaction.setOnClickListener(v -> adapter.showAddTransactionDialog());
 
         // Set up filter FAB
-        binding.fabFilter.setOnClickListener(v -> {
-            if (binding.cardFilter.getVisibility() == View.VISIBLE) {
-                binding.cardFilter.setVisibility(View.GONE);
-            } else {
-                binding.cardFilter.setVisibility(View.VISIBLE);
-            }
-        });
-
-        // Set up filter functionality
-        setupFilters();
+        binding.fabFilter.setOnClickListener(v -> showFilterBottomSheet());
 
         // Set up account dropdown
         accountViewModel.getAllAccounts().observe(getViewLifecycleOwner(), accountList -> {
@@ -165,6 +162,27 @@ public class TransactionsFragment extends Fragment {
     }
 
     private void setupFilters() {
+        // Set up filter FAB
+        binding.fabFilter.setOnClickListener(v -> showFilterBottomSheet());
+    }
+
+    private void showFilterBottomSheet() {
+        View bottomSheetView = getLayoutInflater().inflate(R.layout.bottom_sheet_filter, null);
+        BottomSheetDialog bottomSheetDialog = new BottomSheetDialog(requireContext());
+        bottomSheetDialog.setContentView(bottomSheetView);
+
+        // Initialize views
+        AutoCompleteTextView etTransactionType = bottomSheetView.findViewById(R.id.etTransactionType);
+        TextInputEditText etDescription = bottomSheetView.findViewById(R.id.etDescription);
+        TextInputEditText etReceiver = bottomSheetView.findViewById(R.id.etReceiver);
+        AutoCompleteTextView etCategory = bottomSheetView.findViewById(R.id.etCategory);
+        AutoCompleteTextView etRecurringPayment = bottomSheetView.findViewById(R.id.etRecurringPayment);
+        TextInputEditText etAmount = bottomSheetView.findViewById(R.id.etAmount);
+        SwitchMaterial switchExcludeFromSummary = bottomSheetView.findViewById(R.id.switchExcludeFromSummary);
+        MaterialButton btnApplyFilters = bottomSheetView.findViewById(R.id.btnApplyFilters);
+        MaterialButton btnClearFilters = bottomSheetView.findViewById(R.id.btnClearFilters);
+        ImageButton btnClose = bottomSheetView.findViewById(R.id.btnClose);
+
         // Set up transaction type dropdown
         String[] transactionTypes = {"DEBIT", "CREDIT"};
         ArrayAdapter<String> transactionTypeAdapter = new ArrayAdapter<>(
@@ -180,9 +198,9 @@ public class TransactionsFragment extends Fragment {
                 return view;
             }
         };
-        binding.etTransactionType.setAdapter(transactionTypeAdapter);
-        binding.etTransactionType.setOnClickListener(v -> binding.etTransactionType.showDropDown());
-        binding.etTransactionType.setDropDownBackgroundResource(android.R.color.white);
+        etTransactionType.setAdapter(transactionTypeAdapter);
+        etTransactionType.setOnClickListener(v -> etTransactionType.showDropDown());
+        etTransactionType.setDropDownBackgroundResource(android.R.color.white);
 
         // Set up category dropdown
         categoryViewModel.getCategoriesByType("EXPENSE").observe(getViewLifecycleOwner(), categories -> {
@@ -203,9 +221,9 @@ public class TransactionsFragment extends Fragment {
                     return view;
                 }
             };
-            binding.etCategory.setAdapter(categoryAdapter);
-            binding.etCategory.setOnClickListener(v -> binding.etCategory.showDropDown());
-            binding.etCategory.setDropDownBackgroundResource(android.R.color.white);
+            etCategory.setAdapter(categoryAdapter);
+            etCategory.setOnClickListener(v -> etCategory.showDropDown());
+            etCategory.setDropDownBackgroundResource(android.R.color.white);
         });
 
         // Set up recurring payment dropdown
@@ -229,32 +247,35 @@ public class TransactionsFragment extends Fragment {
                     return view;
                 }
             };
-            binding.etRecurringPayment.setAdapter(recurringPaymentAdapter);
-            binding.etRecurringPayment.setOnClickListener(v -> binding.etRecurringPayment.showDropDown());
-            binding.etRecurringPayment.setDropDownBackgroundResource(android.R.color.white);
+            etRecurringPayment.setAdapter(recurringPaymentAdapter);
+            etRecurringPayment.setOnClickListener(v -> etRecurringPayment.showDropDown());
+            etRecurringPayment.setDropDownBackgroundResource(android.R.color.white);
         });
 
+        // Close button
+        btnClose.setOnClickListener(v -> bottomSheetDialog.dismiss());
+
         // Apply filters button
-        binding.btnApplyFilters.setOnClickListener(v -> {
-            String description = binding.etDescription.getText() != null ? 
-                binding.etDescription.getText().toString().trim() : "";
-            String receiver = binding.etReceiver.getText() != null ? 
-                binding.etReceiver.getText().toString().trim() : "";
-            String category = binding.etCategory.getText() != null ? 
-                binding.etCategory.getText().toString().trim() : "";
-            String amountStr = binding.etAmount.getText() != null ? 
-                binding.etAmount.getText().toString().trim() : "";
-            String transactionType = binding.etTransactionType.getText() != null ? 
-                binding.etTransactionType.getText().toString().trim() : "";
-            String recurringPayment = binding.etRecurringPayment.getText() != null ? 
-                binding.etRecurringPayment.getText().toString().trim() : "";
+        btnApplyFilters.setOnClickListener(v -> {
+            String description = etDescription.getText() != null ? 
+                etDescription.getText().toString().trim() : "";
+            String receiver = etReceiver.getText() != null ? 
+                etReceiver.getText().toString().trim() : "";
+            String category = etCategory.getText() != null ? 
+                etCategory.getText().toString().trim() : "";
+            String amountStr = etAmount.getText() != null ? 
+                etAmount.getText().toString().trim() : "";
+            String transactionType = etTransactionType.getText() != null ? 
+                etTransactionType.getText().toString().trim() : "";
+            String recurringPayment = etRecurringPayment.getText() != null ? 
+                etRecurringPayment.getText().toString().trim() : "";
             
             Double amount = null;
             if (!amountStr.isEmpty()) {
                 try {
                     amount = Double.parseDouble(amountStr);
                 } catch (NumberFormatException e) {
-                    binding.etAmount.setError("Invalid amount");
+                    etAmount.setError("Invalid amount");
                     return;
                 }
             }
@@ -276,28 +297,27 @@ public class TransactionsFragment extends Fragment {
                 category.isEmpty() ? null : category,
                 amount,
                 transactionType.isEmpty() ? null : transactionType,
-                binding.switchExcludeFromSummary.isChecked(),
+                switchExcludeFromSummary.isChecked(),
                 linkedRecurringPaymentId
             );
             
-            // Hide filter card after applying filters
-            binding.cardFilter.setVisibility(View.GONE);
+            bottomSheetDialog.dismiss();
         });
 
         // Clear filters button
-        binding.btnClearFilters.setOnClickListener(v -> {
-            binding.etDescription.setText("");
-            binding.etReceiver.setText("");
-            binding.etCategory.setText("");
-            binding.etAmount.setText("");
-            binding.etTransactionType.setText("");
-            binding.etRecurringPayment.setText("");
-            binding.switchExcludeFromSummary.setChecked(false);
+        btnClearFilters.setOnClickListener(v -> {
+            etDescription.setText("");
+            etReceiver.setText("");
+            etCategory.setText("");
+            etAmount.setText("");
+            etTransactionType.setText("");
+            etRecurringPayment.setText("");
+            switchExcludeFromSummary.setChecked(false);
             viewModel.clearFilters();
-            
-            // Hide filter card after clearing filters
-            binding.cardFilter.setVisibility(View.GONE);
+            bottomSheetDialog.dismiss();
         });
+
+        bottomSheetDialog.show();
     }
 
     @Override
