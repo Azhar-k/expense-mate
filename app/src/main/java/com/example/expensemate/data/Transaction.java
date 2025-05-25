@@ -24,6 +24,7 @@ public class Transaction {
     private Long linkedRecurringPaymentId; // ID of the linked recurring payment, null if not linked
     private String smsHash; // Hash of SMS body and sender for duplicate detection
     private Long accountId; // ID of the linked account
+    private boolean isExcludedFromSummary; // Whether this transaction should be excluded from summary calculations
 
     public Transaction() {
         this.category = "Default"; // Default category
@@ -31,6 +32,7 @@ public class Transaction {
         this.linkedRecurringPaymentId = null;
         this.smsHash = null;
         this.accountId = null;
+        this.isExcludedFromSummary = false; // Default to included
     }
 
     @Ignore
@@ -47,6 +49,7 @@ public class Transaction {
         this.category = "Default"; // Default category
         this.linkedRecurringPaymentId = null;
         this.smsHash = generateSmsHash(smsBody, smsSender);
+        this.isExcludedFromSummary = false; // Default to included
     }
 
     // Getters and Setters
@@ -144,6 +147,14 @@ public class Transaction {
 
     public void setAccountId(Long accountId) {
         this.accountId = accountId;
+    }
+
+    public boolean isExcludedFromSummary() {
+        return isExcludedFromSummary;
+    }
+
+    public void setExcludedFromSummary(boolean excludedFromSummary) {
+        isExcludedFromSummary = excludedFromSummary;
     }
 
     private String generateSmsHash(String smsBody, String smsSender) {

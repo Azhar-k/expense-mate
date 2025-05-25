@@ -78,8 +78,14 @@ public class ExpenseFragment extends Fragment {
             for (Account account : accounts) {
                 accountNames.add(account.getName());
             }
-            // Add "All" as the second option
-            accountNames.add(1, "All");
+            if (accountNames.size() > 1) {
+                // Add "All" as the second option
+                accountNames.add(1, "All");
+            } else {
+                // Add "All" as the 1st option
+                accountNames.add(0, "All");
+            }
+
             
             ArrayAdapter<String> adapter = new ArrayAdapter<>(
                 requireContext(),

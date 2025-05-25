@@ -33,12 +33,12 @@ public interface TransactionDao {
     @Query("UPDATE transactions SET amount = :amount, description = :description, date = :date, " +
            "transactionType = :transactionType, " +
            "receiverName = :receiverName, smsBody = :smsBody, smsSender = :smsSender, category = :category, " +
-           "linkedRecurringPaymentId = :linkedRecurringPaymentId, accountId = :accountId WHERE id = :id")
+           "linkedRecurringPaymentId = :linkedRecurringPaymentId, isExcludedFromSummary = :isExcludedFromSummary, accountId = :accountId WHERE id = :id")
     void updateTransaction(long id, double amount, String description, Date date, String transactionType, String receiverName,
-                         String smsBody, String smsSender, String category, Long linkedRecurringPaymentId, Long accountId);
+                         String smsBody, String smsSender, String category, Long linkedRecurringPaymentId, Long accountId, boolean isExcludedFromSummary);
 
     @Query("SELECT category, SUM(amount) as total FROM transactions " +
-           "WHERE transactionType = 'DEBIT' AND linkedRecurringPaymentId IS NULL " +
+           "WHERE transactionType = 'DEBIT' AND isExcludedFromSummary = 0 " +
            "AND strftime('%m', datetime(date/1000, 'unixepoch')) = :month " +
            "AND strftime('%Y', datetime(date/1000, 'unixepoch')) = :year " +
            "AND (:accountId IS NULL OR accountId = :accountId) " +
@@ -54,14 +54,14 @@ public interface TransactionDao {
     LiveData<List<CategorySum>> getIncomeCategorySumsByMonthYearAndAccount(String month, String year, Long accountId);
 
     @Query("SELECT COALESCE(SUM(amount), 0) FROM transactions " +
-           "WHERE transactionType = 'DEBIT' AND linkedRecurringPaymentId IS NULL " +
+           "WHERE transactionType = 'DEBIT' AND isExcludedFromSummary = 0 " +
            "AND strftime('%m', datetime(date/1000, 'unixepoch')) = :month " +
            "AND strftime('%Y', datetime(date/1000, 'unixepoch')) = :year " +
            "AND (:accountId IS NULL OR accountId = :accountId)")
     Double getExpenseByMonthYearAndAccountSync(String month, String year, Long accountId);
 
     @Query("SELECT COALESCE(SUM(amount), 0) FROM transactions " +
-           "WHERE transactionType = 'CREDIT' " +
+           "WHERE transactionType = 'CREDIT'" +
            "AND strftime('%m', datetime(date/1000, 'unixepoch')) = :month " +
            "AND strftime('%Y', datetime(date/1000, 'unixepoch')) = :year " +
            "AND (:accountId IS NULL OR accountId = :accountId)")
@@ -70,7 +70,7 @@ public interface TransactionDao {
     @Query("SELECT * FROM transactions " +
            "WHERE category = :category " +
            "AND transactionType = :transactionType " +
-            "AND linkedRecurringPaymentId IS NULL " +
+            "AND isExcludedFromSummary = 0 " +
            "AND strftime('%m', datetime(date/1000, 'unixepoch')) = :month " +
            "AND strftime('%Y', datetime(date/1000, 'unixepoch')) = :year " +
            "AND (:accountId IS NULL OR accountId = :accountId) " +
@@ -85,13 +85,13 @@ public interface TransactionDao {
 
     @Query("SELECT COALESCE(SUM(amount), 0) FROM transactions " +
            "WHERE transactionType = 'CREDIT' " +
-            "AND linkedRecurringPaymentId IS NULL " +
+            "AND isExcludedFromSummary = 0 " +
            "AND accountId = :accountId")
     double getTotalIncomeForAccountSync(long accountId);
 
     @Query("SELECT COALESCE(SUM(amount), 0) FROM transactions " +
            "WHERE transactionType = 'DEBIT' " +
-            "AND linkedRecurringPaymentId IS NULL " +
+            "AND isExcludedFromSummary = 0 " +
            "AND accountId = :accountId")
     double getTotalExpenseForAccountSync(long accountId);
 

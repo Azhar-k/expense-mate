@@ -159,6 +159,17 @@
             app:layout_constraintTop_toBottomOf="@id/tvAccount"
             tools:text="Linked to: Monthly Rent" />
 
+        <CheckBox
+            android:id="@+id/cbExcludeFromSummary"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="Exclude from summary"
+            android:textColor="@color/secondary_text"
+            android:textSize="14sp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/tvLinkedPayment" />
+
     </androidx.constraintlayout.widget.ConstraintLayout>
 
 </com.google.android.material.card.MaterialCardView> 

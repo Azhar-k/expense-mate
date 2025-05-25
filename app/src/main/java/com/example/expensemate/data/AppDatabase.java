@@ -17,7 +17,7 @@ import java.util.List;
 
 import androidx.annotation.NonNull;
 
-@Database(entities = {Transaction.class, Category.class, RecurringPayment.class, Account.class}, version = 4, exportSchema = false)
+@Database(entities = {Transaction.class, Category.class, RecurringPayment.class, Account.class}, version = 5, exportSchema = false)
 @TypeConverters(Converters.class)
 public abstract class AppDatabase extends RoomDatabase {
     private static volatile AppDatabase INSTANCE;
@@ -141,6 +141,15 @@ public abstract class AppDatabase extends RoomDatabase {
         }
     };
 
+    private static final Migration MIGRATION_4_5 = new Migration(4, 5) {
+        @Override
+        public void migrate(SupportSQLiteDatabase database) {
+
+            // Add isExcludedFromSummary column to transactions table
+            database.execSQL("ALTER TABLE transactions ADD COLUMN isExcludedFromSummary INTEGER NOT NULL DEFAULT 0");
+        }
+    };
+
     public abstract TransactionDao transactionDao();
     public abstract CategoryDao categoryDao();
     public abstract RecurringPaymentDao recurringPaymentDao();
@@ -178,7 +187,7 @@ public abstract class AppDatabase extends RoomDatabase {
                 if (INSTANCE == null) {
                     INSTANCE = Room.databaseBuilder(context.getApplicationContext(),
                             AppDatabase.class, "expense_mate_database")
-                            .addMigrations(INITIAL_MIGRATION, MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+                            .addMigrations(INITIAL_MIGRATION, MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
                             .fallbackToDestructiveMigration()
                             .addCallback(new RoomDatabase.Callback() {
                                 @Override

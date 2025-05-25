@@ -204,7 +204,8 @@ public class TransactionViewModel extends AndroidViewModel {
                     newTransaction.getSmsSender(),
                     newTransaction.getCategory(),
                     newTransaction.getLinkedRecurringPaymentId(),
-                    newTransaction.getAccountId()
+                    newTransaction.getAccountId(),
+                    newTransaction.isExcludedFromSummary()
                 );
                 // Update the current period totals and filtered transactions
                 String month = selectedMonth.getValue();
