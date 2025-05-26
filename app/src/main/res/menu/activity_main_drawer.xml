@@ -17,6 +17,10 @@
             android:icon="@drawable/ic_category"
             android:title="Categories" />
         <item
+            android:id="@+id/nav_self_transfer"
+            android:icon="@drawable/ic_transfer"
+            android:title="Self Transfer" />
+        <item
             android:id="@+id/nav_recurring_payments"
             android:icon="@drawable/ic_recurring"
             android:title="@string/recurring_payments" />

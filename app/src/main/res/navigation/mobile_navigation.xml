@@ -30,6 +30,12 @@
         tools:layout="@layout/fragment_categories" />
 
     <fragment
+        android:id="@+id/navigation_self_transfer"
+        android:name="com.example.expensemate.ui.self_transfer.SelfTransferFragment"
+        android:label="Self Transfer"
+        tools:layout="@layout/fragment_self_transfer" />
+
+    <fragment
         android:id="@+id/navigation_sms_scan"
         android:name="com.example.expensemate.ui.sms.SmsScanFragment"
         android:label="Scan SMS"
