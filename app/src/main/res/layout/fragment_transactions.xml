@@ -29,51 +29,6 @@
 
         </com.google.android.material.textfield.TextInputLayout>
 
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:padding="3dp"
-            android:gravity="center_vertical">
-
-            <ImageButton
-                android:id="@+id/btnPrevMonth"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginEnd="8dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:contentDescription="Previous month"
-                android:src="@drawable/ic_chevron_left"
-                app:tint="@color/black"
-                app:layout_constraintBottom_toBottomOf="@id/tvPeriod"
-                app:layout_constraintEnd_toStartOf="@id/tvPeriod"
-                app:layout_constraintTop_toTopOf="@id/tvPeriod"  />
-
-            <TextView
-                android:id="@+id/tvPeriod"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:gravity="center"
-                android:textColor="@color/black"
-                android:textSize="18sp"
-                android:textStyle="bold" />
-
-            <ImageButton
-                android:id="@+id/btnNextMonth"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:contentDescription="Next month"
-                android:src="@drawable/ic_chevron_right"
-                app:tint="@color/black"
-                app:layout_constraintBottom_toBottomOf="@id/tvPeriod"
-                app:layout_constraintStart_toEndOf="@id/tvPeriod"
-                app:layout_constraintTop_toTopOf="@id/tvPeriod" />
-
-        </LinearLayout>
-
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/recyclerView"
             android:layout_width="match_parent"

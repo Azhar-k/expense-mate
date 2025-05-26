@@ -344,7 +344,21 @@ public class TransactionViewModel extends AndroidViewModel {
     private void applyFilters() {
         executorService.execute(() -> {
             List<Transaction> filteredList = new ArrayList<>();
-            List<Transaction> allTransactions = transactionDao.getAllTransactionsSyncOrderByDateAsc();
+            List<Transaction> allTransactions;
+
+            // Get transactions based on account filter
+            if (selectedAccountId.getValue() != null) {
+                allTransactions = transactionDao.getTransactionsByAccountForTransactionScreen(
+                    selectedMonth.getValue(),
+                    selectedYear.getValue(),
+                    selectedAccountId.getValue()
+                );
+            } else {
+                allTransactions = transactionDao.getTransactionsForTransactionScreen(
+                    selectedMonth.getValue(),
+                    selectedYear.getValue()
+                );
+            }
 
             for (Transaction transaction : allTransactions) {
                 if (matchesFilters(transaction)) {

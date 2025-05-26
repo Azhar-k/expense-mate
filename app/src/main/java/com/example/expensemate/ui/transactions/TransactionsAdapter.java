@@ -189,6 +189,38 @@ public class TransactionsAdapter extends ListAdapter<Transaction, TransactionsAd
             dialogBinding.etCategory.setDropDownBackgroundResource(android.R.color.white);
         });
 
+        // Set up recurring payments dropdown
+        RecurringPaymentsViewModel recurringPaymentsViewModel = new ViewModelProvider((FragmentActivity) context)
+                .get(RecurringPaymentsViewModel.class);
+        recurringPaymentsViewModel.getRecurringPayments().observe((FragmentActivity) context, payments -> {
+            currentPayments = payments;
+            List<String> paymentNames = new ArrayList<>();
+            paymentNames.add("None"); // Add option to unlink
+            for (RecurringPayment payment : payments) {
+                paymentNames.add(payment.getName());
+            }
+            
+            ArrayAdapter<String> paymentAdapter = new ArrayAdapter<>(
+                    context,
+                    android.R.layout.simple_dropdown_item_1line,
+                    paymentNames
+            ) {
+                @Override
+                public View getView(int position, View convertView, ViewGroup parent) {
+                    View view = super.getView(position, convertView, parent);
+                    TextView text = (TextView) view.findViewById(android.R.id.text1);
+                    text.setTextColor(context.getResources().getColor(R.color.black));
+                    return view;
+                }
+            };
+            
+            dialogBinding.etRecurringPayment.setAdapter(paymentAdapter);
+            dialogBinding.etRecurringPayment.setText("None", false);
+            dialogBinding.etRecurringPayment.setOnClickListener(v -> dialogBinding.etRecurringPayment.showDropDown());
+            dialogBinding.etRecurringPayment.setDropDownBackgroundResource(android.R.color.white);
+            dialogBinding.etRecurringPayment.setThreshold(1);
+        });
+
         AlertDialog dialog = new AlertDialog.Builder(context, 
                 com.google.android.material.R.style.Theme_MaterialComponents_Light_Dialog)
                 .setView(dialogBinding.getRoot())

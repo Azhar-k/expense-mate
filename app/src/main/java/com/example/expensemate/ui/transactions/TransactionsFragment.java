@@ -27,6 +27,7 @@ import com.example.expensemate.data.RecurringPayment;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 
@@ -46,7 +47,6 @@ public class TransactionsFragment extends Fragment {
     private AccountViewModel accountViewModel;
     private CategoryViewModel categoryViewModel;
     private TransactionsAdapter adapter;
-    private Calendar currentPeriod;
     private List<Account> accounts = new ArrayList<>();
 
     @Override
@@ -59,26 +59,6 @@ public class TransactionsFragment extends Fragment {
         accountViewModel = new ViewModelProvider(requireActivity()).get(AccountViewModel.class);
         categoryViewModel = new ViewModelProvider(requireActivity()).get(CategoryViewModel.class);
         Log.d(TAG, "ViewModels initialized");
-
-        // Initialize current period
-        currentPeriod = Calendar.getInstance();
-        updatePeriodDisplay();
-        updateSelectedPeriod();
-
-        // Set up month navigation
-        binding.btnPrevMonth.setOnClickListener(v -> {
-            Log.d(TAG, "Previous month button clicked");
-            currentPeriod.add(Calendar.MONTH, -1);
-            updatePeriodDisplay();
-            updateSelectedPeriod();
-        });
-
-        binding.btnNextMonth.setOnClickListener(v -> {
-            Log.d(TAG, "Next month button clicked");
-            currentPeriod.add(Calendar.MONTH, 1);
-            updatePeriodDisplay();
-            updateSelectedPeriod();
-        });
 
         // Setup RecyclerView
         adapter = new TransactionsAdapter(viewModel, requireContext());
@@ -145,28 +125,20 @@ public class TransactionsFragment extends Fragment {
             binding.tvEmptyState.setVisibility(transactions != null && transactions.isEmpty() ? View.VISIBLE : View.GONE);
         });
 
+        // Apply default 30-day filter
+        applyDefaultDateFilter();
+
         return root;
     }
 
-    private void updatePeriodDisplay() {
-        SimpleDateFormat monthYearFormat = new SimpleDateFormat("MMMM yyyy", Locale.getDefault());
-        String periodText = monthYearFormat.format(currentPeriod.getTime());
-        binding.tvPeriod.setText(periodText);
-        Log.d(TAG, "Period display updated to: " + periodText);
-    }
-
-    private void updateSelectedPeriod() {
-        SimpleDateFormat monthFormat = new SimpleDateFormat("MM", Locale.getDefault());
-        SimpleDateFormat yearFormat = new SimpleDateFormat("yyyy", Locale.getDefault());
-        String month = monthFormat.format(currentPeriod.getTime());
-        String year = yearFormat.format(currentPeriod.getTime());
-        Log.d(TAG, "Updating selected period to: " + month + "/" + year);
-        viewModel.setSelectedMonthYear(month, year);
-    }
-
-    private void setupFilters() {
-        // Set up filter FAB
-        binding.fabFilter.setOnClickListener(v -> showFilterBottomSheet());
+    private void applyDefaultDateFilter() {
+        Calendar calendar = Calendar.getInstance();
+        String toDate = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(calendar.getTime());
+        
+        calendar.add(Calendar.DAY_OF_MONTH, -30);
+        String fromDate = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(calendar.getTime());
+        
+        viewModel.setFilters(null, null, null, null, null, false, null, fromDate, toDate);
     }
 
     private void showFilterBottomSheet() {
@@ -191,6 +163,15 @@ public class TransactionsFragment extends Fragment {
         // Set up date pickers
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
         
+        // Set default date range (last 30 days)
+        Calendar calendar = Calendar.getInstance();
+        String toDate = dateFormat.format(calendar.getTime());
+        calendar.add(Calendar.DAY_OF_MONTH, -30);
+        String fromDate = dateFormat.format(calendar.getTime());
+        
+        etFromDate.setText(fromDate);
+        etToDate.setText(toDate);
+        
         etFromDate.setOnClickListener(v -> {
             MaterialDatePicker<Long> datePicker = MaterialDatePicker.Builder.datePicker()
                 .setTitleText("Select From Date")
@@ -198,7 +179,6 @@ public class TransactionsFragment extends Fragment {
                 .build();
             
             datePicker.addOnPositiveButtonClickListener(selection -> {
-                Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
                 calendar.setTimeInMillis(selection);
                 etFromDate.setText(dateFormat.format(calendar.getTime()));
             });
@@ -213,7 +193,6 @@ public class TransactionsFragment extends Fragment {
                 .build();
             
             datePicker.addOnPositiveButtonClickListener(selection -> {
-                Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
                 calendar.setTimeInMillis(selection);
                 etToDate.setText(dateFormat.format(calendar.getTime()));
             });
@@ -307,9 +286,9 @@ public class TransactionsFragment extends Fragment {
                 etTransactionType.getText().toString().trim() : "";
             String recurringPayment = etRecurringPayment.getText() != null ? 
                 etRecurringPayment.getText().toString().trim() : "";
-            String fromDate = etFromDate.getText() != null ? 
+            String selectedFromDate = etFromDate.getText() != null ? 
                 etFromDate.getText().toString().trim() : "";
-            String toDate = etToDate.getText() != null ? 
+            String selectedToDate = etToDate.getText() != null ? 
                 etToDate.getText().toString().trim() : "";
             
             Double amount = null;
@@ -341,8 +320,8 @@ public class TransactionsFragment extends Fragment {
                 transactionType.isEmpty() ? null : transactionType,
                 switchExcludeFromSummary.isChecked(),
                 linkedRecurringPaymentId,
-                fromDate.isEmpty() ? null : fromDate,
-                toDate.isEmpty() ? null : toDate
+                selectedFromDate.isEmpty() ? null : selectedFromDate,
+                selectedToDate.isEmpty() ? null : selectedToDate
             );
             
             bottomSheetDialog.dismiss();
@@ -356,8 +335,13 @@ public class TransactionsFragment extends Fragment {
             etAmount.setText("");
             etTransactionType.setText("");
             etRecurringPayment.setText("");
-            etFromDate.setText("");
-            etToDate.setText("");
+            // Reset to default 30-day range
+            Calendar tempCalendar = Calendar.getInstance();
+            String tempToDate = dateFormat.format(tempCalendar.getTime());
+            tempCalendar.add(Calendar.DAY_OF_MONTH, -30);
+            String tempFromDate = dateFormat.format(tempCalendar.getTime());
+            etFromDate.setText(tempFromDate);
+            etToDate.setText(tempToDate);
             switchExcludeFromSummary.setChecked(false);
             viewModel.clearFilters();
             bottomSheetDialog.dismiss();
