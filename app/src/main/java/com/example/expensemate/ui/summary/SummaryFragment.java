@@ -171,13 +171,15 @@ public class SummaryFragment extends Fragment {
         // Observe total expense
         viewModel.getTotalExpense().observe(getViewLifecycleOwner(), total -> {
             Log.d(TAG, "Total expense changed: " + total);
-            binding.tvTotalAmount.setText(String.format("₹%.2f", total != null ? total : 0.0));
+            binding.tvTotalAmount.setText(String.format("\u20B9%.2f", total != null ? total : 0.0));
+            updateBalance();
         });
 
         // Observe total income
         viewModel.getTotalIncome().observe(getViewLifecycleOwner(), total -> {
             Log.d(TAG, "Total income changed: " + total);
-            binding.tvTotalIncome.setText(String.format("₹%.2f", total != null ? total : 0.0));
+            binding.tvTotalIncome.setText(String.format("\u20B9%.2f", total != null ? total : 0.0));
+            updateBalance();
         });
 
         return root;
@@ -246,6 +248,16 @@ public class SummaryFragment extends Fragment {
             dialog.getWindow().setBackgroundDrawableResource(android.R.color.white);
         });
         dialog.show();
+    }
+
+    private void updateBalance() {
+        Double income = viewModel.getTotalIncome().getValue();
+        Double expense = viewModel.getTotalExpense().getValue();
+        double balance = (income != null ? income : 0.0) - (expense != null ? expense : 0.0);
+        String formattedBalance = String.format("\u20B9%.2f", balance);
+        int colorResId = balance >= 0 ? R.color.credit_color : R.color.debit_color;
+        binding.tvTotalBalance.setTextColor(requireContext().getColor(colorResId));
+        binding.tvTotalBalance.setText(formattedBalance);
     }
 
     @Override

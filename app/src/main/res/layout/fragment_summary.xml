@@ -110,6 +110,28 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toBottomOf="@id/total_income_label" />
 
+    <TextView
+        android:id="@+id/tv_total_balance_label"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="24dp"
+        android:text="Balance"
+        android:textColor="@color/secondary_text"
+        android:textSize="16sp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tv_total_amount" />
+
+    <TextView
+        android:id="@+id/tv_total_balance"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:textColor="@color/credit_color"
+        android:textSize="24sp"
+        android:textStyle="bold"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tv_total_balance_label" />
+
     <com.google.android.material.button.MaterialButtonToggleGroup
         android:id="@+id/breakdown_toggle"
         android:layout_width="wrap_content"
@@ -119,7 +141,7 @@
         app:selectionRequired="true"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/tv_total_amount">
+        app:layout_constraintTop_toBottomOf="@id/tv_total_balance">
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_expense_breakdown"
