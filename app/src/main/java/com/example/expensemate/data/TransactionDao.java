@@ -102,33 +102,18 @@ public interface TransactionDao {
     /****************************************************************************************************/
     //Transactions screen
 
-    //Transactions for transaction screen with account filter
     @Query("SELECT * FROM transactions " +
-            "WHERE strftime('%m', datetime(date/1000, 'unixepoch')) = :month " +
-            "AND strftime('%Y', datetime(date/1000, 'unixepoch')) = :year " +
-            "AND accountId = :accountId " +
-            "ORDER BY date DESC")
-    List<Transaction> getTransactionsByAccountForTransactionScreen(String month, String year, Long accountId);
-    // Transactions for transaction screen without account filter
-    @Query("SELECT * FROM transactions " +
-            "WHERE strftime('%m', datetime(date/1000, 'unixepoch')) = :month " +
-            "AND strftime('%Y', datetime(date/1000, 'unixepoch')) = :year " +
-            "ORDER BY date DESC")
-    List<Transaction> getTransactionsForTransactionScreen(String month, String year);
-
-    @Query("SELECT * FROM transactions " +
-            "WHERE strftime('%m', datetime(date/1000, 'unixepoch')) = :month " +
-            "AND strftime('%Y', datetime(date/1000, 'unixepoch')) = :year " +
+            "WHERE date BETWEEN :fromDate AND :toDate " +
             "AND (:accountId IS NULL OR accountId = :accountId) " +
             "AND (:description IS NULL OR description LIKE '%' || :description || '%') " +
             "AND (:receiverName IS NULL OR receiverName LIKE '%' || :receiverName || '%') " +
-            "AND (:category IS NULL OR category LIKE '%' || :category || '%') " +
+            "AND (:category IS NULL OR category = :category) " +
             "AND (:amount IS NULL OR amount = :amount) " +
             "AND (:transactionType IS NULL OR transactionType = :transactionType) " +
             "AND (:isExcludedFromSummary IS NULL OR isExcludedFromSummary = :isExcludedFromSummary) " +
             "AND (:linkedRecurringPaymentId IS NULL OR linkedRecurringPaymentId = :linkedRecurringPaymentId) " +
             "ORDER BY date DESC")
-    List<Transaction> getFilteredTransactions(String month, String year, Long accountId, 
+    List<Transaction> getFilteredTransactions(Date fromDate, Date toDate, Long accountId, 
             String description, String receiverName, String category, Double amount,
             String transactionType, Boolean isExcludedFromSummary, Long linkedRecurringPaymentId);
 

@@ -52,7 +52,7 @@ public class TransactionViewModel extends AndroidViewModel {
         executorService = Executors.newSingleThreadExecutor();
         accountViewModel = new AccountViewModel(application);
         
-        // Initialize with current month and year
+        // Initialize with current month and year for expense/summary screens
         Calendar calendar = Calendar.getInstance();
         SimpleDateFormat monthFormat = new SimpleDateFormat("MM", Locale.getDefault());
         SimpleDateFormat yearFormat = new SimpleDateFormat("yyyy", Locale.getDefault());
@@ -62,23 +62,18 @@ public class TransactionViewModel extends AndroidViewModel {
         selectedMonth.setValue(currentMonth);
         selectedYear.setValue(currentYear);
         
-        // Initialize with default account
-        accountViewModel.getDefaultAccount().observeForever(account -> {
-            if (account != null) {
-                selectedAccountId.setValue(account.getId());
-            }
-        });
+        // Initialize with default account (null for "All")
+        selectedAccountId.setValue(null);
         
-        // Initialize filtered transactions with current month/year and default account
-        executorService.execute(() -> {
-            List<Transaction> transactions = transactionDao.getTransactionsByAccountForTransactionScreen(
-                currentMonth, 
-                currentYear,
-                selectedAccountId.getValue()
-            );
-            Log.d(TAG, "Initialized filtered transactions with count: " + (transactions != null ? transactions.size() : 0));
-            filteredTransactions.postValue(transactions);
-        });
+        // Initialize with default date range (last 30 days) for transactions screen
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
+        toDate = dateFormat.format(calendar.getTime());
+        
+        calendar.add(Calendar.DAY_OF_MONTH, -30);
+        fromDate = dateFormat.format(calendar.getTime());
+        
+        // Initialize filtered transactions with default filters
+        applyFilters();
         
         // Initialize LiveData with current month/year
         updatePeriodLiveData();
@@ -115,27 +110,7 @@ public class TransactionViewModel extends AndroidViewModel {
         Log.d(TAG, "Setting new period: " + month + "/" + year);
         selectedMonth.setValue(month);
         selectedYear.setValue(year);
-        
-        // Update all data for the new period
-        executorService.execute(() -> {
-            // Update filtered transactions
-            List<Transaction> transactions = transactionDao.getTransactionsByAccountForTransactionScreen(
-                month, 
-                year,
-                selectedAccountId.getValue()
-            );
-            filteredTransactions.postValue(transactions);
-            
-            // Update expense total
-            Double expense = transactionDao.getExpenseForExpenseScreen(month, year, selectedAccountId.getValue());
-            totalExpense.postValue(expense);
-            
-            // Update income total
-            Double income = transactionDao.getIncomeForExpenseScreen(month, year, selectedAccountId.getValue());
-            totalIncome.postValue(income);
-            
-            // Category sums will be updated automatically through LiveData
-        });
+        updatePeriodLiveData();
     }
 
     public LiveData<String> getSelectedMonth() {
@@ -144,87 +119,6 @@ public class TransactionViewModel extends AndroidViewModel {
 
     public LiveData<String> getSelectedYear() {
         return selectedYear;
-    }
-
-    public LiveData<List<Transaction>> getFilteredTransactions() {
-        return filteredTransactions;
-    }
-
-    public void insertTransaction(Transaction transaction) {
-        executorService.execute(() -> {
-            try {
-                Log.d(TAG, "Inserting transaction: " + transaction.getAmount() + " " + transaction.getTransactionType());
-                // If no account is set, use the default account
-                if (transaction.getAccountId() == null) {
-                    Account defaultAccount = accountViewModel.getDefaultAccount().getValue();
-                    if (defaultAccount != null) {
-                        transaction.setAccountId(defaultAccount.getId());
-                    }
-                }
-                transactionDao.insertTransaction(transaction);
-                // Update the current period totals and filtered transactions
-                String month = selectedMonth.getValue();
-                String year = selectedYear.getValue();
-                if (month != null && year != null) {
-                    List<Transaction> transactions = transactionDao.getTransactionsForTransactionScreen(month, year);
-                    filteredTransactions.postValue(transactions);
-                }
-                updatePeriodLiveData();
-            } catch (Exception e) {
-                Log.e(TAG, "Error inserting transaction", e);
-            }
-        });
-    }
-
-    public void deleteTransaction(Transaction transaction) {
-        executorService.execute(() -> {
-            try {
-                Log.d(TAG, "Deleting transaction: " + transaction.getAmount() + " " + transaction.getTransactionType());
-                transactionDao.deleteTransaction(transaction);
-                // Update the current period totals and filtered transactions
-                String month = selectedMonth.getValue();
-                String year = selectedYear.getValue();
-                if (month != null && year != null) {
-                    List<Transaction> transactions = transactionDao.getTransactionsForTransactionScreen(month, year);
-                    filteredTransactions.postValue(transactions);
-                }
-                updatePeriodLiveData();
-            } catch (Exception e) {
-                Log.e(TAG, "Error deleting transaction", e);
-            }
-        });
-    }
-
-    public void updateTransaction(Transaction oldTransaction, Transaction newTransaction) {
-        executorService.execute(() -> {
-            try {
-                Log.d(TAG, "Updating transaction: " + newTransaction.getAmount() + " " + newTransaction.getTransactionType());
-                transactionDao.updateTransaction(
-                    newTransaction.getId(),
-                    newTransaction.getAmount(),
-                    newTransaction.getDescription(),
-                    newTransaction.getDate(),
-                    newTransaction.getTransactionType(),
-                    newTransaction.getReceiverName(),
-                    newTransaction.getSmsBody(),
-                    newTransaction.getSmsSender(),
-                    newTransaction.getCategory(),
-                    newTransaction.getLinkedRecurringPaymentId(),
-                    newTransaction.getAccountId(),
-                    newTransaction.isExcludedFromSummary()
-                );
-                // Update the current period totals and filtered transactions
-                String month = selectedMonth.getValue();
-                String year = selectedYear.getValue();
-                if (month != null && year != null) {
-                    List<Transaction> transactions = transactionDao.getTransactionsForTransactionScreen(month, year);
-                    filteredTransactions.postValue(transactions);
-                }
-                updatePeriodLiveData();
-            } catch (Exception e) {
-                Log.e(TAG, "Error updating transaction", e);
-            }
-        });
     }
 
     public LiveData<Double> getTotalExpense() {
@@ -259,45 +153,74 @@ public class TransactionViewModel extends AndroidViewModel {
         return transactionDao.getTransactionsByCategoryForSummaryScreen(category, month, year, accountId, transactionType);
     }
 
-    public int countTransactionsBySmsHash(String smsHash) {
-        return transactionDao.countTransactionsBySmsHash(smsHash);
+    public void insertTransaction(Transaction transaction) {
+        executorService.execute(() -> {
+            try {
+                Log.d(TAG, "Inserting transaction: " + transaction.getAmount() + " " + transaction.getTransactionType());
+                // If no account is set, use the default account
+                if (transaction.getAccountId() == null) {
+                    Account defaultAccount = accountViewModel.getDefaultAccount().getValue();
+                    if (defaultAccount != null) {
+                        transaction.setAccountId(defaultAccount.getId());
+                    }
+                }
+                transactionDao.insertTransaction(transaction);
+                updatePeriodLiveData();
+                applyFilters();
+            } catch (Exception e) {
+                Log.e(TAG, "Error inserting transaction", e);
+            }
+        });
+    }
+
+    public void deleteTransaction(Transaction transaction) {
+        executorService.execute(() -> {
+            try {
+                Log.d(TAG, "Deleting transaction: " + transaction.getAmount() + " " + transaction.getTransactionType());
+                transactionDao.deleteTransaction(transaction);
+                updatePeriodLiveData();
+                applyFilters();
+            } catch (Exception e) {
+                Log.e(TAG, "Error deleting transaction", e);
+            }
+        });
+    }
+
+    public void updateTransaction(Transaction oldTransaction, Transaction newTransaction) {
+        executorService.execute(() -> {
+            try {
+                Log.d(TAG, "Updating transaction: " + newTransaction.getAmount() + " " + newTransaction.getTransactionType());
+                transactionDao.updateTransaction(
+                    newTransaction.getId(),
+                    newTransaction.getAmount(),
+                    newTransaction.getDescription(),
+                    newTransaction.getDate(),
+                    newTransaction.getTransactionType(),
+                    newTransaction.getReceiverName(),
+                    newTransaction.getSmsBody(),
+                    newTransaction.getSmsSender(),
+                    newTransaction.getCategory(),
+                    newTransaction.getLinkedRecurringPaymentId(),
+                    newTransaction.getAccountId(),
+                    newTransaction.isExcludedFromSummary()
+                );
+                updatePeriodLiveData();
+                applyFilters();
+            } catch (Exception e) {
+                Log.e(TAG, "Error updating transaction", e);
+            }
+        });
+    }
+
+    public LiveData<List<Transaction>> getFilteredTransactions() {
+        return filteredTransactions;
     }
 
     public void setSelectedAccount(Long accountId) {
         Log.d(TAG, "Setting selected account: " + accountId);
         selectedAccountId.setValue(accountId);
-        
-        // Update all data for the new account
-        String month = selectedMonth.getValue();
-        String year = selectedYear.getValue();
-        
-        if (month != null && year != null) {
-            executorService.execute(() -> {
-                // Update filtered transactions
-                List<Transaction> transactions;
-                if (accountId == null) {
-                    // If accountId is null, get all transactions without account filter
-                    transactions = transactionDao.getTransactionsForTransactionScreen(month, year);
-                } else {
-                    transactions = transactionDao.getTransactionsByAccountForTransactionScreen(
-                        month, 
-                        year,
-                        accountId
-                    );
-                }
-                filteredTransactions.postValue(transactions);
-                
-                // Update expense total
-                Double expense = transactionDao.getExpenseForExpenseScreen(month, year, accountId);
-                totalExpense.postValue(expense);
-                
-                // Update income total
-                Double income = transactionDao.getIncomeForExpenseScreen(month, year, accountId);
-                totalIncome.postValue(income);
-                
-                // Category sums will be updated automatically through LiveData
-            });
-        }
+        updatePeriodLiveData();
+        applyFilters();
     }
 
     public LiveData<Long> getSelectedAccountId() {
@@ -344,103 +267,63 @@ public class TransactionViewModel extends AndroidViewModel {
         this.transactionType = null;
         this.excludeFromSummary = false;
         this.linkedRecurringPaymentId = null;
-        this.fromDate = null;
-        this.toDate = null;
+        
+        // Reset to default date range (last 30 days)
+        Calendar calendar = Calendar.getInstance();
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
+        toDate = dateFormat.format(calendar.getTime());
+        
+        calendar.add(Calendar.DAY_OF_MONTH, -30);
+        fromDate = dateFormat.format(calendar.getTime());
+        
         applyFilters();
     }
 
     private void applyFilters() {
         executorService.execute(() -> {
-            List<Transaction> filteredList = new ArrayList<>();
-            List<Transaction> allTransactions;
-
-            // Get transactions based on account filter
-            if (selectedAccountId.getValue() != null) {
-                allTransactions = transactionDao.getTransactionsByAccountForTransactionScreen(
-                    selectedMonth.getValue(),
-                    selectedYear.getValue(),
-                    selectedAccountId.getValue()
+            try {
+                SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
+                Date from = dateFormat.parse(fromDate);
+                Date to = dateFormat.parse(toDate);
+                
+                // Set time to start of day for from date
+                Calendar fromCal = Calendar.getInstance();
+                fromCal.setTime(from);
+                fromCal.set(Calendar.HOUR_OF_DAY, 0);
+                fromCal.set(Calendar.MINUTE, 0);
+                fromCal.set(Calendar.SECOND, 0);
+                fromCal.set(Calendar.MILLISECOND, 0);
+                
+                // Set time to end of day for to date
+                Calendar toCal = Calendar.getInstance();
+                toCal.setTime(to);
+                toCal.set(Calendar.HOUR_OF_DAY, 23);
+                toCal.set(Calendar.MINUTE, 59);
+                toCal.set(Calendar.SECOND, 59);
+                toCal.set(Calendar.MILLISECOND, 999);
+                
+                List<Transaction> transactions = transactionDao.getFilteredTransactions(
+                    fromCal.getTime(),
+                    toCal.getTime(),
+                    selectedAccountId.getValue(),
+                    description,
+                    receiver,
+                    category,
+                    amount,
+                    transactionType,
+                    excludeFromSummary,
+                    linkedRecurringPaymentId
                 );
-            } else {
-                allTransactions = transactionDao.getTransactionsForTransactionScreen(
-                    selectedMonth.getValue(),
-                    selectedYear.getValue()
-                );
+                
+                filteredTransactions.postValue(transactions);
+            } catch (ParseException e) {
+                Log.e(TAG, "Error parsing dates", e);
             }
-
-            for (Transaction transaction : allTransactions) {
-                if (matchesFilters(transaction)) {
-                    filteredList.add(transaction);
-                }
-            }
-
-            filteredTransactions.postValue(filteredList);
         });
     }
 
-    private boolean matchesFilters(Transaction transaction) {
-        // Check if transaction matches all active filters
-        if (description != null && !transaction.getDescription().toLowerCase().contains(description.toLowerCase())) {
-            return false;
-        }
-        if (receiver != null && !transaction.getReceiverName().toLowerCase().contains(receiver.toLowerCase())) {
-            return false;
-        }
-        if (category != null && !transaction.getCategory().equals(category)) {
-            return false;
-        }
-        if (amount != null && transaction.getAmount() != amount) {
-            return false;
-        }
-        if (transactionType != null && !transaction.getTransactionType().equals(transactionType)) {
-            return false;
-        }
-        if (excludeFromSummary && !transaction.isExcludedFromSummary()) {
-            return false;
-        }
-        if (linkedRecurringPaymentId != null && 
-            (transaction.getLinkedRecurringPaymentId() == null || 
-             !transaction.getLinkedRecurringPaymentId().equals(linkedRecurringPaymentId))) {
-            return false;
-        }
-        if (fromDate != null || toDate != null) {
-            try {
-                SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
-                Date transactionDate = transaction.getDate();
-                
-                if (fromDate != null) {
-                    Date from = dateFormat.parse(fromDate);
-                    Calendar fromCal = Calendar.getInstance();
-                    fromCal.setTime(from);
-                    fromCal.set(Calendar.HOUR_OF_DAY, 0);
-                    fromCal.set(Calendar.MINUTE, 0);
-                    fromCal.set(Calendar.SECOND, 0);
-                    fromCal.set(Calendar.MILLISECOND, 0);
-                    
-                    if (transactionDate.before(fromCal.getTime())) {
-                        return false;
-                    }
-                }
-                
-                if (toDate != null) {
-                    Date to = dateFormat.parse(toDate);
-                    Calendar toCal = Calendar.getInstance();
-                    toCal.setTime(to);
-                    toCal.set(Calendar.HOUR_OF_DAY, 23);
-                    toCal.set(Calendar.MINUTE, 59);
-                    toCal.set(Calendar.SECOND, 59);
-                    toCal.set(Calendar.MILLISECOND, 999);
-                    
-                    if (transactionDate.after(toCal.getTime())) {
-                        return false;
-                    }
-                }
-            } catch (ParseException e) {
-                e.printStackTrace();
-                return false;
-            }
-        }
-        return true;
+    public int countTransactionsBySmsHash(String smsHash) {
+        return transactionDao.countTransactionsBySmsHash(smsHash);
     }
 
     @Override
