@@ -167,7 +167,8 @@
             android:textSize="18sp"
             android:padding="16dp"
             android:focusable="false"
-            android:clickable="true" />
+            android:clickable="true"
+            android:minHeight="35dp" />
 
     </com.google.android.material.textfield.TextInputLayout>
 

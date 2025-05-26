@@ -313,6 +313,14 @@ public class TransactionViewModel extends AndroidViewModel {
         return result;
     }
 
+    public String getCurrentFromDate() {
+        return fromDate;
+    }
+
+    public String getCurrentToDate() {
+        return toDate;
+    }
+
     public void setFilters(String description, String receiver, String category, Double amount,
                           String transactionType, boolean excludeFromSummary, Long linkedRecurringPaymentId,
                           String fromDate, String toDate) {

@@ -117,6 +117,7 @@ public class TransactionsFragment extends Fragment {
             }
         });
 
+        applyDefaultDateFilter();
         // Observe filtered transactions
         viewModel.getFilteredTransactions().observe(getViewLifecycleOwner(), transactions -> {
             Log.d(TAG, "Filtered transactions updated. Count: " + (transactions != null ? transactions.size() : 0));
@@ -125,8 +126,6 @@ public class TransactionsFragment extends Fragment {
             binding.tvEmptyState.setVisibility(transactions != null && transactions.isEmpty() ? View.VISIBLE : View.GONE);
         });
 
-        // Apply default 30-day filter
-        applyDefaultDateFilter();
 
         return root;
     }
@@ -163,14 +162,20 @@ public class TransactionsFragment extends Fragment {
         // Set up date pickers
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
         
-        // Set default date range (last 30 days)
-        Calendar calendar = Calendar.getInstance();
-        String toDate = dateFormat.format(calendar.getTime());
-        calendar.add(Calendar.DAY_OF_MONTH, -30);
-        String fromDate = dateFormat.format(calendar.getTime());
+        // Get current filter values from ViewModel
+        String currentFromDate = viewModel.getCurrentFromDate();
+        String currentToDate = viewModel.getCurrentToDate();
         
-        etFromDate.setText(fromDate);
-        etToDate.setText(toDate);
+        // Set default date range (last 30 days) if no current filter
+        if (currentFromDate == null || currentToDate == null) {
+            Calendar calendar = Calendar.getInstance();
+            currentToDate = dateFormat.format(calendar.getTime());
+            calendar.add(Calendar.DAY_OF_MONTH, -30);
+            currentFromDate = dateFormat.format(calendar.getTime());
+        }
+        
+        etFromDate.setText(currentFromDate);
+        etToDate.setText(currentToDate);
         
         etFromDate.setOnClickListener(v -> {
             MaterialDatePicker<Long> datePicker = MaterialDatePicker.Builder.datePicker()
@@ -179,6 +184,7 @@ public class TransactionsFragment extends Fragment {
                 .build();
             
             datePicker.addOnPositiveButtonClickListener(selection -> {
+                Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
                 calendar.setTimeInMillis(selection);
                 etFromDate.setText(dateFormat.format(calendar.getTime()));
             });
@@ -193,6 +199,7 @@ public class TransactionsFragment extends Fragment {
                 .build();
             
             datePicker.addOnPositiveButtonClickListener(selection -> {
+                Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
                 calendar.setTimeInMillis(selection);
                 etToDate.setText(dateFormat.format(calendar.getTime()));
             });
