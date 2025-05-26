@@ -114,13 +114,16 @@ public class SelfTransferFragment extends Fragment {
                     }
                 }
             });
-
-            // Show dropdown when clicked
-            binding.etFromAccount.setOnClickListener(v -> binding.etFromAccount.showDropDown());
-            binding.etToAccount.setOnClickListener(v -> binding.etToAccount.showDropDown());
-            binding.etFromAccount.setDropDownBackgroundResource(android.R.color.white);
-            binding.etToAccount.setDropDownBackgroundResource(android.R.color.white);
         });
+        // Show dropdown when clicked
+        binding.etFromAccount.setOnClickListener(v -> {
+            binding.etFromAccount.showDropDown();
+        });
+        binding.etToAccount.setOnClickListener(v -> {
+            binding.etToAccount.showDropDown();
+        });
+        binding.etFromAccount.setDropDownBackgroundResource(android.R.color.white);
+        binding.etToAccount.setDropDownBackgroundResource(android.R.color.white);
     }
 
     private void setupCategoryDropdown() {
@@ -157,7 +160,10 @@ public class SelfTransferFragment extends Fragment {
             });
 
             // Show dropdown when clicked
-            binding.etCategory.setOnClickListener(v -> binding.etCategory.showDropDown());
+            binding.etCategory.setOnClickListener(v -> {
+                binding.etCategory.showDropDown();
+                binding.etCategory.requestFocus();
+            });
             binding.etCategory.setDropDownBackgroundResource(android.R.color.white);
 
             // Set default category
