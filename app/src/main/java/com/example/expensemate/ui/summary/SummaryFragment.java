@@ -182,6 +182,19 @@ public class SummaryFragment extends Fragment {
             updateBalance();
         });
 
+        // Set up switch to show/hide category breakup
+        binding.switchCategoryBreakup.setChecked(false);
+        binding.switchCategoryBreakup.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            int visibility = isChecked ? View.VISIBLE : View.GONE;
+            binding.breakdownToggle.setVisibility(visibility);
+            binding.breakdownLabel.setVisibility(visibility);
+            binding.rvCategories.setVisibility(visibility);
+        });
+        // Set initial visibility
+        binding.breakdownToggle.setVisibility(View.GONE);
+        binding.breakdownLabel.setVisibility(View.GONE);
+        binding.rvCategories.setVisibility(View.GONE);
+
         return root;
     }
 

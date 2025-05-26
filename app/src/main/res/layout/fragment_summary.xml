@@ -132,6 +132,17 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/tv_total_balance_label" />
 
+    <com.google.android.material.switchmaterial.SwitchMaterial
+        android:id="@+id/switch_category_breakup"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Show Category Breakup"
+        android:checked="false"
+        android:textColor="@color/black"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tv_total_balance"
+        android:layout_marginTop="8dp" />
+
     <com.google.android.material.button.MaterialButtonToggleGroup
         android:id="@+id/breakdown_toggle"
         android:layout_width="wrap_content"
@@ -141,7 +152,7 @@
         app:selectionRequired="true"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/tv_total_balance">
+        app:layout_constraintTop_toBottomOf="@id/switch_category_breakup">
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_expense_breakdown"
