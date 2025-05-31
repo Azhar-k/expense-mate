@@ -3,6 +3,7 @@ package com.example.expensemate.ui.common;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.TextView;
 
@@ -69,6 +70,15 @@ public class BaseDialogHelper {
             
             positiveButton.setTextColor(context.getResources().getColor(R.color.primary));
             negativeButton.setTextColor(context.getResources().getColor(R.color.primary));
+            
+            // Set button layout parameters
+            ViewGroup.LayoutParams params = positiveButton.getLayoutParams();
+            if (params instanceof ViewGroup.MarginLayoutParams) {
+                ViewGroup.MarginLayoutParams marginParams = (ViewGroup.MarginLayoutParams) params;
+                marginParams.setMargins(16, 0, 16, 16);
+                positiveButton.setLayoutParams(marginParams);
+                negativeButton.setLayoutParams(marginParams);
+            }
             
             if (listener != null) {
                 positiveButton.setOnClickListener(v -> listener.onPositiveButtonClick(dialog));

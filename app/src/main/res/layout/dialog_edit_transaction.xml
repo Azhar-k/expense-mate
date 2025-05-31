@@ -9,22 +9,21 @@
         android:layout_height="wrap_content"
         android:orientation="vertical"
         android:background="@color/white"
-        android:padding="32dp"
-        android:layout_margin="16dp">
+        android:padding="24dp">
 
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="Edit Transaction"
             android:textColor="@color/black"
-            android:textSize="28sp"
+            android:textSize="24sp"
             android:textStyle="bold"
-            android:layout_marginBottom="24dp"/>
+            android:layout_marginBottom="16dp"/>
 
         <com.google.android.material.textfield.TextInputLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="20dp"
+            android:layout_marginBottom="16dp"
             android:hint="Amount"
             style="@style/CustomTextInputLayout">
 
@@ -34,14 +33,14 @@
                 android:layout_height="wrap_content"
                 android:inputType="numberDecimal"
                 android:textColor="@color/black"
-                android:textSize="18sp"
-                android:padding="16dp" />
+                android:textSize="16sp"
+                android:padding="12dp" />
         </com.google.android.material.textfield.TextInputLayout>
 
         <com.google.android.material.textfield.TextInputLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="20dp"
+            android:layout_marginBottom="16dp"
             android:hint="Date and Time"
             style="@style/CustomTextInputLayout">
 
@@ -53,15 +52,15 @@
                 android:focusable="false"
                 android:clickable="true"
                 android:textColor="@color/black"
-                android:textSize="18sp"
-                android:padding="16dp" />
+                android:textSize="16sp"
+                android:padding="12dp" />
         </com.google.android.material.textfield.TextInputLayout>
 
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/tilCategory"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="20dp"
+            android:layout_marginBottom="16dp"
             style="@style/CustomTextInputLayout"
             android:hint="Category">
 
@@ -71,8 +70,8 @@
                 android:layout_height="wrap_content"
                 android:inputType="none"
                 android:textColor="@color/black"
-                android:textSize="18sp"
-                android:padding="16dp"
+                android:textSize="16sp"
+                android:padding="12dp"
                 android:focusable="false"
                 android:clickable="true" />
 
@@ -82,7 +81,7 @@
             android:id="@+id/tilAccount"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="20dp"
+            android:layout_marginBottom="16dp"
             android:hint="Account"
             style="@style/CustomTextInputLayout">
 
@@ -92,8 +91,8 @@
                 android:layout_height="wrap_content"
                 android:inputType="none"
                 android:textColor="@color/black"
-                android:textSize="18sp"
-                android:padding="16dp"
+                android:textSize="16sp"
+                android:padding="12dp"
                 android:focusable="false"
                 android:clickable="true" />
 
@@ -102,7 +101,7 @@
         <com.google.android.material.textfield.TextInputLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="20dp"
+            android:layout_marginBottom="16dp"
             android:hint="Description"
             style="@style/CustomTextInputLayout">
 
@@ -112,14 +111,14 @@
                 android:layout_height="wrap_content"
                 android:inputType="text"
                 android:textColor="@color/black"
-                android:textSize="18sp"
-                android:padding="16dp" />
+                android:textSize="16sp"
+                android:padding="12dp" />
         </com.google.android.material.textfield.TextInputLayout>
 
         <com.google.android.material.textfield.TextInputLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="20dp"
+            android:layout_marginBottom="16dp"
             android:hint="Receiver Name"
             style="@style/CustomTextInputLayout">
 
@@ -129,15 +128,15 @@
                 android:layout_height="wrap_content"
                 android:inputType="text"
                 android:textColor="@color/black"
-                android:textSize="18sp"
-                android:padding="16dp" />
+                android:textSize="16sp"
+                android:padding="12dp" />
         </com.google.android.material.textfield.TextInputLayout>
 
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/tilTransactionType"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="20dp"
+            android:layout_marginBottom="16dp"
             style="@style/CustomTextInputLayout"
             android:hint="Transaction Type">
 
@@ -147,8 +146,8 @@
                 android:layout_height="wrap_content"
                 android:inputType="none"
                 android:textColor="@color/black"
-                android:textSize="18sp"
-                android:padding="16dp"
+                android:textSize="16sp"
+                android:padding="12dp"
                 android:focusable="false"
                 android:clickable="true" />
 
@@ -158,11 +157,9 @@
             android:id="@+id/tilRecurringPayment"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="20dp"
+            android:layout_marginBottom="16dp"
             style="@style/CustomTextInputLayout"
-            android:hint="Link to Recurring Payment"
-            android:visibility="visible"
-            android:layout_marginTop="8dp">
+            android:hint="Link to Recurring Payment">
 
             <AutoCompleteTextView
                 android:id="@+id/etRecurringPayment"
@@ -170,8 +167,8 @@
                 android:layout_height="wrap_content"
                 android:inputType="none"
                 android:textColor="@color/black"
-                android:textSize="18sp"
-                android:padding="16dp"
+                android:textSize="16sp"
+                android:padding="12dp"
                 android:focusable="false"
                 android:clickable="true"
                 android:minHeight="35dp"

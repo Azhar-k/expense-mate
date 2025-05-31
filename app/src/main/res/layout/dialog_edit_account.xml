@@ -1,116 +1,122 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:orientation="vertical"
-    android:background="@color/white"
-    android:padding="32dp"
-    android:layout_margin="16dp">
+    android:layout_height="wrap_content">
 
-    <TextView
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Account Details"
-        android:textColor="@color/black"
-        android:textSize="28sp"
-        android:textStyle="bold"
-        android:layout_marginBottom="24dp"/>
+        android:orientation="vertical"
+        android:background="@color/white"
+        android:padding="24dp">
 
-    <com.google.android.material.textfield.TextInputLayout
-        android:id="@+id/tilAccountName"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="20dp"
-        android:hint="Account Name"
-        style="@style/CustomTextInputLayout">
-
-        <com.google.android.material.textfield.TextInputEditText
-            android:id="@+id/etAccountName"
+        <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:inputType="text"
+            android:text="Account Details"
             android:textColor="@color/black"
-            android:textSize="18sp"
-            android:padding="16dp" />
+            android:textSize="24sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="16dp"/>
 
-    </com.google.android.material.textfield.TextInputLayout>
-
-    <com.google.android.material.textfield.TextInputLayout
-        android:id="@+id/tilAccountNumber"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="20dp"
-        android:hint="Account Number (Optional)"
-        style="@style/CustomTextInputLayout">
-
-        <com.google.android.material.textfield.TextInputEditText
-            android:id="@+id/etAccountNumber"
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/tilAccountName"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:inputType="text"
-            android:textColor="@color/black"
-            android:textSize="18sp"
-            android:padding="16dp" />
+            android:layout_marginBottom="16dp"
+            android:hint="Account Name"
+            style="@style/CustomTextInputLayout">
 
-    </com.google.android.material.textfield.TextInputLayout>
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etAccountName"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="text"
+                android:textColor="@color/black"
+                android:textSize="16sp"
+                android:padding="12dp" />
 
-    <com.google.android.material.textfield.TextInputLayout
-        android:id="@+id/tilBank"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="20dp"
-        android:hint="Bank (Optional)"
-        style="@style/CustomTextInputLayout">
+        </com.google.android.material.textfield.TextInputLayout>
 
-        <com.google.android.material.textfield.TextInputEditText
-            android:id="@+id/etBank"
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/tilAccountNumber"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:inputType="text"
-            android:textColor="@color/black"
-            android:textSize="18sp"
-            android:padding="16dp" />
+            android:layout_marginBottom="16dp"
+            android:hint="Account Number (Optional)"
+            style="@style/CustomTextInputLayout">
 
-    </com.google.android.material.textfield.TextInputLayout>
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etAccountNumber"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="text"
+                android:textColor="@color/black"
+                android:textSize="16sp"
+                android:padding="12dp" />
 
-    <com.google.android.material.textfield.TextInputLayout
-        android:id="@+id/tilExpiryDate"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="20dp"
-        android:hint="Expiry Date (Optional)"
-        style="@style/CustomTextInputLayout">
+        </com.google.android.material.textfield.TextInputLayout>
 
-        <com.google.android.material.textfield.TextInputEditText
-            android:id="@+id/etExpiryDate"
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/tilBank"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:inputType="none"
-            android:focusable="false"
-            android:textColor="@color/black"
-            android:textSize="18sp"
-            android:padding="16dp" />
+            android:layout_marginBottom="16dp"
+            android:hint="Bank (Optional)"
+            style="@style/CustomTextInputLayout">
 
-    </com.google.android.material.textfield.TextInputLayout>
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etBank"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="text"
+                android:textColor="@color/black"
+                android:textSize="16sp"
+                android:padding="12dp" />
 
-    <com.google.android.material.textfield.TextInputLayout
-        android:id="@+id/tilDescription"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="20dp"
-        android:hint="Description (Optional)"
-        style="@style/CustomTextInputLayout">
+        </com.google.android.material.textfield.TextInputLayout>
 
-        <com.google.android.material.textfield.TextInputEditText
-            android:id="@+id/etDescription"
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/tilExpiryDate"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:inputType="textMultiLine"
-            android:minLines="2"
-            android:textColor="@color/black"
-            android:textSize="18sp"
-            android:padding="16dp" />
+            android:layout_marginBottom="16dp"
+            android:hint="Expiry Date (Optional)"
+            style="@style/CustomTextInputLayout">
 
-    </com.google.android.material.textfield.TextInputLayout>
-</LinearLayout> 
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etExpiryDate"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="none"
+                android:focusable="false"
+                android:textColor="@color/black"
+                android:textSize="16sp"
+                android:padding="12dp" />
+
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/tilDescription"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            android:hint="Description (Optional)"
+            style="@style/CustomTextInputLayout">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etDescription"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="textMultiLine"
+                android:minLines="2"
+                android:textColor="@color/black"
+                android:textSize="16sp"
+                android:padding="12dp" />
+
+        </com.google.android.material.textfield.TextInputLayout>
+
+    </LinearLayout>
+
+</ScrollView> 
