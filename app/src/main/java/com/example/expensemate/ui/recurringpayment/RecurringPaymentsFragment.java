@@ -19,6 +19,7 @@ import com.example.expensemate.R;
 import com.example.expensemate.data.RecurringPayment;
 import com.example.expensemate.databinding.DialogEditRecurringPaymentBinding;
 import com.example.expensemate.ui.DatePickerHelper;
+import com.example.expensemate.ui.common.BaseDialogHelper;
 import com.example.expensemate.viewmodel.RecurringPaymentsViewModel;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import java.util.Date;
@@ -102,98 +103,57 @@ public class RecurringPaymentsFragment extends Fragment {
         return view;
     }
 
-    private void toggleSelectAll() {
-        List<RecurringPayment> currentList = adapter.getCurrentList();
-        if (currentList == null || currentList.isEmpty()) return;
-
-        isAllSelected = !isAllSelected;
-        for (RecurringPayment payment : currentList) {
-            if (payment.isCompleted() != isAllSelected) {
-                if (isAllSelected) {
-                    viewModel.markAsCompleted(payment);
-                } else {
-                    viewModel.resetCompletionStatus(payment);
-                }
-            }
-        }
-        updateSelectAllUI();
-    }
-
-    private void updateSelectAllUI() {
-        if (selectAllTextView != null) {
-            selectAllTextView.setText(isAllSelected ? "NONE" : "ALL");
-        }
-    }
-
-    private void updateUI() {
-        List<RecurringPayment> payments = adapter.getCurrentList();
-        if (payments == null || payments.isEmpty()) {
-            selectAllButton.setVisibility(View.GONE);
-            selectAllTextView.setVisibility(View.GONE);
-            totalAmountTextView.setText("Total: ₹0.00");
-            remainingAmountTextView.setText("Remaining: ₹0.00");
-            return;
-        }
-
-        selectAllButton.setVisibility(View.VISIBLE);
-        selectAllTextView.setVisibility(View.VISIBLE);
-        boolean allCompleted = adapter.areAllCompleted();
-        isAllSelected = allCompleted;
-        updateSelectAllUI();
-    }
-
     private void showAddDialog() {
         DialogEditRecurringPaymentBinding dialogBinding = DialogEditRecurringPaymentBinding.inflate(getLayoutInflater());
 
         // Set up expiry date picker click listener
         dialogBinding.etExpiryDate.setOnClickListener(v -> expiryDatePicker.showDatePicker(dialogBinding.etExpiryDate, null));
 
-        AlertDialog dialog = new AlertDialog.Builder(requireContext(), 
-                com.google.android.material.R.style.Theme_MaterialComponents_Light_Dialog)
-                .setTitle("Add Recurring Payment")
-                .setView(dialogBinding.getRoot())
-                .setPositiveButton("Add", null)
-                .setNegativeButton("Cancel", null)
-                .create();
+        BaseDialogHelper dialogHelper = new BaseDialogHelper(
+                requireContext(),
+                "Add Recurring Payment",
+                dialogBinding.getRoot(),
+                "Add",
+                "Cancel",
+                new BaseDialogHelper.OnDialogButtonClickListener() {
+                    @Override
+                    public void onPositiveButtonClick(AlertDialog dialog) {
+                        String name = dialogBinding.etPaymentName.getText().toString().trim();
+                        String amountStr = dialogBinding.etAmount.getText().toString().trim();
+                        String dueDayStr = dialogBinding.etDueDate.getText().toString().trim();
+                        Date expiryDate = expiryDatePicker.getSelectedDate();
 
-        dialog.setOnShowListener(dialogInterface -> {
-            Button positiveButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
-            Button negativeButton = dialog.getButton(AlertDialog.BUTTON_NEGATIVE);
-            
-            positiveButton.setTextColor(requireContext().getResources().getColor(R.color.primary));
-            negativeButton.setTextColor(requireContext().getResources().getColor(R.color.primary));
-            
-            positiveButton.setOnClickListener(v -> {
-                String name = dialogBinding.etPaymentName.getText().toString().trim();
-                String amountStr = dialogBinding.etAmount.getText().toString().trim();
-                String dueDayStr = dialogBinding.etDueDate.getText().toString().trim();
-                Date expiryDate = expiryDatePicker.getSelectedDate();
+                        if (name.isEmpty() || amountStr.isEmpty() || dueDayStr.isEmpty() || expiryDate == null) {
+                            Toast.makeText(requireContext(), "Please fill all fields", Toast.LENGTH_SHORT).show();
+                            return;
+                        }
 
-                if (name.isEmpty() || amountStr.isEmpty() || dueDayStr.isEmpty() || expiryDate == null) {
-                    Toast.makeText(requireContext(), "Please fill all fields", Toast.LENGTH_SHORT).show();
-                    return;
-                }
-
-                try {
-                    double amount = Double.parseDouble(amountStr);
-                    int dueDay = Integer.parseInt(dueDayStr);
-                    
-                    if (dueDay < 1 || dueDay > 31) {
-                        Toast.makeText(requireContext(), "Due day must be between 1 and 31", Toast.LENGTH_SHORT).show();
-                        return;
+                        try {
+                            double amount = Double.parseDouble(amountStr);
+                            int dueDay = Integer.parseInt(dueDayStr);
+                            
+                            if (dueDay < 1 || dueDay > 31) {
+                                Toast.makeText(requireContext(), "Due day must be between 1 and 31", Toast.LENGTH_SHORT).show();
+                                return;
+                            }
+                            
+                            RecurringPayment payment = new RecurringPayment(name, amount, dueDay, expiryDate);
+                            viewModel.insert(payment);
+                            Toast.makeText(requireContext(), "Payment added", Toast.LENGTH_SHORT).show();
+                            dialog.dismiss();
+                        } catch (NumberFormatException e) {
+                            Toast.makeText(requireContext(), "Invalid amount or due day", Toast.LENGTH_SHORT).show();
+                        }
                     }
-                    
-                    RecurringPayment payment = new RecurringPayment(name, amount, dueDay, expiryDate);
-                    viewModel.insert(payment);
-                    Toast.makeText(requireContext(), "Payment added", Toast.LENGTH_SHORT).show();
-                    dialog.dismiss();
-                } catch (NumberFormatException e) {
-                    Toast.makeText(requireContext(), "Invalid amount or due day", Toast.LENGTH_SHORT).show();
-                }
-            });
-        });
 
-        dialog.show();
+                    @Override
+                    public void onNegativeButtonClick(AlertDialog dialog) {
+                        dialog.dismiss();
+                    }
+                }
+        );
+
+        dialogHelper.create().show();
     }
 
     private void showEditDialog(RecurringPayment payment) {
@@ -214,68 +174,102 @@ public class RecurringPaymentsFragment extends Fragment {
         // Set up expiry date picker click listener
         dialogBinding.etExpiryDate.setOnClickListener(v -> expiryDatePicker.showDatePicker(dialogBinding.etExpiryDate, payment.getExpiryDate()));
 
-        AlertDialog dialog = new AlertDialog.Builder(requireContext(), 
-                com.google.android.material.R.style.Theme_MaterialComponents_Light_Dialog)
-                .setTitle("Edit Recurring Payment")
-                .setView(dialogBinding.getRoot())
-                .setPositiveButton("Save", null)
-                .setNegativeButton("Cancel", null)
-                .create();
+        BaseDialogHelper dialogHelper = new BaseDialogHelper(
+                requireContext(),
+                "Edit Recurring Payment",
+                dialogBinding.getRoot(),
+                "Save",
+                "Cancel",
+                new BaseDialogHelper.OnDialogButtonClickListener() {
+                    @Override
+                    public void onPositiveButtonClick(AlertDialog dialog) {
+                        String name = dialogBinding.etPaymentName.getText().toString().trim();
+                        String amountStr = dialogBinding.etAmount.getText().toString().trim();
+                        String dueDayStr = dialogBinding.etDueDate.getText().toString().trim();
+                        Date expiryDate = expiryDatePicker.getSelectedDate();
 
-        dialog.setOnShowListener(dialogInterface -> {
-            Button positiveButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
-            Button negativeButton = dialog.getButton(AlertDialog.BUTTON_NEGATIVE);
-            
-            positiveButton.setTextColor(requireContext().getResources().getColor(R.color.primary));
-            negativeButton.setTextColor(requireContext().getResources().getColor(R.color.primary));
-            
-            positiveButton.setOnClickListener(v -> {
-                String name = dialogBinding.etPaymentName.getText().toString().trim();
-                String amountStr = dialogBinding.etAmount.getText().toString().trim();
-                String dueDayStr = dialogBinding.etDueDate.getText().toString().trim();
-                Date expiryDate = expiryDatePicker.getSelectedDate();
+                        if (name.isEmpty() || amountStr.isEmpty() || dueDayStr.isEmpty() || expiryDate == null) {
+                            Toast.makeText(requireContext(), "Please fill all fields", Toast.LENGTH_SHORT).show();
+                            return;
+                        }
 
-                if (name.isEmpty() || amountStr.isEmpty() || dueDayStr.isEmpty() || expiryDate == null) {
-                    Toast.makeText(requireContext(), "Please fill all fields", Toast.LENGTH_SHORT).show();
-                    return;
-                }
-
-                try {
-                    double amount = Double.parseDouble(amountStr);
-                    int dueDay = Integer.parseInt(dueDayStr);
-                    
-                    if (dueDay < 1 || dueDay > 31) {
-                        Toast.makeText(requireContext(), "Due day must be between 1 and 31", Toast.LENGTH_SHORT).show();
-                        return;
+                        try {
+                            double amount = Double.parseDouble(amountStr);
+                            int dueDay = Integer.parseInt(dueDayStr);
+                            
+                            if (dueDay < 1 || dueDay > 31) {
+                                Toast.makeText(requireContext(), "Due day must be between 1 and 31", Toast.LENGTH_SHORT).show();
+                                return;
+                            }
+                            
+                            // Create a new payment object with updated values
+                            RecurringPayment updatedPayment = new RecurringPayment(name, amount, dueDay, expiryDate);
+                            updatedPayment.setId(payment.getId());
+                            updatedPayment.setCompleted(payment.isCompleted());
+                            updatedPayment.setLastCompletedDate(payment.getLastCompletedDate());
+                            
+                            viewModel.update(updatedPayment);
+                            Toast.makeText(requireContext(), "Payment updated", Toast.LENGTH_SHORT).show();
+                            dialog.dismiss();
+                        } catch (NumberFormatException e) {
+                            Toast.makeText(requireContext(), "Invalid amount or due day", Toast.LENGTH_SHORT).show();
+                        }
                     }
-                    
-                    // Create a new payment object with updated values
-                    RecurringPayment updatedPayment = new RecurringPayment(name, amount, dueDay, expiryDate);
-                    updatedPayment.setId(payment.getId());
-                    updatedPayment.setCompleted(payment.isCompleted());
-                    updatedPayment.setLastCompletedDate(payment.getLastCompletedDate());
-                    
-                    viewModel.update(updatedPayment);
-                    Toast.makeText(requireContext(), "Payment updated", Toast.LENGTH_SHORT).show();
-                    dialog.dismiss();
-                } catch (NumberFormatException e) {
-                    Toast.makeText(requireContext(), "Invalid amount or due day", Toast.LENGTH_SHORT).show();
-                }
-            });
-        });
 
-        dialog.show();
+                    @Override
+                    public void onNegativeButtonClick(AlertDialog dialog) {
+                        dialog.dismiss();
+                    }
+                }
+        );
+
+        dialogHelper.create().show();
     }
 
     public void showDeleteConfirmationDialog(RecurringPayment payment) {
-        new AlertDialog.Builder(requireContext())
-                .setTitle("Delete Payment")
-                .setMessage("Are you sure you want to delete this payment?")
-                .setPositiveButton("Delete", (dialog, which) -> {
-                    viewModel.delete(payment);
-                    Toast.makeText(requireContext(), "Payment deleted", Toast.LENGTH_SHORT).show();
-                })
-                .setNegativeButton("Cancel", null)
-                .show();
+        BaseDialogHelper dialogHelper = new BaseDialogHelper(
+                requireContext(),
+                "Delete Payment",
+                null,
+                "Delete",
+                "Cancel",
+                new BaseDialogHelper.OnDialogButtonClickListener() {
+                    @Override
+                    public void onPositiveButtonClick(AlertDialog dialog) {
+                        viewModel.delete(payment);
+                        Toast.makeText(requireContext(), "Payment deleted", Toast.LENGTH_SHORT).show();
+                        dialog.dismiss();
+                    }
+
+                    @Override
+                    public void onNegativeButtonClick(AlertDialog dialog) {
+                        dialog.dismiss();
+                    }
+                }
+        );
+
+        dialogHelper.setMessage("Are you sure you want to delete this payment?");
+        dialogHelper.create().show();
+    }
+
+    private void toggleSelectAll() {
+        isAllSelected = !isAllSelected;
+        adapter.setAllSelected(isAllSelected);
+        selectAllTextView.setText(isAllSelected ? "Deselect All" : "Select All");
+    }
+
+    private void updateUI() {
+        List<RecurringPayment> payments = viewModel.getRecurringPayments().getValue();
+        if (payments != null) {
+            boolean allCompleted = true;
+            for (RecurringPayment payment : payments) {
+                if (!payment.isCompleted()) {
+                    allCompleted = false;
+                    break;
+                }
+            }
+            isAllSelected = allCompleted;
+            selectAllTextView.setText(isAllSelected ? "Deselect All" : "Select All");
+        }
     }
 } 

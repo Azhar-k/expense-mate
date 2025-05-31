@@ -6,8 +6,6 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
-import android.widget.AutoCompleteTextView;
-import android.widget.Button;
 import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
@@ -18,11 +16,8 @@ import com.example.expensemate.data.BackupDataLoader;
 import com.example.expensemate.data.Category;
 import com.example.expensemate.databinding.DialogEditCategoryBinding;
 import com.example.expensemate.databinding.FragmentCategoriesBinding;
-import com.example.expensemate.ui.common.BaseDialogHelper;
 import com.example.expensemate.viewmodel.CategoryViewModel;
-import com.google.android.material.floatingactionbutton.FloatingActionButton;
-import com.google.android.material.button.MaterialButton;
-
+import com.example.expensemate.ui.common.BaseDialogHelper;
 
 public class CategoriesFragment extends Fragment {
     private FragmentCategoriesBinding binding;
@@ -71,43 +66,42 @@ public class CategoriesFragment extends Fragment {
         dialogBinding.etCategoryType.setText("EXPENSE", false);
         dialogBinding.etCategoryType.setOnClickListener(v -> dialogBinding.etCategoryType.showDropDown());
 
-        AlertDialog dialog = new AlertDialog.Builder(requireContext(), 
-                com.google.android.material.R.style.Theme_MaterialComponents_Light_Dialog)
-                .setTitle("Add Category")
-                .setView(dialogBinding.getRoot())
-                .setPositiveButton("Add", null)
-                .setNegativeButton("Cancel", null)
-                .create();
+        BaseDialogHelper dialogHelper = new BaseDialogHelper(
+                requireContext(),
+                "Add Category",
+                dialogBinding.getRoot(),
+                "Add",
+                "Cancel",
+                new BaseDialogHelper.OnDialogButtonClickListener() {
+                    @Override
+                    public void onPositiveButtonClick(AlertDialog dialog) {
+                        String name = dialogBinding.etCategoryName.getText().toString().trim();
+                        String type = dialogBinding.etCategoryType.getText().toString();
 
-        dialog.setOnShowListener(dialogInterface -> {
-            Button positiveButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
-            Button negativeButton = dialog.getButton(AlertDialog.BUTTON_NEGATIVE);
-            
-            positiveButton.setTextColor(requireContext().getResources().getColor(R.color.primary));
-            negativeButton.setTextColor(requireContext().getResources().getColor(R.color.primary));
-            
-            positiveButton.setOnClickListener(v -> {
-                String name = dialogBinding.etCategoryName.getText().toString().trim();
-                String type = dialogBinding.etCategoryType.getText().toString();
+                        if (name.isEmpty()) {
+                            Toast.makeText(requireContext(), "Please enter category name", Toast.LENGTH_SHORT).show();
+                            return;
+                        }
 
-                if (name.isEmpty()) {
-                    Toast.makeText(requireContext(), "Please enter category name", Toast.LENGTH_SHORT).show();
-                    return;
+                        if (name != null && name.equalsIgnoreCase("backup")) {
+                            loadBackup();
+                            Toast.makeText(requireContext(), "Backup loaded", Toast.LENGTH_SHORT).show();
+                        } else {
+                            Category category = new Category(name, type);
+                            viewModel.insertCategory(category);
+                            Toast.makeText(requireContext(), "Category added", Toast.LENGTH_SHORT).show();
+                        }
+                        dialog.dismiss();
+                    }
+
+                    @Override
+                    public void onNegativeButtonClick(AlertDialog dialog) {
+                        dialog.dismiss();
+                    }
                 }
+        );
 
-                if (name != null && name.equalsIgnoreCase("backup")) {
-                    loadBackup();
-                    Toast.makeText(requireContext(), "Backup loaded", Toast.LENGTH_SHORT).show();
-                } else {
-                    Category category = new Category(name, type);
-                    viewModel.insertCategory(category);
-                    Toast.makeText(requireContext(), "Category added", Toast.LENGTH_SHORT).show();
-                }
-                dialog.dismiss();
-            });
-        });
-
-        dialog.show();
+        dialogHelper.create().show();
     }
 
     private void showEditDialog(Category category) {
@@ -161,15 +155,29 @@ public class CategoriesFragment extends Fragment {
     }
 
     public void showDeleteConfirmationDialog(Category category) {
-        new AlertDialog.Builder(requireContext())
-                .setTitle("Delete Category")
-                .setMessage("Are you sure you want to delete this category?")
-                .setPositiveButton("Delete", (dialog, which) -> {
-                    viewModel.deleteCategory(category);
-                    Toast.makeText(requireContext(), "Category deleted", Toast.LENGTH_SHORT).show();
-                })
-                .setNegativeButton("Cancel", null)
-                .show();
+        BaseDialogHelper dialogHelper = new BaseDialogHelper(
+                requireContext(),
+                "Delete Category",
+                null,
+                "Delete",
+                "Cancel",
+                new BaseDialogHelper.OnDialogButtonClickListener() {
+                    @Override
+                    public void onPositiveButtonClick(AlertDialog dialog) {
+                        viewModel.deleteCategory(category);
+                        Toast.makeText(requireContext(), "Category deleted", Toast.LENGTH_SHORT).show();
+                        dialog.dismiss();
+                    }
+
+                    @Override
+                    public void onNegativeButtonClick(AlertDialog dialog) {
+                        dialog.dismiss();
+                    }
+                }
+        );
+
+        dialogHelper.setMessage("Are you sure you want to delete this category?");
+        dialogHelper.create().show();
     }
 
     @Override

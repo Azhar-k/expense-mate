@@ -18,6 +18,7 @@ public class BaseDialogHelper {
     private final String positiveButtonText;
     private final String negativeButtonText;
     private final OnDialogButtonClickListener listener;
+    private String message;
 
     public interface OnDialogButtonClickListener {
         void onPositiveButtonClick(AlertDialog dialog);
@@ -27,7 +28,7 @@ public class BaseDialogHelper {
     public BaseDialogHelper(
             @NonNull Context context,
             @NonNull String title,
-            @NonNull View contentView,
+            @Nullable View contentView,
             @NonNull String positiveButtonText,
             @NonNull String negativeButtonText,
             @Nullable OnDialogButtonClickListener listener
@@ -40,14 +41,26 @@ public class BaseDialogHelper {
         this.listener = listener;
     }
 
+    public void setMessage(String message) {
+        this.message = message;
+    }
+
     public AlertDialog create() {
-        AlertDialog dialog = new AlertDialog.Builder(context, 
+        AlertDialog.Builder builder = new AlertDialog.Builder(context, 
                 com.google.android.material.R.style.Theme_MaterialComponents_Light_Dialog)
                 .setTitle(title)
-                .setView(contentView)
                 .setPositiveButton(positiveButtonText, null)
-                .setNegativeButton(negativeButtonText, null)
-                .create();
+                .setNegativeButton(negativeButtonText, null);
+
+        if (contentView != null) {
+            builder.setView(contentView);
+        }
+
+        if (message != null) {
+            builder.setMessage(message);
+        }
+
+        AlertDialog dialog = builder.create();
 
         dialog.setOnShowListener(dialogInterface -> {
             Button positiveButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE);

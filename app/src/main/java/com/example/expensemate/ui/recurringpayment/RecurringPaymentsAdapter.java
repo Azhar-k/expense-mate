@@ -16,6 +16,7 @@ import com.example.expensemate.data.RecurringPayment;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.List;
 import java.util.Locale;
 
 public class RecurringPaymentsAdapter extends ListAdapter<RecurringPayment, RecurringPaymentsAdapter.PaymentViewHolder> {
@@ -63,6 +64,16 @@ public class RecurringPaymentsAdapter extends ListAdapter<RecurringPayment, Recu
         this.fragment = fragment;
     }
 
+    public void setAllSelected(boolean selected) {
+        List<RecurringPayment> currentList = getCurrentList();
+        if (currentList != null) {
+            for (RecurringPayment payment : currentList) {
+                if (payment.isCompleted() != selected && listener != null) {
+                    listener.onPaymentStatusChanged(payment, selected);
+                }
+            }
+        }
+    }
 
     public boolean areAllCompleted() {
         for (RecurringPayment payment : getCurrentList()) {
@@ -110,10 +121,10 @@ public class RecurringPaymentsAdapter extends ListAdapter<RecurringPayment, Recu
                 }
             });
 
-            completedCheckBox.setOnClickListener(v -> {
+            completedCheckBox.setOnCheckedChangeListener((buttonView, isChecked) -> {
                 int position = getAdapterPosition();
                 if (position != RecyclerView.NO_POSITION && listener != null) {
-                    listener.onPaymentStatusChanged(getItem(position), completedCheckBox.isChecked());
+                    listener.onPaymentStatusChanged(getItem(position), isChecked);
                 }
             });
         }
@@ -123,7 +134,6 @@ public class RecurringPaymentsAdapter extends ListAdapter<RecurringPayment, Recu
             amountTextView.setText(String.format(Locale.getDefault(), "₹%.2f", payment.getAmount()));
             dueDateTextView.setText(String.format(Locale.getDefault(), "Day %d of every month", payment.getDueDay()));
             expiryDateTextView.setText(dateFormat.format(payment.getExpiryDate()));
-            completedCheckBox.setChecked(payment.isCompleted());
 
             // Check if payment is expired
             Calendar calendar = Calendar.getInstance();
@@ -146,6 +156,8 @@ public class RecurringPaymentsAdapter extends ListAdapter<RecurringPayment, Recu
                 editButton.setAlpha(1.0f);
                 completedCheckBox.setEnabled(true);
             }
+
+            completedCheckBox.setChecked(payment.isCompleted());
         }
     }
 

@@ -1,6 +1,7 @@
 package com.example.expensemate.ui.accounts;
 
 import android.app.DatePickerDialog;
+import android.app.AlertDialog;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -16,11 +17,11 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.expensemate.R;
 import com.example.expensemate.data.Account;
+import com.example.expensemate.databinding.DialogEditAccountBinding;
+import com.example.expensemate.ui.common.BaseDialogHelper;
 import com.example.expensemate.viewmodel.AccountViewModel;
-import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.textfield.TextInputEditText;
-import com.google.android.material.textfield.TextInputLayout;
 
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
@@ -66,111 +67,115 @@ public class AccountsFragment extends Fragment implements AccountsAdapter.OnAcco
     }
 
     private void showAddAccountDialog() {
-        View dialogView = getLayoutInflater().inflate(R.layout.dialog_edit_account, null);
-        TextInputLayout nameLayout = dialogView.findViewById(R.id.tilAccountName);
-        TextInputLayout numberLayout = dialogView.findViewById(R.id.tilAccountNumber);
-        TextInputLayout bankLayout = dialogView.findViewById(R.id.tilBank);
-        TextInputLayout expiryLayout = dialogView.findViewById(R.id.tilExpiryDate);
-        TextInputLayout descriptionLayout = dialogView.findViewById(R.id.tilDescription);
+        DialogEditAccountBinding dialogBinding = DialogEditAccountBinding.inflate(getLayoutInflater());
 
-        TextInputEditText nameInput = dialogView.findViewById(R.id.etAccountName);
-        TextInputEditText numberInput = dialogView.findViewById(R.id.etAccountNumber);
-        TextInputEditText bankInput = dialogView.findViewById(R.id.etBank);
-        TextInputEditText expiryInput = dialogView.findViewById(R.id.etExpiryDate);
-        TextInputEditText descriptionInput = dialogView.findViewById(R.id.etDescription);
+        dialogBinding.etExpiryDate.setOnClickListener(v -> showDatePicker(dialogBinding.etExpiryDate));
 
-        expiryInput.setOnClickListener(v -> showDatePicker(expiryInput));
-
-        new MaterialAlertDialogBuilder(requireContext())
-                .setTitle("Add Account")
-                .setView(dialogView)
-                .setPositiveButton("Save", (dialog, which) -> {
-                    String name = nameInput.getText().toString().trim();
-                    if (name.isEmpty()) {
-                        nameLayout.setError("Name is required");
-                        return;
-                    }
-
-                    String number = numberInput.getText().toString().trim();
-                    String bank = bankInput.getText().toString().trim();
-                    String description = descriptionInput.getText().toString().trim();
-                    Date expiryDate = null;
-                    try {
-                        String expiryStr = expiryInput.getText().toString().trim();
-                        if (!expiryStr.isEmpty()) {
-                            expiryDate = dateFormat.parse(expiryStr);
+        BaseDialogHelper dialogHelper = new BaseDialogHelper(
+                requireContext(),
+                "Add Account",
+                dialogBinding.getRoot(),
+                "Save",
+                "Cancel",
+                new BaseDialogHelper.OnDialogButtonClickListener() {
+                    @Override
+                    public void onPositiveButtonClick(AlertDialog dialog) {
+                        String name = dialogBinding.etAccountName.getText().toString().trim();
+                        if (name.isEmpty()) {
+                            dialogBinding.tilAccountName.setError("Name is required");
+                            return;
                         }
-                    } catch (Exception e) {
-                        expiryLayout.setError("Invalid date format");
-                        return;
+
+                        String number = dialogBinding.etAccountNumber.getText().toString().trim();
+                        String bank = dialogBinding.etBank.getText().toString().trim();
+                        String description = dialogBinding.etDescription.getText().toString().trim();
+                        Date expiryDate = null;
+                        try {
+                            String expiryStr = dialogBinding.etExpiryDate.getText().toString().trim();
+                            if (!expiryStr.isEmpty()) {
+                                expiryDate = dateFormat.parse(expiryStr);
+                            }
+                        } catch (Exception e) {
+                            dialogBinding.tilExpiryDate.setError("Invalid date format");
+                            return;
+                        }
+
+                        Account account = new Account(name, number, bank, expiryDate, description);
+                        accountViewModel.insert(account);
+                        Toast.makeText(getContext(), "Account added", Toast.LENGTH_SHORT).show();
+                        dialog.dismiss();
                     }
 
-                    Account account = new Account(name, number, bank, expiryDate, description);
-                    accountViewModel.insert(account);
-                    Toast.makeText(getContext(), "Account added", Toast.LENGTH_SHORT).show();
-                })
-                .setNegativeButton("Cancel", null)
-                .show();
+                    @Override
+                    public void onNegativeButtonClick(AlertDialog dialog) {
+                        dialog.dismiss();
+                    }
+                }
+        );
+
+        dialogHelper.create().show();
     }
 
     private void showEditAccountDialog(Account account) {
-        View dialogView = getLayoutInflater().inflate(R.layout.dialog_edit_account, null);
-        TextInputLayout nameLayout = dialogView.findViewById(R.id.tilAccountName);
-        TextInputLayout numberLayout = dialogView.findViewById(R.id.tilAccountNumber);
-        TextInputLayout bankLayout = dialogView.findViewById(R.id.tilBank);
-        TextInputLayout expiryLayout = dialogView.findViewById(R.id.tilExpiryDate);
-        TextInputLayout descriptionLayout = dialogView.findViewById(R.id.tilDescription);
+        DialogEditAccountBinding dialogBinding = DialogEditAccountBinding.inflate(getLayoutInflater());
 
-        TextInputEditText nameInput = dialogView.findViewById(R.id.etAccountName);
-        TextInputEditText numberInput = dialogView.findViewById(R.id.etAccountNumber);
-        TextInputEditText bankInput = dialogView.findViewById(R.id.etBank);
-        TextInputEditText expiryInput = dialogView.findViewById(R.id.etExpiryDate);
-        TextInputEditText descriptionInput = dialogView.findViewById(R.id.etDescription);
-
-        nameInput.setText(account.getName());
-        numberInput.setText(account.getAccountNumber());
-        bankInput.setText(account.getBank());
+        dialogBinding.etAccountName.setText(account.getName());
+        dialogBinding.etAccountNumber.setText(account.getAccountNumber());
+        dialogBinding.etBank.setText(account.getBank());
         if (account.getExpiryDate() != null) {
-            expiryInput.setText(dateFormat.format(account.getExpiryDate()));
+            dialogBinding.etExpiryDate.setText(dateFormat.format(account.getExpiryDate()));
         }
-        descriptionInput.setText(account.getDescription());
+        dialogBinding.etDescription.setText(account.getDescription());
 
-        expiryInput.setOnClickListener(v -> showDatePicker(expiryInput));
+        dialogBinding.etExpiryDate.setOnClickListener(v -> showDatePicker(dialogBinding.etExpiryDate));
 
-        new MaterialAlertDialogBuilder(requireContext())
-                .setTitle("Edit Account")
-                .setView(dialogView)
-                .setPositiveButton("Save", (dialog, which) -> {
-                    String name = nameInput.getText().toString().trim();
-                    if (name.isEmpty()) {
-                        nameLayout.setError("Name is required");
-                        return;
-                    }
-
-                    String number = numberInput.getText().toString().trim();
-                    String bank = bankInput.getText().toString().trim();
-                    String description = descriptionInput.getText().toString().trim();
-                    Date expiryDate = null;
-                    try {
-                        String expiryStr = expiryInput.getText().toString().trim();
-                        if (!expiryStr.isEmpty()) {
-                            expiryDate = dateFormat.parse(expiryStr);
+        BaseDialogHelper dialogHelper = new BaseDialogHelper(
+                requireContext(),
+                "Edit Account",
+                dialogBinding.getRoot(),
+                "Save",
+                "Cancel",
+                new BaseDialogHelper.OnDialogButtonClickListener() {
+                    @Override
+                    public void onPositiveButtonClick(AlertDialog dialog) {
+                        String name = dialogBinding.etAccountName.getText().toString().trim();
+                        if (name.isEmpty()) {
+                            dialogBinding.tilAccountName.setError("Name is required");
+                            return;
                         }
-                    } catch (Exception e) {
-                        expiryLayout.setError("Invalid date format");
-                        return;
+
+                        String number = dialogBinding.etAccountNumber.getText().toString().trim();
+                        String bank = dialogBinding.etBank.getText().toString().trim();
+                        String description = dialogBinding.etDescription.getText().toString().trim();
+                        Date expiryDate = null;
+                        try {
+                            String expiryStr = dialogBinding.etExpiryDate.getText().toString().trim();
+                            if (!expiryStr.isEmpty()) {
+                                expiryDate = dateFormat.parse(expiryStr);
+                            }
+                        } catch (Exception e) {
+                            dialogBinding.tilExpiryDate.setError("Invalid date format");
+                            return;
+                        }
+
+                        account.setName(name);
+                        account.setAccountNumber(number);
+                        account.setBank(bank);
+                        account.setExpiryDate(expiryDate);
+                        account.setDescription(description);
+                        accountViewModel.update(account);
+                        Toast.makeText(getContext(), "Account updated", Toast.LENGTH_SHORT).show();
+                        dialog.dismiss();
                     }
 
-                    account.setName(name);
-                    account.setAccountNumber(number);
-                    account.setBank(bank);
-                    account.setExpiryDate(expiryDate);
-                    account.setDescription(description);
-                    accountViewModel.update(account);
-                    Toast.makeText(getContext(), "Account updated", Toast.LENGTH_SHORT).show();
-                })
-                .setNegativeButton("Cancel", null)
-                .show();
+                    @Override
+                    public void onNegativeButtonClick(AlertDialog dialog) {
+                        dialog.dismiss();
+                    }
+                }
+        );
+
+        dialogHelper.create().show();
     }
 
     private void showDatePicker(TextInputEditText expiryInput) {
@@ -198,15 +203,30 @@ public class AccountsFragment extends Fragment implements AccountsAdapter.OnAcco
             Toast.makeText(getContext(), "Cannot delete default account", Toast.LENGTH_SHORT).show();
             return;
         }
-        new MaterialAlertDialogBuilder(requireContext())
-                .setTitle("Delete Account")
-                .setMessage("Are you sure you want to delete this account?")
-                .setPositiveButton("Delete", (dialog, which) -> {
-                    accountViewModel.delete(account);
-                    Toast.makeText(getContext(), "Account deleted", Toast.LENGTH_SHORT).show();
-                })
-                .setNegativeButton("Cancel", null)
-                .show();
+
+        BaseDialogHelper dialogHelper = new BaseDialogHelper(
+                requireContext(),
+                "Delete Account",
+                null,
+                "Delete",
+                "Cancel",
+                new BaseDialogHelper.OnDialogButtonClickListener() {
+                    @Override
+                    public void onPositiveButtonClick(AlertDialog dialog) {
+                        accountViewModel.delete(account);
+                        Toast.makeText(getContext(), "Account deleted", Toast.LENGTH_SHORT).show();
+                        dialog.dismiss();
+                    }
+
+                    @Override
+                    public void onNegativeButtonClick(AlertDialog dialog) {
+                        dialog.dismiss();
+                    }
+                }
+        );
+
+        dialogHelper.setMessage("Are you sure you want to delete this account?");
+        dialogHelper.create().show();
     }
 
     @Override
