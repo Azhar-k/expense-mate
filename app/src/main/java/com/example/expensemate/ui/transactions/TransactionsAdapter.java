@@ -25,6 +25,7 @@ import com.example.expensemate.data.RecurringPayment;
 import com.example.expensemate.data.Transaction;
 import com.example.expensemate.databinding.DialogEditTransactionBinding;
 import com.example.expensemate.databinding.ItemTransactionBinding;
+import com.example.expensemate.ui.common.BaseDialogHelper;
 import com.example.expensemate.viewmodel.AccountViewModel;
 import com.example.expensemate.viewmodel.CategoryViewModel;
 import com.example.expensemate.viewmodel.RecurringPaymentsViewModel;
@@ -38,36 +39,17 @@ import java.util.Locale;
 
 public class TransactionsAdapter extends ListAdapter<Transaction, TransactionsAdapter.TransactionViewHolder> {
     private final TransactionViewModel viewModel;
-    private final CategoryViewModel categoryViewModel;
-    private final AccountViewModel accountViewModel;
-    private final SimpleDateFormat dateFormat;
     private final Context context;
+    private final AccountViewModel accountViewModel;
+    private final CategoryViewModel categoryViewModel;
     private List<RecurringPayment> currentPayments;
 
     public TransactionsAdapter(TransactionViewModel viewModel, Context context) {
         super(new TransactionDiffCallback());
         this.viewModel = viewModel;
         this.context = context;
-        this.dateFormat = new SimpleDateFormat("dd MMM yyyy, HH:mm", Locale.getDefault());
-        this.categoryViewModel = new ViewModelProvider((FragmentActivity) context).get(CategoryViewModel.class);
         this.accountViewModel = new ViewModelProvider((FragmentActivity) context).get(AccountViewModel.class);
-        this.currentPayments = new ArrayList<>();
-    }
-
-    @NonNull
-    @Override
-    public TransactionViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        ItemTransactionBinding binding = ItemTransactionBinding.inflate(
-                LayoutInflater.from(parent.getContext()),
-                parent,
-                false
-        );
-        return new TransactionViewHolder(binding);
-    }
-
-    @Override
-    public void onBindViewHolder(@NonNull TransactionViewHolder holder, int position) {
-        holder.bind(getItem(position));
+        this.categoryViewModel = new ViewModelProvider((FragmentActivity) context).get(CategoryViewModel.class);
     }
 
     public void showAddTransactionDialog() {
@@ -221,64 +203,94 @@ public class TransactionsAdapter extends ListAdapter<Transaction, TransactionsAd
             dialogBinding.etRecurringPayment.setThreshold(1);
         });
 
-        AlertDialog dialog = new AlertDialog.Builder(context, 
-                com.google.android.material.R.style.Theme_MaterialComponents_Light_Dialog)
-                .setView(dialogBinding.getRoot())
-                .setPositiveButton("Add", null)
-                .setNegativeButton("Cancel", null)
-                .create();
+        BaseDialogHelper dialogHelper = new BaseDialogHelper(
+                context,
+                "Add Transaction",
+                dialogBinding.getRoot(),
+                "Add",
+                "Cancel",
+                new BaseDialogHelper.OnDialogButtonClickListener() {
+                    @Override
+                    public void onPositiveButtonClick(AlertDialog dialog) {
+                        try {
+                            String amountStr = dialogBinding.etAmount.getText().toString();
+                            String description = dialogBinding.etDescription.getText().toString();
+                            String receiverName = dialogBinding.etReceiverName.getText().toString();
+                            String category = dialogBinding.etCategory.getText().toString();
+                            String transactionType = dialogBinding.etTransactionType.getText().toString();
+                            String selectedAccount = dialogBinding.etAccount.getText().toString();
+                            String selectedPayment = dialogBinding.etRecurringPayment.getText().toString();
 
-        dialog.setOnShowListener(dialogInterface -> {
-            Button positiveButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
-            Button negativeButton = dialog.getButton(AlertDialog.BUTTON_NEGATIVE);
-            
-            positiveButton.setTextColor(context.getResources().getColor(R.color.primary));
-            negativeButton.setTextColor(context.getResources().getColor(R.color.primary));
-            
-            positiveButton.setOnClickListener(v -> {
-                try {
-                    String amountStr = dialogBinding.etAmount.getText().toString();
-                    String description = dialogBinding.etDescription.getText().toString();
-                    String receiverName = dialogBinding.etReceiverName.getText().toString();
-                    String category = dialogBinding.etCategory.getText().toString();
-                    String transactionType = dialogBinding.etTransactionType.getText().toString();
-                    String selectedAccount = dialogBinding.etAccount.getText().toString();
+                            if (amountStr.isEmpty()) {
+                                Toast.makeText(context, "Please enter amount", Toast.LENGTH_SHORT).show();
+                                return;
+                            }
 
-                    if (amountStr.isEmpty()) {
-                        Toast.makeText(context, "Please enter amount", Toast.LENGTH_SHORT).show();
-                        return;
+                            Transaction newTransaction = new Transaction(
+                                    Double.parseDouble(amountStr),
+                                    description,
+                                    calendar.getTime(),
+                                    transactionType,
+                                    receiverName,
+                                    "", // Empty SMS body for manual transactions
+                                    ""  // Empty SMS sender for manual transactions
+                            );
+                            newTransaction.setCategory(category);
+
+                            // Link recurring payment if selected
+                            if (!selectedPayment.equals("None") && currentPayments != null) {
+                                for (RecurringPayment payment : currentPayments) {
+                                    if (payment.getName().equals(selectedPayment)) {
+                                        newTransaction.setLinkedRecurringPaymentId(payment.getId());
+                                        break;
+                                    }
+                                }
+                            }
+
+                            // Get selected account and link it to the transaction
+                            accountViewModel.getAllAccounts().observe((FragmentActivity) context, accounts -> {
+                                for (Account account : accounts) {
+                                    if (account.getName().equals(selectedAccount)) {
+                                        newTransaction.setAccountId(account.getId());
+                                        break;
+                                    }
+                                }
+                                viewModel.insertTransaction(newTransaction);
+                                Toast.makeText(context, "Transaction added", Toast.LENGTH_SHORT).show();
+                                dialog.dismiss();
+                            });
+                        } catch (NumberFormatException e) {
+                            Toast.makeText(context, "Invalid amount", Toast.LENGTH_SHORT).show();
+                        }
                     }
 
-                    Transaction newTransaction = new Transaction(
-                            Double.parseDouble(amountStr),
-                            description,
-                            calendar.getTime(),
-                            transactionType,
-                            receiverName,
-                            "", // Empty SMS body for manual transactions
-                            ""  // Empty SMS sender for manual transactions
-                    );
-                    newTransaction.setCategory(category);
-
-                    // Get selected account and link it to the transaction
-                    accountViewModel.getAllAccounts().observe((FragmentActivity) context, accounts -> {
-                        for (Account account : accounts) {
-                            if (account.getName().equals(selectedAccount)) {
-                                newTransaction.setAccountId(account.getId());
-                                break;
-                            }
-                        }
-                        viewModel.insertTransaction(newTransaction);
-                        Toast.makeText(context, "Transaction added", Toast.LENGTH_SHORT).show();
+                    @Override
+                    public void onNegativeButtonClick(AlertDialog dialog) {
                         dialog.dismiss();
-                    });
-                } catch (NumberFormatException e) {
-                    Toast.makeText(context, "Invalid amount", Toast.LENGTH_SHORT).show();
+                    }
                 }
-            });
-        });
+        );
 
+        AlertDialog dialog = dialogHelper.create();
+        dialog.getWindow().setLayout(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT
+        );
         dialog.show();
+    }
+
+    @NonNull
+    @Override
+    public TransactionViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+        ItemTransactionBinding binding = ItemTransactionBinding.inflate(
+                LayoutInflater.from(parent.getContext()), parent, false);
+        return new TransactionViewHolder(binding);
+    }
+
+    @Override
+    public void onBindViewHolder(@NonNull TransactionViewHolder holder, int position) {
+        Transaction transaction = getItem(position);
+        holder.bind(transaction);
     }
 
     class TransactionViewHolder extends RecyclerView.ViewHolder {
@@ -305,70 +317,30 @@ public class TransactionsAdapter extends ListAdapter<Transaction, TransactionsAd
         }
 
         public void bind(Transaction transaction) {
-            binding.tvAmount.setText(String.format("₹%.2f", transaction.getAmount()));
-            if (transaction.getTransactionType() == null) {
-                Log.d("Transaction", "Transaction type is null. Not setting the colour. Id:"+ transaction.getId()+ ", Amount:"+ transaction.getAmount()+", Desc:"+transaction.getDescription());
-            } else {
-                binding.tvAmount.setTextColor(context.getColor(
-                        transaction.getTransactionType().equals("DEBIT") ? R.color.debit_color : R.color.credit_color));
-            }
-            binding.tvDate.setText(String.format("Date: %s", dateFormat.format(transaction.getDate())));
-            binding.tvCategory.setText(String.format("Category: %s", transaction.getCategory()));
-            
-            // Truncate description if longer than 40 characters
-            String description = transaction.getDescription();
-            if (description != null && description.length() > 40) {
-                binding.tvDescription.setText(String.format("Description: %s...", description.substring(0, 40)));
-                binding.btnViewDescription.setVisibility(View.VISIBLE);
-                binding.btnViewDescription.setOnClickListener(v -> {
-                    new AlertDialog.Builder(context)
-                        .setTitle("Full Description")
-                        .setMessage(description)
-                        .setPositiveButton("OK", null)
-                        .show();
-                });
-            } else {
-                binding.tvDescription.setText(String.format("Description: %s", description));
-                binding.btnViewDescription.setVisibility(View.GONE);
-            }
-            
-            binding.tvTransactionType.setText(String.format("Type: %s", transaction.getTransactionType()));
-            String label = transaction.getTransactionType().equals("CREDIT") ? "Sender" : "Receiver";
-            binding.tvReceiver.setText(String.format("%s: %s", label, transaction.getReceiverName()));
+            binding.tvAmount.setText(String.format(Locale.getDefault(), "₹%.2f", transaction.getAmount()));
+            binding.tvDescription.setText(transaction.getDescription());
+            binding.tvDate.setText(new SimpleDateFormat("dd MMM yyyy, HH:mm", Locale.getDefault())
+                    .format(transaction.getDate()));
+            binding.tvReceiver.setText(transaction.getReceiverName());
+            binding.tvCategory.setText(transaction.getCategory());
+            binding.tvTransactionType.setText(transaction.getTransactionType());
 
-            // Show account information
-            if (transaction.getAccountId() != null) {
-                accountViewModel.getAllAccounts().observe((FragmentActivity) context, accounts -> {
-                    for (Account account : accounts) {
-                        if (account.getId() == transaction.getAccountId()) {
-                            binding.tvAccount.setVisibility(View.VISIBLE);
-                            binding.tvAccount.setText(String.format("Account: %s", account.getName()));
-                            return;
-                        }
-                    }
-                    binding.tvAccount.setVisibility(View.GONE);
-                });
-            } else {
-                binding.tvAccount.setVisibility(View.GONE);
-            }
-
-            // Show linked payment information if any
-            if (transaction.getLinkedRecurringPaymentId() != null) {
-                RecurringPaymentsViewModel recurringPaymentsViewModel = new ViewModelProvider((FragmentActivity) context)
-                        .get(RecurringPaymentsViewModel.class);
-                recurringPaymentsViewModel.getRecurringPayments().observe((FragmentActivity) context, payments -> {
+            // Set up recurring payment display
+            RecurringPaymentsViewModel recurringPaymentsViewModel = new ViewModelProvider((FragmentActivity) context)
+                    .get(RecurringPaymentsViewModel.class);
+            recurringPaymentsViewModel.getRecurringPayments().observe((FragmentActivity) context, payments -> {
+                if (transaction.getLinkedRecurringPaymentId() != null) {
                     for (RecurringPayment payment : payments) {
                         if (payment.getId() == transaction.getLinkedRecurringPaymentId()) {
                             binding.tvLinkedPayment.setVisibility(View.VISIBLE);
-                            binding.tvLinkedPayment.setText(String.format("Linked to: %s", payment.getName()));
-                            return;
+                            binding.tvLinkedPayment.setText("Linked to: " + payment.getName());
+                            break;
                         }
                     }
+                } else {
                     binding.tvLinkedPayment.setVisibility(View.GONE);
-                });
-            } else {
-                binding.tvLinkedPayment.setVisibility(View.GONE);
-            }
+                }
+            });
 
             // Set up exclude from summary checkbox
             binding.cbExcludeFromSummary.setOnCheckedChangeListener(null); // Remove any existing listener
@@ -530,7 +502,6 @@ public class TransactionsAdapter extends ListAdapter<Transaction, TransactionsAd
                     paymentNames.add(payment.getName());
                 }
                 
-                // Create a custom adapter with a better layout
                 ArrayAdapter<String> paymentAdapter = new ArrayAdapter<>(
                         context,
                         android.R.layout.simple_dropdown_item_1line,
@@ -559,121 +530,120 @@ public class TransactionsAdapter extends ListAdapter<Transaction, TransactionsAd
                     dialogBinding.etRecurringPayment.setText("None", false);
                 }
                 
-                // Configure the dropdown
                 dialogBinding.etRecurringPayment.setOnClickListener(v -> dialogBinding.etRecurringPayment.showDropDown());
                 dialogBinding.etRecurringPayment.setDropDownBackgroundResource(android.R.color.white);
-                dialogBinding.etRecurringPayment.setThreshold(1); // Show dropdown after typing 1 character
-                dialogBinding.etRecurringPayment.setDropDownHeight(ViewGroup.LayoutParams.WRAP_CONTENT);
+                dialogBinding.etRecurringPayment.setThreshold(1);
             });
 
-            AlertDialog dialog = new AlertDialog.Builder(context, 
-                    com.google.android.material.R.style.Theme_MaterialComponents_Light_Dialog)
-                    .setView(dialogBinding.getRoot())
-                    .setPositiveButton("Save", null)
-                    .setNegativeButton("Cancel", null)
-                    .create();
+            BaseDialogHelper dialogHelper = new BaseDialogHelper(
+                    context,
+                    "Edit Transaction",
+                    dialogBinding.getRoot(),
+                    "Save",
+                    "Cancel",
+                    new BaseDialogHelper.OnDialogButtonClickListener() {
+                        @Override
+                        public void onPositiveButtonClick(AlertDialog dialog) {
+                            try {
+                                String amountStr = dialogBinding.etAmount.getText().toString();
+                                String description = dialogBinding.etDescription.getText().toString();
+                                String receiverName = dialogBinding.etReceiverName.getText().toString();
+                                String category = dialogBinding.etCategory.getText().toString();
+                                String transactionType = dialogBinding.etTransactionType.getText().toString();
+                                String selectedPayment = dialogBinding.etRecurringPayment.getText().toString();
+                                String selectedAccount = dialogBinding.etAccount.getText().toString();
 
-            dialog.setOnShowListener(dialogInterface -> {
-                Button positiveButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
-                Button negativeButton = dialog.getButton(AlertDialog.BUTTON_NEGATIVE);
-                
-                positiveButton.setTextColor(context.getResources().getColor(R.color.primary));
-                negativeButton.setTextColor(context.getResources().getColor(R.color.primary));
-                
-                positiveButton.setOnClickListener(v -> {
-                    try {
-                        String amountStr = dialogBinding.etAmount.getText().toString();
-                        String description = dialogBinding.etDescription.getText().toString();
-                        String receiverName = dialogBinding.etReceiverName.getText().toString();
-                        String category = dialogBinding.etCategory.getText().toString();
-                        String transactionType = dialogBinding.etTransactionType.getText().toString();
-                        String selectedPayment = dialogBinding.etRecurringPayment.getText().toString();
-                        String selectedAccount = dialogBinding.etAccount.getText().toString();
-
-                        if (amountStr.isEmpty()) {
-                            Toast.makeText(context, "Please enter amount", Toast.LENGTH_SHORT).show();
-                            return;
-                        }
-
-                        Transaction updatedTransaction = new Transaction(
-                                Double.parseDouble(amountStr),
-                                description,
-                                calendar.getTime(),
-                                transactionType,
-                                receiverName,
-                                transaction.getSmsBody(),
-                                transaction.getSmsSender()
-                        );
-                        updatedTransaction.setId(transaction.getId());
-                        updatedTransaction.setCategory(category);
-
-                        // Get selected account and link it to the transaction
-                        accountViewModel.getAllAccounts().observe((FragmentActivity) context, accounts -> {
-                            for (Account account : accounts) {
-                                if (account.getName().equals(selectedAccount)) {
-                                    updatedTransaction.setAccountId(account.getId());
-                                    break;
+                                if (amountStr.isEmpty()) {
+                                    Toast.makeText(context, "Please enter amount", Toast.LENGTH_SHORT).show();
+                                    return;
                                 }
-                            }
-                        });
 
-                        // Handle recurring payment linking
-                        if (!selectedPayment.equals("None")) {
-                            for (RecurringPayment payment : currentPayments) {
-                                if (payment.getName().equals(selectedPayment)) {
-                                    // Link the payment to the transaction
-                                    updatedTransaction.setLinkedRecurringPaymentId(payment.getId());
-                                    // Mark the recurring payment as completed
-                                    payment.setCompleted(true);
-                                    payment.setLastCompletedDate(calendar.getTime());
-                                    recurringPaymentsViewModel.update(payment);
+                                Transaction updatedTransaction = new Transaction(
+                                        Double.parseDouble(amountStr),
+                                        description,
+                                        calendar.getTime(),
+                                        transactionType,
+                                        receiverName,
+                                        transaction.getSmsBody(),
+                                        transaction.getSmsSender()
+                                );
+                                updatedTransaction.setId(transaction.getId());
+                                updatedTransaction.setCategory(category);
 
-                                    // Update transaction and notify adapter
+                                // Get selected account and link it to the transaction
+                                accountViewModel.getAllAccounts().observe((FragmentActivity) context, accounts -> {
+                                    for (Account account : accounts) {
+                                        if (account.getName().equals(selectedAccount)) {
+                                            updatedTransaction.setAccountId(account.getId());
+                                            break;
+                                        }
+                                    }
+                                });
+
+                                // Handle recurring payment linking
+                                if (!selectedPayment.equals("None")) {
+                                    for (RecurringPayment payment : currentPayments) {
+                                        if (payment.getName().equals(selectedPayment)) {
+                                            // Link the payment to the transaction
+                                            updatedTransaction.setLinkedRecurringPaymentId(payment.getId());
+                                            // Mark the recurring payment as completed
+                                            payment.setCompleted(true);
+                                            payment.setLastCompletedDate(calendar.getTime());
+                                            recurringPaymentsViewModel.update(payment);
+
+                                            // Update transaction and notify adapter
+                                            viewModel.updateTransaction(transaction, updatedTransaction);
+                                            Toast.makeText(context, "Transaction updated", Toast.LENGTH_SHORT).show();
+                                            dialog.dismiss();
+                                            return;
+                                        }
+                                    }
+                                } else {
+                                    // No recurring payment selected, update transaction
+                                    updatedTransaction.setLinkedRecurringPaymentId(null);
                                     viewModel.updateTransaction(transaction, updatedTransaction);
                                     Toast.makeText(context, "Transaction updated", Toast.LENGTH_SHORT).show();
                                     dialog.dismiss();
-                                    return;
                                 }
+                            } catch (NumberFormatException e) {
+                                Toast.makeText(context, "Invalid amount", Toast.LENGTH_SHORT).show();
                             }
-                        } else {
-                            // If unlinking a payment, mark it as not completed
-                            if (transaction.getLinkedRecurringPaymentId() != null) {
-                                for (RecurringPayment payment : currentPayments) {
-                                    if (payment.getId() == transaction.getLinkedRecurringPaymentId()) {
-                                        payment.setCompleted(false);
-                                        payment.setLastCompletedDate(null);
-                                        recurringPaymentsViewModel.update(payment);
-                                        break;
-                                    }
-                                }
-                            }
-                            updatedTransaction.setLinkedRecurringPaymentId(null);
+                        }
 
-                            // Update transaction and notify adapter
-                            viewModel.updateTransaction(transaction, updatedTransaction);
-                            notifyItemChanged(getAdapterPosition());
-                            Toast.makeText(context, "Transaction updated", Toast.LENGTH_SHORT).show();
+                        @Override
+                        public void onNegativeButtonClick(AlertDialog dialog) {
                             dialog.dismiss();
                         }
-                    } catch (NumberFormatException e) {
-                        Toast.makeText(context, "Invalid amount", Toast.LENGTH_SHORT).show();
                     }
-                });
-            });
+            );
 
-            dialog.show();
+            dialogHelper.create().show();
         }
 
         private void showDeleteConfirmationDialog(Transaction transaction) {
-            new AlertDialog.Builder(context)
-                    .setTitle("Delete Transaction")
-                    .setMessage("Are you sure you want to delete this transaction?")
-                    .setPositiveButton("Delete", (dialog, which) -> {
-                        viewModel.deleteTransaction(transaction);
-                        Toast.makeText(context, "Transaction deleted", Toast.LENGTH_SHORT).show();
-                    })
-                    .setNegativeButton("Cancel", null)
-                    .show();
+            BaseDialogHelper dialogHelper = new BaseDialogHelper(
+                    context,
+                    "Delete Transaction",
+                    null,
+                    "Delete",
+                    "Cancel",
+                    new BaseDialogHelper.OnDialogButtonClickListener() {
+                        @Override
+                        public void onPositiveButtonClick(AlertDialog dialog) {
+                            viewModel.deleteTransaction(transaction);
+                            Toast.makeText(context, "Transaction deleted", Toast.LENGTH_SHORT).show();
+                            dialog.dismiss();
+                        }
+
+                        @Override
+                        public void onNegativeButtonClick(AlertDialog dialog) {
+                            dialog.dismiss();
+                        }
+                    }
+            );
+
+            dialogHelper.setMessage("Are you sure you want to delete this transaction?");
+            dialogHelper.create().show();
         }
     }
 
