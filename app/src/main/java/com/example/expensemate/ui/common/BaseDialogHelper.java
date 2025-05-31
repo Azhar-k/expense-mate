@@ -2,6 +2,7 @@ package com.example.expensemate.ui.common;
 
 import android.app.AlertDialog;
 import android.content.Context;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
@@ -49,24 +50,37 @@ public class BaseDialogHelper {
 
     public AlertDialog create() {
         AlertDialog.Builder builder = new AlertDialog.Builder(context, 
-                com.google.android.material.R.style.Theme_MaterialComponents_Light_Dialog)
-                .setTitle(title);
-
-        if (contentView != null) {
-            builder.setView(contentView);
-        }
+                com.google.android.material.R.style.Theme_MaterialComponents_Light_Dialog);
 
         if (message != null) {
-            builder.setMessage(message);
+            // Use confirmation dialog layout
+            View dialogView = LayoutInflater.from(context).inflate(R.layout.dialog_confirmation, null);
+            TextView titleView = dialogView.findViewById(R.id.tvDialogTitle);
+            TextView messageView = dialogView.findViewById(R.id.tvDialogMessage);
+            
+            titleView.setText(title);
+            messageView.setText(message);
+            
+            builder.setView(dialogView);
+        } else if (contentView != null) {
+            // Use provided content view
+            builder.setView(contentView);
         }
 
         AlertDialog dialog = builder.create();
         dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
 
         dialog.setOnShowListener(dialogInterface -> {
-            if (contentView != null) {
-                MaterialButton positiveButton = contentView.findViewById(R.id.btnPositive);
-                MaterialButton negativeButton = contentView.findViewById(R.id.btnNegative);
+            View view;
+            if (message != null) {
+                view = dialog.findViewById(R.id.tvDialogTitle).getRootView();
+            } else {
+                view = contentView;
+            }
+
+            if (view != null) {
+                MaterialButton positiveButton = view.findViewById(R.id.btnPositive);
+                MaterialButton negativeButton = view.findViewById(R.id.btnNegative);
                 
                 if (positiveButton != null && negativeButton != null) {
                     positiveButton.setText(positiveButtonText);
