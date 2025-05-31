@@ -11,6 +11,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.example.expensemate.R;
+import com.google.android.material.button.MaterialButton;
 
 public class BaseDialogHelper {
     private final Context context;
@@ -49,9 +50,7 @@ public class BaseDialogHelper {
     public AlertDialog create() {
         AlertDialog.Builder builder = new AlertDialog.Builder(context, 
                 com.google.android.material.R.style.Theme_MaterialComponents_Light_Dialog)
-                .setTitle(title)
-                .setPositiveButton(positiveButtonText, null)
-                .setNegativeButton(negativeButtonText, null);
+                .setTitle(title);
 
         if (contentView != null) {
             builder.setView(contentView);
@@ -65,24 +64,22 @@ public class BaseDialogHelper {
         dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
 
         dialog.setOnShowListener(dialogInterface -> {
-            Button positiveButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
-            Button negativeButton = dialog.getButton(AlertDialog.BUTTON_NEGATIVE);
-            
-            positiveButton.setTextColor(context.getResources().getColor(R.color.primary));
-            negativeButton.setTextColor(context.getResources().getColor(R.color.primary));
-            
-            // Set button layout parameters
-            ViewGroup.LayoutParams params = positiveButton.getLayoutParams();
-            if (params instanceof ViewGroup.MarginLayoutParams) {
-                ViewGroup.MarginLayoutParams marginParams = (ViewGroup.MarginLayoutParams) params;
-                marginParams.setMargins(16, 0, 16, 16);
-                positiveButton.setLayoutParams(marginParams);
-                negativeButton.setLayoutParams(marginParams);
-            }
-            
-            if (listener != null) {
-                positiveButton.setOnClickListener(v -> listener.onPositiveButtonClick(dialog));
-                negativeButton.setOnClickListener(v -> listener.onNegativeButtonClick(dialog));
+            if (contentView != null) {
+                MaterialButton positiveButton = contentView.findViewById(R.id.btnPositive);
+                MaterialButton negativeButton = contentView.findViewById(R.id.btnNegative);
+                
+                if (positiveButton != null && negativeButton != null) {
+                    positiveButton.setText(positiveButtonText);
+                    negativeButton.setText(negativeButtonText);
+                    
+                    positiveButton.setTextColor(context.getResources().getColor(R.color.primary));
+                    negativeButton.setTextColor(context.getResources().getColor(R.color.primary));
+                    
+                    if (listener != null) {
+                        positiveButton.setOnClickListener(v -> listener.onPositiveButtonClick(dialog));
+                        negativeButton.setOnClickListener(v -> listener.onNegativeButtonClick(dialog));
+                    }
+                }
             }
         });
 
