@@ -4,9 +4,9 @@
         <item name="hintEnabled">true</item>
         <item name="hintAnimationEnabled">false</item>
         <item name="boxStrokeColor">@color/primary</item>
-        <item name="hintTextColor">@color/primary</item>
+        <item name="hintTextColor">@color/secondary_text</item>
         <item name="boxBackgroundColor">@color/white</item>
-        <item name="android:textColorHint">@color/primary</item>
+        <item name="android:textColorHint">@color/secondary_text</item>
         <item name="boxCornerRadiusBottomEnd">8dp</item>
         <item name="boxCornerRadiusBottomStart">8dp</item>
         <item name="boxCornerRadiusTopEnd">8dp</item>
