@@ -18,9 +18,11 @@ import com.example.expensemate.data.BackupDataLoader;
 import com.example.expensemate.data.Category;
 import com.example.expensemate.databinding.DialogEditCategoryBinding;
 import com.example.expensemate.databinding.FragmentCategoriesBinding;
+import com.example.expensemate.ui.common.BaseDialogHelper;
 import com.example.expensemate.viewmodel.CategoryViewModel;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.button.MaterialButton;
+
 
 public class CategoriesFragment extends Fragment {
     private FragmentCategoriesBinding binding;
@@ -125,39 +127,37 @@ public class CategoriesFragment extends Fragment {
         dialogBinding.etCategoryType.setAdapter(typeAdapter);
         dialogBinding.etCategoryType.setOnClickListener(v -> dialogBinding.etCategoryType.showDropDown());
 
-        AlertDialog dialog = new AlertDialog.Builder(requireContext(), 
-                com.google.android.material.R.style.Theme_MaterialComponents_Light_Dialog)
-                .setTitle("Edit Category")
-                .setView(dialogBinding.getRoot())
-                .setPositiveButton("Save", null)
-                .setNegativeButton("Cancel", null)
-                .create();
+        BaseDialogHelper dialogHelper = new BaseDialogHelper(
+                requireContext(),
+                "Edit Category",
+                dialogBinding.getRoot(),
+                "Save",
+                "Cancel",
+                new BaseDialogHelper.OnDialogButtonClickListener() {
+                    @Override
+                    public void onPositiveButtonClick(AlertDialog dialog) {
+                        String name = dialogBinding.etCategoryName.getText().toString();
+                        String type = dialogBinding.etCategoryType.getText().toString();
 
-        dialog.setOnShowListener(dialogInterface -> {
-            Button positiveButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
-            Button negativeButton = dialog.getButton(AlertDialog.BUTTON_NEGATIVE);
-            
-            positiveButton.setTextColor(requireContext().getResources().getColor(R.color.primary));
-            negativeButton.setTextColor(requireContext().getResources().getColor(R.color.primary));
-            
-            positiveButton.setOnClickListener(v -> {
-                String name = dialogBinding.etCategoryName.getText().toString().trim();
-                String type = dialogBinding.etCategoryType.getText().toString();
+                        if (name.isEmpty()) {
+                            Toast.makeText(requireContext(), "Please enter category name", Toast.LENGTH_SHORT).show();
+                            return;
+                        }
 
-                if (name.isEmpty()) {
-                    Toast.makeText(requireContext(), "Please enter category name", Toast.LENGTH_SHORT).show();
-                    return;
+                        category.setName(name);
+                        category.setType(type);
+                        viewModel.updateCategory(category);
+                        dialog.dismiss();
+                    }
+
+                    @Override
+                    public void onNegativeButtonClick(AlertDialog dialog) {
+                        dialog.dismiss();
+                    }
                 }
+        );
 
-                category.setName(name);
-                category.setType(type);
-                viewModel.updateCategory(category);
-                Toast.makeText(requireContext(), "Category updated", Toast.LENGTH_SHORT).show();
-                dialog.dismiss();
-            });
-        });
-
-        dialog.show();
+        dialogHelper.create().show();
     }
 
     public void showDeleteConfirmationDialog(Category category) {
