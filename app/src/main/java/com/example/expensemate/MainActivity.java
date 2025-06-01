@@ -190,7 +190,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
     private void navigateToDestination(int id, NavController navController) {
         if (id == R.id.nav_home) {
-            navController.navigate(R.id.navigation_expense);
+            navController.navigate(R.id.navigation_transactions);
         } else if (id == R.id.nav_accounts) {
             navController.navigate(R.id.navigation_accounts);
         } else if (id == R.id.nav_categories) {

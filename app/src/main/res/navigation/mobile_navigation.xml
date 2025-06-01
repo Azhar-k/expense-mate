@@ -3,19 +3,19 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/mobile_navigation"
-    app:startDestination="@+id/navigation_expense">
-
-    <fragment
-        android:id="@+id/navigation_expense"
-        android:name="com.example.expensemate.ui.expense.ExpenseFragment"
-        android:label="Home"
-        tools:layout="@layout/fragment_expense" />
+    app:startDestination="@+id/navigation_summary">
 
     <fragment
         android:id="@+id/navigation_transactions"
         android:name="com.example.expensemate.ui.transactions.TransactionsFragment"
         android:label="Transactions"
         tools:layout="@layout/fragment_transactions" />
+
+    <fragment
+        android:id="@+id/navigation_accounts"
+        android:name="com.example.expensemate.ui.accounts.AccountsFragment"
+        android:label="Accounts"
+        tools:layout="@layout/fragment_accounts" />
 
     <fragment
         android:id="@+id/navigation_summary"
@@ -46,11 +46,4 @@
         android:name="com.example.expensemate.ui.recurringpayment.RecurringPaymentsFragment"
         android:label="@string/recurring_payments"
         tools:layout="@layout/fragment_recurring_payments" />
-
-    <fragment
-        android:id="@+id/navigation_accounts"
-        android:name="com.example.expensemate.ui.accounts.AccountsFragment"
-        android:label="Accounts"
-        tools:layout="@layout/fragment_accounts" />
-
 </navigation>
