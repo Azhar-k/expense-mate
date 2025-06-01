@@ -76,15 +76,12 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 if (destination.getId() == R.id.navigation_categories || 
                     destination.getId() == R.id.navigation_recurring_payments ||
                     destination.getId() == R.id.navigation_sms_scan ||
-                    destination.getId() == R.id.navigation_accounts ||
                     destination.getId() == R.id.navigation_self_transfer) {
                     bottomNavView.setVisibility(View.GONE);
                     if (destination.getId() == R.id.navigation_categories) {
                         navigationView.setCheckedItem(R.id.nav_categories);
                     } else if (destination.getId() == R.id.navigation_sms_scan) {
                         navigationView.setCheckedItem(R.id.nav_sms_scan);
-                    } else if (destination.getId() == R.id.navigation_accounts) {
-                        navigationView.setCheckedItem(R.id.nav_accounts);
                     } else if (destination.getId() == R.id.navigation_self_transfer) {
                         navigationView.setCheckedItem(R.id.nav_self_transfer);
                     } else {
@@ -92,7 +89,13 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                     }
                 } else {
                     bottomNavView.setVisibility(View.VISIBLE);
-                    navigationView.setCheckedItem(R.id.nav_home);
+                    if (destination.getId() == R.id.navigation_summary) {
+                        navigationView.setCheckedItem(R.id.nav_home);
+                    } else if (destination.getId() == R.id.navigation_transactions) {
+                        navigationView.setCheckedItem(R.id.nav_home);
+                    } else if (destination.getId() == R.id.navigation_accounts) {
+                        navigationView.setCheckedItem(R.id.nav_home);
+                    }
                 }
             });
         }
@@ -190,9 +193,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
     private void navigateToDestination(int id, NavController navController) {
         if (id == R.id.nav_home) {
-            navController.navigate(R.id.navigation_transactions);
-        } else if (id == R.id.nav_accounts) {
-            navController.navigate(R.id.navigation_accounts);
+            navController.navigate(R.id.navigation_summary);
         } else if (id == R.id.nav_categories) {
             navController.navigate(R.id.navigation_categories);
         } else if (id == R.id.nav_self_transfer) {

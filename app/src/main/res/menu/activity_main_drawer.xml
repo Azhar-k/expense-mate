@@ -9,10 +9,6 @@
             android:icon="@drawable/ic_menu_summary"
             android:title="Summary" />
         <item
-            android:id="@+id/nav_accounts"
-            android:icon="@drawable/ic_account"
-            android:title="Accounts" />
-        <item
             android:id="@+id/nav_categories"
             android:icon="@drawable/ic_category"
             android:title="Categories" />
@@ -24,7 +20,6 @@
             android:id="@+id/nav_recurring_payments"
             android:icon="@drawable/ic_recurring"
             android:title="@string/recurring_payments" />
-
         <item
             android:id="@+id/nav_sms_scan"
             android:icon="@drawable/ic_sms"
