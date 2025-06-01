@@ -21,8 +21,10 @@ import com.example.expensemate.databinding.FragmentSmsScanBinding;
 import com.example.expensemate.util.SmsTransactionHandler;
 import com.example.expensemate.viewmodel.TransactionViewModel;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -139,6 +141,11 @@ public class SmsScanFragment extends Fragment {
 
                 int processedCount = 0;
                 int createdCount = 0;
+                List<String> unmatchedSms = new ArrayList<>();
+                List<String> duplicateSms = new ArrayList<>();
+                List<String> errorSms = new ArrayList<>();
+                List<String> success = new ArrayList<>();
+                List<String> allSms = new ArrayList<>();
 
                 if (cursor != null) {
                     try {
@@ -149,8 +156,25 @@ public class SmsScanFragment extends Fragment {
 
                             processedCount++;
                             Log.d("SmsScanFragment", "Processing the scanned SMS: " + body);
-                            if (SmsTransactionHandler.handleSms(body, sender, viewModel, new Date(date))) {
+                            allSms.add(body);
+                            
+                            SmsTransactionHandler.TransactionResult result = 
+                                SmsTransactionHandler.handleSms(body, sender, viewModel, new Date(date));
+                            if (result.success) {
+                                success.add(body);
                                 createdCount++;
+                            } else {
+                                switch (result.reason) {
+                                    case "No transaction pattern matched in SMS":
+                                        unmatchedSms.add(body);
+                                        break;
+                                    case "Duplicate transaction detected":
+                                        duplicateSms.add(body);
+                                        break;
+                                    default:
+                                        errorSms.add(body + " (Error: " + result.reason + ")");
+                                        break;
+                                }
                             }
                         }
                     } finally {
@@ -160,6 +184,49 @@ public class SmsScanFragment extends Fragment {
 
                 final int finalProcessedCount = processedCount;
                 final int finalCreatedCount = createdCount;
+
+                // Log unmatched SMS to console
+                Log.i("SmsScanFragment", "=== Scan Results ===");
+                Log.i("SmsScanFragment", String.format("Processed %d SMS, Created %d transactions", 
+                    finalProcessedCount, finalCreatedCount));
+
+//                if (!allSms.isEmpty()) {
+//                    Log.i("SmsScanFragment", "\n=== All SMS (" + allSms.size() + ") ===");
+//                    for (String sms : allSms) {
+//                        Log.i("SmsScanFragment", "\n" + sms);
+//                    }
+//                }
+
+                if (!success.isEmpty()) {
+                    Log.i("SmsScanFragment", "\n=== Success SMS (" + success.size() + ") ===");
+                    for (String sms : success) {
+                        Log.i("SmsScanFragment", "Success: " + sms);
+                    }
+                }
+
+                if (!unmatchedSms.isEmpty()) {
+                    Log.i("SmsScanFragment", "\n=== Unmatched SMS (" + unmatchedSms.size() + ") ===");
+                    for (String sms : unmatchedSms) {
+                        Log.i("", "" + sms);
+                    }
+                }
+
+                if (!duplicateSms.isEmpty()) {
+                    Log.i("SmsScanFragment", "\n=== Duplicate SMS (" + duplicateSms.size() + ") ===");
+                    for (String sms : duplicateSms) {
+                        Log.i("SmsScanFragment", "Duplicate: " + sms);
+                    }
+                }
+
+                if (!errorSms.isEmpty()) {
+                    Log.i("SmsScanFragment", "\n=== Error SMS (" + errorSms.size() + ") ===");
+                    for (String sms : errorSms) {
+                        Log.i("SmsScanFragment", "Error: " + sms);
+                    }
+                }
+                Log.i("SmsScanFragment", "=== End of Scan Results ===\n");
+
+                // Update UI with just the basic status
                 requireActivity().runOnUiThread(() -> {
                     binding.btnScanSms.setEnabled(true);
                     binding.tvScanStatus.setText(String.format(
@@ -168,6 +235,7 @@ public class SmsScanFragment extends Fragment {
                         finalCreatedCount
                     ));
                 });
+
             } catch (SecurityException e) {
                 requireActivity().runOnUiThread(() -> {
                     binding.btnScanSms.setEnabled(true);
