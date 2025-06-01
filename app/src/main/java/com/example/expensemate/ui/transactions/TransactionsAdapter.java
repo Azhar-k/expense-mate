@@ -318,29 +318,71 @@ public class TransactionsAdapter extends ListAdapter<Transaction, TransactionsAd
 
         public void bind(Transaction transaction) {
             binding.tvAmount.setText(String.format(Locale.getDefault(), "₹%.2f", transaction.getAmount()));
-            binding.tvDescription.setText(transaction.getDescription());
-            binding.tvDate.setText(new SimpleDateFormat("dd MMM yyyy, HH:mm", Locale.getDefault())
-                    .format(transaction.getDate()));
-            binding.tvReceiver.setText(transaction.getReceiverName());
-            binding.tvCategory.setText(transaction.getCategory());
-            binding.tvTransactionType.setText(transaction.getTransactionType());
+            if (transaction.getTransactionType() == null) {
+                Log.d("Transaction", "Transaction type is null. Not setting the colour. Id:"+ transaction.getId()+ ", Amount:"+ transaction.getAmount()+", Desc:"+transaction.getDescription());
+            } else {
+                binding.tvAmount.setTextColor(context.getColor(
+                        transaction.getTransactionType().equals("DEBIT") ? R.color.debit_color : R.color.credit_color));
+            }
+            
+            SimpleDateFormat dateFormat = new SimpleDateFormat("dd MMM yyyy, HH:mm", Locale.getDefault());
+            binding.tvDate.setText(String.format("Date: %s", dateFormat.format(transaction.getDate())));
+            binding.tvCategory.setText(String.format("Category: %s", transaction.getCategory()));
+            
+            // Truncate description if longer than 40 characters
+            String description = transaction.getDescription();
+            if (description != null && description.length() > 40) {
+                binding.tvDescription.setText(String.format("Description: %s...", description.substring(0, 40)));
+                binding.btnViewDescription.setVisibility(View.VISIBLE);
+                binding.btnViewDescription.setOnClickListener(v -> {
+                    new AlertDialog.Builder(context)
+                        .setTitle("Full Description")
+                        .setMessage(description)
+                        .setPositiveButton("OK", null)
+                        .show();
+                });
+            } else {
+                binding.tvDescription.setText(String.format("Description: %s", description));
+                binding.btnViewDescription.setVisibility(View.GONE);
+            }
+            
+            binding.tvTransactionType.setText(String.format("Type: %s", transaction.getTransactionType()));
+            String label = transaction.getTransactionType().equals("CREDIT") ? "Sender" : "Receiver";
+            binding.tvReceiver.setText(String.format("%s: %s", label, transaction.getReceiverName()));
 
-            // Set up recurring payment display
-            RecurringPaymentsViewModel recurringPaymentsViewModel = new ViewModelProvider((FragmentActivity) context)
-                    .get(RecurringPaymentsViewModel.class);
-            recurringPaymentsViewModel.getRecurringPayments().observe((FragmentActivity) context, payments -> {
-                if (transaction.getLinkedRecurringPaymentId() != null) {
+            // Show account information
+            if (transaction.getAccountId() != null) {
+                accountViewModel.getAllAccounts().observe((FragmentActivity) context, accounts -> {
+                    for (Account account : accounts) {
+                        if (account.getId() == transaction.getAccountId()) {
+                            binding.tvAccount.setVisibility(View.VISIBLE);
+                            binding.tvAccount.setText(String.format("Account: %s", account.getName()));
+                            return;
+                        }
+                    }
+                    binding.tvAccount.setVisibility(View.GONE);
+                });
+            } else {
+                binding.tvAccount.setVisibility(View.GONE);
+            }
+
+            // Show linked payment information if any
+            if (transaction.getLinkedRecurringPaymentId() != null) {
+                RecurringPaymentsViewModel recurringPaymentsViewModel = new ViewModelProvider((FragmentActivity) context)
+                        .get(RecurringPaymentsViewModel.class);
+                recurringPaymentsViewModel.getRecurringPayments().observe((FragmentActivity) context, payments -> {
                     for (RecurringPayment payment : payments) {
                         if (payment.getId() == transaction.getLinkedRecurringPaymentId()) {
                             binding.tvLinkedPayment.setVisibility(View.VISIBLE);
-                            binding.tvLinkedPayment.setText("Linked to: " + payment.getName());
-                            break;
+                            binding.tvLinkedPayment.setText(String.format("Linked to: %s", payment.getName()));
+                            return;
                         }
                     }
-                } else {
                     binding.tvLinkedPayment.setVisibility(View.GONE);
-                }
-            });
+                });
+            } else {
+                binding.tvLinkedPayment.setVisibility(View.GONE);
+            }
 
             // Set up exclude from summary checkbox
             binding.cbExcludeFromSummary.setOnCheckedChangeListener(null); // Remove any existing listener
