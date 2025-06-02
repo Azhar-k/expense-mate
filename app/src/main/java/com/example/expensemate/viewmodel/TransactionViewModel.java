@@ -159,7 +159,7 @@ public class TransactionViewModel extends AndroidViewModel {
                 Log.d(TAG, "Inserting transaction: " + transaction.getAmount() + " " + transaction.getTransactionType());
                 // If no account is set, use the default account
                 if (transaction.getAccountId() == null) {
-                    Account defaultAccount = accountViewModel.getDefaultAccount().getValue();
+                    Account defaultAccount = accountViewModel.getDefaultAccountSync();
                     if (defaultAccount != null) {
                         transaction.setAccountId(defaultAccount.getId());
                     }

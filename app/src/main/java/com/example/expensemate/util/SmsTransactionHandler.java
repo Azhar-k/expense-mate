@@ -92,6 +92,29 @@ public class SmsTransactionHandler {
         "Your Pluxee Card (?:xx\\d+)? has been (?:successfully )?credited with (?:Rs\\.?|INR) (\\d+(?:\\.\\d{2})?) (?:towards\\s+Meal Wallet|as a reversal against a previous transaction) on (?:[A-Za-z]{3} )?(\\d{2} [A-Za-z]{3} \\d{4} \\d{2}:\\d{2}:\\d{2})(?:as a reversal against a previous transaction on [A-Za-z]{3} \\d{2},\\d{4} \\d{2}:\\d{2}:\\d{2})?\\.(?: Your current Meal Wallet balance is Rs\\.(\\d+(?:\\.\\d{2})?)\\.)?"
     );
 
+    private static final Pattern UPI_DEBIT_PATTERN = Pattern.compile(
+            "(?i)(?:debited\\s+(?:for|Rs\\.?|INR)?\\s*)([\\d,]+\\.\\d{2}).*?;\\s*([A-Z][A-Za-z\\s\\.\\-]+)\\s+credited"
+    );
+
+    private static final Pattern UPI_CREDIT_PATTERN = Pattern.compile(
+            "(?i)(?:Acct\\s+\\w+\\s+is\\s+credited\\s+with\\s+(?:Rs\\.?|INR)?\\s*([\\d,]+\\.\\d{2})\\s+from\\s+([A-Z][A-Za-z\\s\\.\\-]+))"
+    );
+
+    private static final Pattern NEFT_CREDIT_PATTERN = Pattern.compile(
+            "(?i)Account\\s+\\w+\\s+credited:Rs\\.\\s*([\\d,]+\\.\\d{2}).*?NEFT[-]?([A-Z0-9]+)"
+    );
+
+    private static final Pattern CREDIT_CARD_SPEND_PATTERN = Pattern.compile(
+            "(?i)Rs\\.?\\s*(\\d{1,3}(?:,\\d{3})*(?:\\.\\d{2})?)\\s+spent\\s+on\\s+(?:your\\s+)?(?:[A-Z]+\\s+)?(?:Credit\\s+)?Card(?:\\s+ending\\s+with\\s+\\d{4}|\\s+XX\\d{4})?.*?at\\s+([A-Z0-9@&\\-\\s\\.]+?)\\s+(?:on\\s+\\d{2}-\\d{2}-\\d{2}|via|Ref|\\.|$)"
+    );
+
+    private static final Pattern ICICI_CARD_SPEND_PATTERN = Pattern.compile(
+            "Rs\\.?\\s*(\\d{1,3}(?:,\\d{3})*(?:\\.\\d{2})?)\\s+spent on ICICI Bank Card XX\\d{4} on (\\d{2}-[A-Za-z]{3}-\\d{2}) at ([A-Z0-9\\s\\.\\-&]+)"
+    );
+
+
+
+
     /**
      * Extracts transaction details from SMS and processes it if valid
      * @param smsBody The SMS message body
@@ -347,6 +370,95 @@ public class SmsTransactionHandler {
                     sender
                 );
             }
+
+            // Try UPI debit (e.g., ICICI generic debit format)
+            var upiDebitMatcher = UPI_DEBIT_PATTERN.matcher(smsBody);
+            if (upiDebitMatcher.find()) {
+                double amount = Double.parseDouble(upiDebitMatcher.group(1).replace(",", ""));
+                String receiverName = upiDebitMatcher.group(2).trim();
+                Log.d(TAG, "Found UPI debit transaction: " + amount + " to " + receiverName);
+
+                return new Transaction(
+                        amount,
+                        smsBody,
+                        new Date(),
+                        "DEBIT",
+                        receiverName,
+                        smsBody,
+                        sender
+                );
+            }
+
+// Try UPI credit
+            var upiCreditMatcher = UPI_CREDIT_PATTERN.matcher(smsBody);
+            if (upiCreditMatcher.find()) {
+                double amount = Double.parseDouble(upiCreditMatcher.group(1).replace(",", ""));
+                String senderName = upiCreditMatcher.group(2).trim();
+                Log.d(TAG, "Found UPI credit transaction: " + amount + " from " + senderName);
+
+                return new Transaction(
+                        amount,
+                        smsBody,
+                        new Date(),
+                        "CREDIT",
+                        senderName,
+                        smsBody,
+                        sender
+                );
+            }
+
+// Try NEFT credit
+            var neftCreditMatcher = NEFT_CREDIT_PATTERN.matcher(smsBody);
+            if (neftCreditMatcher.find()) {
+                double amount = Double.parseDouble(neftCreditMatcher.group(1).replace(",", ""));
+                String senderName = "NEFT-" + neftCreditMatcher.group(2).trim();
+                Log.d(TAG, "Found NEFT credit transaction: " + amount + " from " + senderName);
+
+                return new Transaction(
+                        amount,
+                        smsBody,
+                        new Date(),
+                        "CREDIT",
+                        senderName,
+                        smsBody,
+                        sender
+                );
+            }
+
+            var iciciCardSpendMatcher = ICICI_CARD_SPEND_PATTERN.matcher(smsBody);
+            if (iciciCardSpendMatcher.find()) {
+                double amount = Double.parseDouble(iciciCardSpendMatcher.group(1).replace(",", ""));
+                String merchant = iciciCardSpendMatcher.group(3).trim();
+                Log.d(TAG, "Found ICICI Credit Card spend: " + amount + " at " + merchant);
+
+                return new Transaction(
+                        amount,
+                        smsBody,
+                        new Date(),
+                        "DEBIT",
+                        merchant,
+                        smsBody,
+                        sender
+                );
+            }
+
+            var ccSpendMatcher = CREDIT_CARD_SPEND_PATTERN.matcher(smsBody);
+            if (ccSpendMatcher.find()) {
+                double amount = Double.parseDouble(ccSpendMatcher.group(1).replace(",", ""));
+                String merchant = ccSpendMatcher.group(2).trim();
+                Log.d(TAG, "Found Credit Card spend: " + amount + " at " + merchant);
+
+                return new Transaction(
+                        amount,
+                        smsBody,
+                        new Date(),
+                        "DEBIT",
+                        merchant,
+                        smsBody,
+                        sender
+                );
+            }
+
 
             Log.d(TAG, "No transaction pattern matched in SMS:"+ smsBody);
         } catch (Exception e) {
