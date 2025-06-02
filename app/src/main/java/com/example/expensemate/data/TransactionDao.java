@@ -25,9 +25,9 @@ public interface TransactionDao {
                            String smsBody, String smsSender, String category, Long linkedRecurringPaymentId, Long accountId, boolean isExcludedFromSummary);
 
     /****************************************************************************************************/
-    //Home screen
+    //Summary screen
 
-    //Home screen expense
+    //Summary screen expense
     @Query("SELECT COALESCE(SUM(amount), 0) FROM transactions " +
             "WHERE transactionType = 'DEBIT' AND isExcludedFromSummary = 0 " +
             "AND strftime('%m', datetime(date/1000, 'unixepoch')) = :month " +
@@ -35,16 +35,13 @@ public interface TransactionDao {
             "AND (:accountId IS NULL OR accountId = :accountId)")
     Double getExpenseForExpenseScreen(String month, String year, Long accountId);
 
-    //Home screen income
+    //Summary screen income
     @Query("SELECT COALESCE(SUM(amount), 0) FROM transactions " +
-            "WHERE transactionType = 'CREDIT'" +
+            "WHERE transactionType = 'CREDIT' AND isExcludedFromSummary = 0 " +
             "AND strftime('%m', datetime(date/1000, 'unixepoch')) = :month " +
             "AND strftime('%Y', datetime(date/1000, 'unixepoch')) = :year " +
             "AND (:accountId IS NULL OR accountId = :accountId)")
     Double getIncomeForExpenseScreen(String month, String year, Long accountId);
-
-    /****************************************************************************************************/
-    //Summary screen
 
     // Category sum for expense section of summary screen
     @Query("SELECT category, SUM(amount) as total FROM transactions " +
@@ -57,7 +54,7 @@ public interface TransactionDao {
 
     // Category sum for income section of summary screen
     @Query("SELECT category, SUM(amount) as total FROM transactions " +
-           "WHERE transactionType = 'CREDIT' " +
+           "WHERE transactionType = 'CREDIT' AND isExcludedFromSummary = 0 " +
            "AND strftime('%m', datetime(date/1000, 'unixepoch')) = :month " +
            "AND strftime('%Y', datetime(date/1000, 'unixepoch')) = :year " +
            "AND (:accountId IS NULL OR accountId = :accountId) " +
