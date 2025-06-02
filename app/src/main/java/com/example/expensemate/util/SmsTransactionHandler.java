@@ -112,47 +112,18 @@ public class SmsTransactionHandler {
             "Rs\\.?\\s*(\\d{1,3}(?:,\\d{3})*(?:\\.\\d{2})?)\\s+spent on ICICI Bank Card XX\\d{4} on (\\d{2}-[A-Za-z]{3}-\\d{2}) at ([A-Z0-9\\s\\.\\-&]+)"
     );
 
+    private static final Pattern ICICI_ALT_DEBIT_PATTERN = Pattern.compile(
+            "Rs\\.?\\s*(\\d{1,3}(?:,\\d{3})*(?:\\.\\d{2}))\\s+debited from ICICI Bank Acc XX\\d+ on (\\d{2}-[A-Za-z]{3}-\\d{2})\\s+([A-Z0-9\\*\\s\\.]+)\\s+Bal"
+    );
 
+    private static final Pattern NEFT_CREDIT_BY_PATTERN = Pattern.compile(
+            "(?:INR|Rs\\.?)[ ]?(\\d{1,3}(?:,\\d{3})*(?:\\.\\d{2}))\\s+credited to your A/c No XX\\d+ on \\d{2}/\\d{2}/\\d{4}.*?by ([A-Z][A-Za-z\\s\\.]+)"
+    );
 
+    private static final Pattern ICICI_INFOBIL_NEFT_DEBIT_PATTERN = Pattern.compile(
+            "ICICI Bank Acc XX\\d+ debited Rs\\.?\\s*(\\d{1,3}(?:,\\d{3})*(?:\\.\\d{2})) on (\\d{2}-[A-Za-z]{3}-\\d{2}) InfoBIL\\*NEFT\\*([A-Z0-9\\.]+)"
+    );
 
-    /**
-     * Extracts transaction details from SMS and processes it if valid
-     * @param smsBody The SMS message body
-     * @param sender The SMS sender
-     * @param viewModel The TransactionViewModel to use for database operations
-     * @param date Optional date to set for the transaction (null for current date)
-     * @return TransactionResult containing the result of processing
-     */
-    public static TransactionResult handleSms(String smsBody, String sender, TransactionViewModel viewModel, Date date) {
-        Log.d(TAG, "Processing SMS from: " + sender);
-        Log.d(TAG, "SMS body length: " + (smsBody != null ? smsBody.length() : 0));
-        Log.d(TAG, "Full SMS body: [" + smsBody + "]");
-
-        try {
-            Transaction transaction = extractTransactionDetails(smsBody, sender);
-            if (transaction != null) {
-                if (date != null) {
-                    transaction.setDate(date);
-                }
-                Log.d(TAG, "Transaction extracted: " + transaction.getAmount() + " " + 
-                      transaction.getTransactionType() + " to/from " + transaction.getReceiverName());
-                Log.d(TAG, "Transaction SMS body length: " + (transaction.getSmsBody() != null ? transaction.getSmsBody().length() : 0));
-                Log.d(TAG, "Transaction SMS body: [" + transaction.getSmsBody() + "]");
-                
-                if (processTransaction(transaction, viewModel)) {
-                    return TransactionResult.success(transaction);
-                } else {
-                    return TransactionResult.duplicateTransaction();
-                }
-            } else {
-                Log.d(TAG, "No transaction details could be extracted");
-                return TransactionResult.noPatternMatch(smsBody);
-            }
-        } catch (Exception e) {
-            Log.e(TAG, "Error processing SMS: " + e.getMessage(), e);
-            return TransactionResult.error("Error processing SMS: " + e.getMessage());
-        }
-    }
 
     /**
      * Extracts transaction details from SMS
@@ -459,12 +430,102 @@ public class SmsTransactionHandler {
                 );
             }
 
+            var iciciAltDebitMatcher = ICICI_ALT_DEBIT_PATTERN.matcher(smsBody);
+            if (iciciAltDebitMatcher.find()) {
+                double amount = Double.parseDouble(iciciAltDebitMatcher.group(1).replace(",", ""));
+                String receiver = iciciAltDebitMatcher.group(3).trim();
+                Log.d(TAG, "Found ICICI alt debit: " + amount + " to " + receiver);
+
+                return new Transaction(
+                        amount,
+                        smsBody,
+                        new Date(),
+                        "DEBIT",
+                        receiver,
+                        smsBody,
+                        sender
+                );
+            }
+
+            var neftCreditByMatcher = NEFT_CREDIT_BY_PATTERN.matcher(smsBody);
+            if (neftCreditByMatcher.find()) {
+                double amount = Double.parseDouble(neftCreditByMatcher.group(1).replace(",", ""));
+                String senderName = neftCreditByMatcher.group(2).trim();
+                Log.d(TAG, "Found NEFT credit by sender: " + amount + " from " + senderName);
+
+                return new Transaction(
+                        amount,
+                        smsBody,
+                        new Date(),
+                        "CREDIT",
+                        senderName,
+                        smsBody,
+                        sender
+                );
+            }
+
+            var iciciNeftDebitMatcher = ICICI_INFOBIL_NEFT_DEBIT_PATTERN.matcher(smsBody);
+            if (iciciNeftDebitMatcher.find()) {
+                double amount = Double.parseDouble(iciciNeftDebitMatcher.group(1).replace(",", ""));
+                String ref = iciciNeftDebitMatcher.group(3).trim();
+                String receiver = "NEFT-" + ref;
+                Log.d(TAG, "Found ICICI NEFT debit: " + amount + " to " + receiver);
+
+                return new Transaction(
+                        amount,
+                        smsBody,
+                        new Date(),
+                        "DEBIT",
+                        receiver,
+                        smsBody,
+                        sender
+                );
+            }
 
             Log.d(TAG, "No transaction pattern matched in SMS:"+ smsBody);
         } catch (Exception e) {
             Log.e(TAG, "Error processing SMS: " + e.getMessage(), e);
         }
         return null;
+    }
+
+    /**
+     * Extracts transaction details from SMS and processes it if valid
+     * @param smsBody The SMS message body
+     * @param sender The SMS sender
+     * @param viewModel The TransactionViewModel to use for database operations
+     * @param date Optional date to set for the transaction (null for current date)
+     * @return TransactionResult containing the result of processing
+     */
+    public static TransactionResult handleSms(String smsBody, String sender, TransactionViewModel viewModel, Date date) {
+        Log.d(TAG, "Processing SMS from: " + sender);
+        Log.d(TAG, "SMS body length: " + (smsBody != null ? smsBody.length() : 0));
+        Log.d(TAG, "Full SMS body: [" + smsBody + "]");
+
+        try {
+            Transaction transaction = extractTransactionDetails(smsBody, sender);
+            if (transaction != null) {
+                if (date != null) {
+                    transaction.setDate(date);
+                }
+                Log.d(TAG, "Transaction extracted: " + transaction.getAmount() + " " +
+                        transaction.getTransactionType() + " to/from " + transaction.getReceiverName());
+                Log.d(TAG, "Transaction SMS body length: " + (transaction.getSmsBody() != null ? transaction.getSmsBody().length() : 0));
+                Log.d(TAG, "Transaction SMS body: [" + transaction.getSmsBody() + "]");
+
+                if (processTransaction(transaction, viewModel)) {
+                    return TransactionResult.success(transaction);
+                } else {
+                    return TransactionResult.duplicateTransaction();
+                }
+            } else {
+                Log.d(TAG, "No transaction details could be extracted");
+                return TransactionResult.noPatternMatch(smsBody);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error processing SMS: " + e.getMessage(), e);
+            return TransactionResult.error("Error processing SMS: " + e.getMessage());
+        }
     }
 
     /**
