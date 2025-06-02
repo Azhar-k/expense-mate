@@ -39,7 +39,7 @@ public class TransactionViewModel extends AndroidViewModel {
     private String category;
     private Double amount;
     private String transactionType;
-    private boolean excludeFromSummary;
+    private Boolean excludeFromSummary;
     private Long linkedRecurringPaymentId;
     private String fromDate;
     private String toDate;
@@ -86,14 +86,14 @@ public class TransactionViewModel extends AndroidViewModel {
         
         if (month != null && year != null) {
             Log.d(TAG, "Updating LiveData for period: " + month + "/" + year);
-            
+
             // Update expense total
             executorService.execute(() -> {
                 Double expense = transactionDao.getExpenseForExpenseScreen(month, year, accountId);
                 Log.d(TAG, "Fetched expense total: " + expense);
                 totalExpense.postValue(expense);
             });
-            
+
             // Update income total
             executorService.execute(() -> {
                 Double income = transactionDao.getIncomeForExpenseScreen(month, year, accountId);
@@ -245,7 +245,7 @@ public class TransactionViewModel extends AndroidViewModel {
     }
 
     public void setFilters(String description, String receiver, String category, Double amount,
-                          String transactionType, boolean excludeFromSummary, Long linkedRecurringPaymentId,
+                          String transactionType, Boolean excludeFromSummary, Long linkedRecurringPaymentId,
                           String fromDate, String toDate) {
         this.description = description;
         this.receiver = receiver;
@@ -265,7 +265,7 @@ public class TransactionViewModel extends AndroidViewModel {
         this.category = null;
         this.amount = null;
         this.transactionType = null;
-        this.excludeFromSummary = false;
+        this.excludeFromSummary = null;
         this.linkedRecurringPaymentId = null;
         
         // Reset to default date range (last 30 days)

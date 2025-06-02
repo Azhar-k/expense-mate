@@ -137,7 +137,7 @@ public class TransactionsFragment extends Fragment {
         calendar.add(Calendar.DAY_OF_MONTH, -30);
         String fromDate = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(calendar.getTime());
         
-        viewModel.setFilters(null, null, null, null, null, false, null, fromDate, toDate);
+        viewModel.setFilters(null, null, null, null, null, null, null, fromDate, toDate);
     }
 
     private void showFilterBottomSheet() {
