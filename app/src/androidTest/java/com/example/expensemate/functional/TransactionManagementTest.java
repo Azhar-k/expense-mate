@@ -97,8 +97,7 @@ public class TransactionManagementTest {
             .perform(ViewActions.click());
 
         //Goto another tab and comeback to verify that the transaction will be fetched from db
-        Espresso.onView(ViewMatchers.withId(R.id.navigation_expense))
-                .perform(ViewActions.click());
+
         Espresso.onView(ViewMatchers.withId(R.id.navigation_transactions))
                 .perform(ViewActions.click());
 

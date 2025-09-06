@@ -83,6 +83,9 @@ public class BackupDataLoader {
                 case "RECURRING PAYMENTS":
                     processRecurringPayment(entityData);
                     break;
+                case "ACCOUNTS":
+                    processAccount(entityData);
+                    break;
             }
         } catch (Exception e) {
             Log.e(TAG, "Error processing entity in section " + section, e);
@@ -135,7 +138,7 @@ public class BackupDataLoader {
                         transaction.setCategory(value);
                         break;
                     case "Account id" :
-                        if (!value.equals("null")) {
+                        if (!value.equalsIgnoreCase("null")) {
                             transaction.setAccountId(Long.parseLong(value));
                         }
                         break;
@@ -253,27 +256,87 @@ public class BackupDataLoader {
         }
     }
 
+    private void processAccount(String data) {
+        try {
+            String[] lines = data.split("\n");
+            long originalId = -1;
+            String name = "";
+            String accountNumber = "";
+            String bank = "";
+            Date expiryDate = null;
+            String description = "";
+            boolean isDefault = false;
+
+            for (String line : lines) {
+                String[] parts = line.split(": ", 2);
+                if (parts.length != 2) continue;
+
+                String key = parts[0].trim();
+                String value = parts[1].trim();
+                Log.d("Account", "key:"+key+" val:"+value);
+
+                switch (key) {
+                    case "ID":
+                        originalId = Long.parseLong(value);
+                        break;
+                    case "Name":
+                        name = value;
+                        break;
+                    case "Account Number":
+                        accountNumber = value;
+                        break;
+                    case "Bank":
+                        bank = value;
+                        break;
+                    case "Expiry Date":
+                        if (!value.equalsIgnoreCase("null")) {
+                            expiryDate = dateFormat.parse(value);
+                        }
+                        break;
+                    case "Description":
+                        description = value;
+                        break;
+                }
+            }
+
+            if (!name.isEmpty()) {
+                Account account = new Account(name, accountNumber, bank, expiryDate, description);
+                
+                // Set the original ID to preserve referential integrity
+                if (originalId != -1) {
+                    account.setId(originalId);
+                }
+                
+                // Check if account with same ID already exists
+                List<Account> existingAccounts = database.accountDao().getAllAccountsSync();
+                boolean accountExists = false;
+                if (existingAccounts != null) {
+                    for (Account existingAccount : existingAccounts) {
+                        if (existingAccount.getId() == originalId) {
+                            accountExists = true;
+                            break;
+                        }
+                    }
+                }
+                
+                if (!accountExists) {
+                    database.accountDao().insert(account);
+                    Log.d("Account", "Inserted account: " + name + " with ID: " + originalId);
+                } else {
+                    Log.d("Account", "Account with ID " + originalId + " already exists: " + name);
+                }
+            }
+        } catch (ParseException e) {
+            Log.e(TAG, "Error parsing account date", e);
+        } catch (Exception e) {
+            Log.e(TAG, "Error processing account", e);
+        }
+    }
+
     public static void exportDatabaseData(Context context, AppDatabase database) {
         try {
             StringBuilder data = new StringBuilder();
             data.append("=== Database Export ").append(new Date()).append(" ===\n\n");
-
-            // Export transactions
-            data.append("=== TRANSACTIONS ===\n");
-            List<Transaction> transactions = database.transactionDao().getAllTransactionsSyncOrderByDateAsc();
-            for (Transaction t : transactions) {
-                data.append(String.format("ID: %d\n", t.getId()));
-                data.append(String.format("Amount: %.2f\n", t.getAmount()));
-                data.append(String.format("Description: %s\n", t.getDescription()));
-                data.append(String.format("Date: %s\n", t.getDate()));
-                data.append(String.format("Transaction Type: %s\n", t.getTransactionType()));
-                data.append(String.format("Receiver: %s\n", t.getReceiverName()));
-                data.append(String.format("Category: %s\n", t.getCategory()));
-                data.append(String.format("Is excluded from summary: %s\n", t.isExcludedFromSummary()));
-                data.append(String.format("Account id: %s\n", t.getAccountId()));
-                data.append(String.format("Linked Payment ID: %s\n", t.getLinkedRecurringPaymentId()));
-                data.append("---\n");
-            }
 
             // Export categories
             data.append("\n=== CATEGORIES ===\n");
@@ -313,6 +376,25 @@ public class BackupDataLoader {
                     data.append("---\n");
                 }
             }
+
+
+            // Export transactions
+            data.append("=== TRANSACTIONS ===\n");
+            List<Transaction> transactions = database.transactionDao().getAllTransactionsSyncOrderByDateAsc();
+            for (Transaction t : transactions) {
+                data.append(String.format("ID: %d\n", t.getId()));
+                data.append(String.format("Amount: %.2f\n", t.getAmount()));
+                data.append(String.format("Description: %s\n", t.getDescription()));
+                data.append(String.format("Date: %s\n", t.getDate()));
+                data.append(String.format("Transaction Type: %s\n", t.getTransactionType()));
+                data.append(String.format("Receiver: %s\n", t.getReceiverName()));
+                data.append(String.format("Category: %s\n", t.getCategory()));
+                data.append(String.format("Is excluded from summary: %s\n", t.isExcludedFromSummary()));
+                data.append(String.format("Account id: %s\n", t.getAccountId()));
+                data.append(String.format("Linked Payment ID: %s\n", t.getLinkedRecurringPaymentId()));
+                data.append("---\n");
+            }
+
 
             // Save to file
             File exportDir = new File(context.getFilesDir(), "database_exports");
