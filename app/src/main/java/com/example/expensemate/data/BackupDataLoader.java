@@ -378,9 +378,11 @@ public class BackupDataLoader {
             }
 
 
-            // Export transactions
+            // Export transactions (last two months only)
             data.append("=== TRANSACTIONS ===\n");
-            List<Transaction> transactions = database.transactionDao().getAllTransactionsSyncOrderByDateAsc();
+            Date twoMonthsAgo = new Date(System.currentTimeMillis() - (60L * 24 * 60 * 60 * 1000 * 60)); // 60 days ago
+            List<Transaction> transactions = database.transactionDao().getFilteredTransactions(
+                twoMonthsAgo, new Date(), null, null, null, null, null, null, null, null);
             for (Transaction t : transactions) {
                 data.append(String.format("ID: %d\n", t.getId()));
                 data.append(String.format("Amount: %.2f\n", t.getAmount()));
