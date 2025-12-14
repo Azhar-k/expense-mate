@@ -75,7 +75,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 if (destination.getId() == R.id.navigation_categories ||
                         destination.getId() == R.id.navigation_recurring_payments ||
                         destination.getId() == R.id.navigation_sms_scan ||
-                        destination.getId() == R.id.navigation_self_transfer) {
+                        destination.getId() == R.id.navigation_self_transfer ||
+                        destination.getId() == R.id.navigation_settings) {
                     bottomNavView.setVisibility(View.GONE);
                     if (destination.getId() == R.id.navigation_categories) {
                         navigationView.setCheckedItem(R.id.nav_categories);
@@ -83,6 +84,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                         navigationView.setCheckedItem(R.id.nav_sms_scan);
                     } else if (destination.getId() == R.id.navigation_self_transfer) {
                         navigationView.setCheckedItem(R.id.nav_self_transfer);
+                    } else if (destination.getId() == R.id.navigation_settings) {
+                        navigationView.setCheckedItem(R.id.nav_settings);
                     } else {
                         navigationView.setCheckedItem(R.id.nav_recurring_payments);
                     }
