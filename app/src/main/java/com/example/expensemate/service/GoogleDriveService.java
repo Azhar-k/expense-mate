@@ -25,45 +25,46 @@ public class GoogleDriveService {
     private static final String TAG = "GoogleDriveService";
     private static final String APP_FOLDER_NAME = "ExpenseMate_Backups";
     private static final String BACKUP_FILE_NAME = "expense_mate_backup.txt";
-    
+
     private final Context context;
     private final ExecutorService executorService;
     private Drive driveService;
-    
+
     public interface DriveCallback {
         void onSuccess(String message);
+
         void onError(String error);
     }
-    
+
     public GoogleDriveService(Context context) {
         this.context = context;
-        this.executorService = Executors.newSingleThreadExecutor();
+        this.executorService = Executors.newCachedThreadPool();
     }
-    
+
     public void initializeDriveService(String accessToken) {
         try {
             GoogleCredential credential = new GoogleCredential()
                     .setAccessToken(accessToken);
-            
+
             driveService = new Drive.Builder(
                     GoogleNetHttpTransport.newTrustedTransport(),
                     GsonFactory.getDefaultInstance(),
                     credential)
                     .setApplicationName("ExpenseMate")
                     .build();
-                    
+
             Log.d(TAG, "Google Drive service initialized successfully");
         } catch (GeneralSecurityException | IOException e) {
             Log.e(TAG, "Error initializing Google Drive service", e);
         }
     }
-    
+
     public void uploadBackupToDrive(java.io.File backupFile, DriveCallback callback) {
         if (driveService == null) {
             callback.onError("Google Drive service not initialized");
             return;
         }
-        
+
         executorService.execute(() -> {
             try {
                 // Create app folder if it doesn't exist
@@ -72,37 +73,37 @@ public class GoogleDriveService {
                     callback.onError("Failed to create app folder");
                     return;
                 }
-                
+
                 // Check if backup file already exists and delete it
                 deleteExistingBackup(appFolderId);
-                
+
                 // Create file metadata
                 File fileMetadata = new File();
                 fileMetadata.setName(BACKUP_FILE_NAME);
                 fileMetadata.setParents(Collections.singletonList(appFolderId));
-                
+
                 // Upload the file
                 FileContent mediaContent = new FileContent("text/plain", backupFile);
                 File uploadedFile = driveService.files().create(fileMetadata, mediaContent)
                         .setFields("id")
                         .execute();
-                
+
                 Log.d(TAG, "Backup uploaded successfully. File ID: " + uploadedFile.getId());
                 callback.onSuccess("Backup uploaded to Google Drive successfully");
-                
+
             } catch (IOException e) {
                 Log.e(TAG, "Error uploading backup to Google Drive", e);
                 callback.onError("Failed to upload backup: " + e.getMessage());
             }
         });
     }
-    
+
     public void downloadBackupFromDrive(java.io.File destinationFile, DriveCallback callback) {
         if (driveService == null) {
             callback.onError("Google Drive service not initialized");
             return;
         }
-        
+
         executorService.execute(() -> {
             try {
                 // Get app folder
@@ -111,18 +112,18 @@ public class GoogleDriveService {
                     callback.onError("App folder not found");
                     return;
                 }
-                
+
                 // Find the backup file
                 String backupFileId = findBackupFile(appFolderId);
                 if (backupFileId == null) {
                     callback.onError("No backup file found in Google Drive");
                     return;
                 }
-                
+
                 // Download the file
                 InputStream inputStream = driveService.files().get(backupFileId)
                         .executeMediaAsInputStream();
-                
+
                 // Write to destination file
                 try (FileOutputStream outputStream = new FileOutputStream(destinationFile)) {
                     byte[] buffer = new byte[8192];
@@ -131,23 +132,23 @@ public class GoogleDriveService {
                         outputStream.write(buffer, 0, bytesRead);
                     }
                 }
-                
+
                 Log.d(TAG, "Backup downloaded successfully");
                 callback.onSuccess("Backup downloaded from Google Drive successfully");
-                
+
             } catch (IOException e) {
                 Log.e(TAG, "Error downloading backup from Google Drive", e);
                 callback.onError("Failed to download backup: " + e.getMessage());
             }
         });
     }
-    
+
     public void listBackups(DriveCallback callback) {
         if (driveService == null) {
             callback.onError("Google Drive service not initialized");
             return;
         }
-        
+
         executorService.execute(() -> {
             try {
                 String appFolderId = getAppFolderId();
@@ -155,12 +156,12 @@ public class GoogleDriveService {
                     callback.onError("App folder not found");
                     return;
                 }
-                
+
                 FileList fileList = driveService.files().list()
                         .setQ("'" + appFolderId + "' in parents and name contains 'backup'")
                         .setFields("files(id,name,createdTime)")
                         .execute();
-                
+
                 List<File> files = fileList.getFiles();
                 if (files == null || files.isEmpty()) {
                     callback.onSuccess("No backups found");
@@ -168,19 +169,19 @@ public class GoogleDriveService {
                     StringBuilder result = new StringBuilder("Available backups:\n");
                     for (File file : files) {
                         result.append("- ").append(file.getName())
-                              .append(" (Created: ").append(file.getCreatedTime())
-                              .append(")\n");
+                                .append(" (Created: ").append(file.getCreatedTime())
+                                .append(")\n");
                     }
                     callback.onSuccess(result.toString());
                 }
-                
+
             } catch (IOException e) {
                 Log.e(TAG, "Error listing backups", e);
                 callback.onError("Failed to list backups: " + e.getMessage());
             }
         });
     }
-    
+
     private String getOrCreateAppFolder() {
         try {
             // First, try to find existing app folder
@@ -188,63 +189,63 @@ public class GoogleDriveService {
             if (appFolderId != null) {
                 return appFolderId;
             }
-            
+
             // Create new app folder
             File folderMetadata = new File();
             folderMetadata.setName(APP_FOLDER_NAME);
             folderMetadata.setMimeType("application/vnd.google-apps.folder");
-            
+
             File createdFolder = driveService.files().create(folderMetadata)
                     .setFields("id")
                     .execute();
-            
+
             Log.d(TAG, "Created app folder: " + createdFolder.getId());
             return createdFolder.getId();
-            
+
         } catch (IOException e) {
             Log.e(TAG, "Error creating app folder", e);
             return null;
         }
     }
-    
+
     private String getAppFolderId() {
         try {
             FileList fileList = driveService.files().list()
                     .setQ("name='" + APP_FOLDER_NAME + "' and mimeType='application/vnd.google-apps.folder'")
                     .setFields("files(id)")
                     .execute();
-            
+
             List<File> files = fileList.getFiles();
             if (files != null && !files.isEmpty()) {
                 return files.get(0).getId();
             }
             return null;
-            
+
         } catch (IOException e) {
             Log.e(TAG, "Error getting app folder ID", e);
             return null;
         }
     }
-    
+
     private String findBackupFile(String appFolderId) {
         try {
             FileList fileList = driveService.files().list()
                     .setQ("'" + appFolderId + "' in parents and name='" + BACKUP_FILE_NAME + "'")
                     .setFields("files(id)")
                     .execute();
-            
+
             List<File> files = fileList.getFiles();
             if (files != null && !files.isEmpty()) {
                 return files.get(0).getId();
             }
             return null;
-            
+
         } catch (IOException e) {
             Log.e(TAG, "Error finding backup file", e);
             return null;
         }
     }
-    
+
     private void deleteExistingBackup(String appFolderId) {
         try {
             String backupFileId = findBackupFile(appFolderId);
@@ -256,7 +257,134 @@ public class GoogleDriveService {
             Log.e(TAG, "Error deleting existing backup", e);
         }
     }
-    
+
+    public void createDateSpecificBackupFolder(DriveCallback callback) {
+        executorService.execute(() -> {
+            try {
+                String appFolderId = getOrCreateAppFolder();
+                if (appFolderId == null) {
+                    callback.onError("Failed to create app folder");
+                    return;
+                }
+
+                String folderName = "Backup_" + new java.text.SimpleDateFormat("yyyyMMdd_HHmmss", java.util.Locale.US)
+                        .format(new java.util.Date());
+
+                File folderMetadata = new File();
+                folderMetadata.setName(folderName);
+                folderMetadata.setMimeType("application/vnd.google-apps.folder");
+                folderMetadata.setParents(Collections.singletonList(appFolderId));
+
+                File createdFolder = driveService.files().create(folderMetadata)
+                        .setFields("id")
+                        .execute();
+
+                callback.onSuccess(createdFolder.getId());
+            } catch (IOException e) {
+                Log.e(TAG, "Error creating backup folder", e);
+                callback.onError("Failed to create backup folder: " + e.getMessage());
+            }
+        });
+    }
+
+    public void uploadFileToFolder(String folderId, java.io.File file, String mimeType, DriveCallback callback) {
+        executorService.execute(() -> {
+            try {
+                File fileMetadata = new File();
+                fileMetadata.setName(file.getName());
+                fileMetadata.setParents(Collections.singletonList(folderId));
+
+                FileContent mediaContent = new FileContent(mimeType, file);
+                File uploadedFile = driveService.files().create(fileMetadata, mediaContent)
+                        .setFields("id")
+                        .execute();
+
+                callback.onSuccess(uploadedFile.getId());
+            } catch (IOException e) {
+                Log.e(TAG, "Error uploading file " + file.getName(), e);
+                callback.onError("Failed to upload " + file.getName() + ": " + e.getMessage());
+            }
+        });
+    }
+
+    public void getLatestBackupFolderId(DriveFolderCallback callback) {
+        executorService.execute(() -> {
+            try {
+                String appFolderId = getAppFolderId();
+                if (appFolderId == null) {
+                    callback.onError("App folder not found");
+                    return;
+                }
+
+                FileList fileList = driveService.files().list()
+                        .setQ("'" + appFolderId + "' in parents and mimeType='application/vnd.google-apps.folder'")
+                        .setOrderBy("createdTime desc")
+                        .setPageSize(1)
+                        .setFields("files(id, name, createdTime)")
+                        .execute();
+
+                List<File> files = fileList.getFiles();
+                if (files != null && !files.isEmpty()) {
+                    callback.onSuccess(files.get(0).getId());
+                } else {
+                    callback.onError("No backup folders found");
+                }
+            } catch (IOException e) {
+                Log.e(TAG, "Error finding latest backup folder", e);
+                callback.onError("Error finding latest backup: " + e.getMessage());
+            }
+        });
+    }
+
+    public void listFilesInFolder(String folderId, DriveFileListCallback callback) {
+        executorService.execute(() -> {
+            try {
+                FileList fileList = driveService.files().list()
+                        .setQ("'" + folderId + "' in parents")
+                        .setFields("files(id, name)")
+                        .execute();
+
+                callback.onSuccess(fileList.getFiles());
+            } catch (IOException e) {
+                Log.e(TAG, "Error listing files in folder", e);
+                callback.onError("Error listing files: " + e.getMessage());
+            }
+        });
+    }
+
+    public void downloadFile(String fileId, java.io.File destinationFile, DriveCallback callback) {
+        executorService.execute(() -> {
+            try {
+                InputStream inputStream = driveService.files().get(fileId)
+                        .executeMediaAsInputStream();
+
+                try (FileOutputStream outputStream = new FileOutputStream(destinationFile)) {
+                    byte[] buffer = new byte[8192];
+                    int bytesRead;
+                    while ((bytesRead = inputStream.read(buffer)) != -1) {
+                        outputStream.write(buffer, 0, bytesRead);
+                    }
+                }
+                callback.onSuccess("File downloaded successfully");
+            } catch (IOException e) {
+                Log.e(TAG, "Error downloading file", e);
+                callback.onError("Error downloading file: " + e.getMessage());
+            }
+        });
+    }
+
+    public interface DriveFolderCallback {
+        void onSuccess(String folderId);
+
+        void onError(String error);
+    }
+
+    public interface DriveFileListCallback {
+        void onSuccess(List<File> files);
+
+        void onError(String error);
+    }
+
     public void shutdown() {
         executorService.shutdown();
     }
