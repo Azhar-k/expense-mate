@@ -43,7 +43,8 @@ public class AccountsFragment extends Fragment implements AccountsAdapter.OnAcco
 
     @Nullable
     @Override
-    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
+            @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_accounts, container, false);
 
         RecyclerView recyclerView = view.findViewById(R.id.rvAccounts);
@@ -110,8 +111,7 @@ public class AccountsFragment extends Fragment implements AccountsAdapter.OnAcco
                     public void onNegativeButtonClick(AlertDialog dialog) {
                         dialog.dismiss();
                     }
-                }
-        );
+                });
 
         dialogHelper.create().show();
     }
@@ -172,8 +172,7 @@ public class AccountsFragment extends Fragment implements AccountsAdapter.OnAcco
                     public void onNegativeButtonClick(AlertDialog dialog) {
                         dialog.dismiss();
                     }
-                }
-        );
+                });
 
         dialogHelper.create().show();
     }
@@ -187,8 +186,7 @@ public class AccountsFragment extends Fragment implements AccountsAdapter.OnAcco
                 },
                 calendar.get(Calendar.YEAR),
                 calendar.get(Calendar.MONTH),
-                calendar.get(Calendar.DAY_OF_MONTH)
-        );
+                calendar.get(Calendar.DAY_OF_MONTH));
         datePickerDialog.show();
     }
 
@@ -222,8 +220,7 @@ public class AccountsFragment extends Fragment implements AccountsAdapter.OnAcco
                     public void onNegativeButtonClick(AlertDialog dialog) {
                         dialog.dismiss();
                     }
-                }
-        );
+                });
 
         dialogHelper.setMessage("Are you sure you want to delete this account?");
         dialogHelper.create().show();
@@ -237,15 +234,9 @@ public class AccountsFragment extends Fragment implements AccountsAdapter.OnAcco
 
     @Override
     public void onAccountClick(Account account) {
-        AccountDetailsFragment fragment = new AccountDetailsFragment();
         Bundle args = new Bundle();
         args.putLong("accountId", account.getId());
-        fragment.setArguments(args);
-        
-        requireActivity().getSupportFragmentManager()
-            .beginTransaction()
-            .replace(R.id.nav_host_fragment, fragment)
-            .addToBackStack(null)
-            .commit();
+        androidx.navigation.Navigation.findNavController(requireView())
+                .navigate(R.id.account_details_fragment, args);
     }
-} 
+}

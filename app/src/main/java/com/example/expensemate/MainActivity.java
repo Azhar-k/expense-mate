@@ -169,26 +169,11 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         int id = item.getItemId();
 
         // Get the current fragment
-        Fragment currentFragment = getSupportFragmentManager().findFragmentById(R.id.nav_host_fragment);
-
-        // If we're in AccountDetailsFragment, pop it first and then navigate
-        if (currentFragment instanceof AccountDetailsFragment) {
-            getSupportFragmentManager().popBackStackImmediate();
-            // After popping, get the NavHostFragment again
-            NavHostFragment navHostFragment = (NavHostFragment) getSupportFragmentManager()
-                    .findFragmentById(R.id.nav_host_fragment);
-            if (navHostFragment != null) {
-                NavController navController = navHostFragment.getNavController();
-                navigateToDestination(id, navController);
-            }
-        } else {
-            // If we're not in AccountDetailsFragment, navigate normally
-            NavHostFragment navHostFragment = (NavHostFragment) getSupportFragmentManager()
-                    .findFragmentById(R.id.nav_host_fragment);
-            if (navHostFragment != null) {
-                NavController navController = navHostFragment.getNavController();
-                navigateToDestination(id, navController);
-            }
+        NavHostFragment navHostFragment = (NavHostFragment) getSupportFragmentManager()
+                .findFragmentById(R.id.nav_host_fragment);
+        if (navHostFragment != null) {
+            NavController navController = navHostFragment.getNavController();
+            navigateToDestination(id, navController);
         }
 
         drawerLayout.closeDrawer(GravityCompat.START);
