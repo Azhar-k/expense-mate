@@ -58,8 +58,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 drawerLayout,
                 toolbar,
                 R.string.navigation_drawer_open,
-                R.string.navigation_drawer_close
-        );
+                R.string.navigation_drawer_close);
         drawerLayout.addDrawerListener(drawerToggle);
         drawerToggle.syncState();
 
@@ -70,13 +69,13 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             NavController navController = navHostFragment.getNavController();
             bottomNavView = findViewById(R.id.nav_view);
             NavigationUI.setupWithNavController(bottomNavView, navController);
-            
+
             // Add navigation listener to handle bottom nav visibility and drawer selection
             navController.addOnDestinationChangedListener((controller, destination, arguments) -> {
-                if (destination.getId() == R.id.navigation_categories || 
-                    destination.getId() == R.id.navigation_recurring_payments ||
-                    destination.getId() == R.id.navigation_sms_scan ||
-                    destination.getId() == R.id.navigation_self_transfer) {
+                if (destination.getId() == R.id.navigation_categories ||
+                        destination.getId() == R.id.navigation_recurring_payments ||
+                        destination.getId() == R.id.navigation_sms_scan ||
+                        destination.getId() == R.id.navigation_self_transfer) {
                     bottomNavView.setVisibility(View.GONE);
                     if (destination.getId() == R.id.navigation_categories) {
                         navigationView.setCheckedItem(R.id.nav_categories);
@@ -106,12 +105,14 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
     private void checkAndRequestPermissions() {
         // Check SMS permissions
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECEIVE_SMS) != PackageManager.PERMISSION_GRANTED ||
-            ContextCompat.checkSelfPermission(this, Manifest.permission.READ_SMS) != PackageManager.PERMISSION_GRANTED) {
+        if (ContextCompat.checkSelfPermission(this,
+                Manifest.permission.RECEIVE_SMS) != PackageManager.PERMISSION_GRANTED ||
+                ContextCompat.checkSelfPermission(this,
+                        Manifest.permission.READ_SMS) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this,
-                    new String[]{
-                        Manifest.permission.RECEIVE_SMS,
-                        Manifest.permission.READ_SMS
+                    new String[] {
+                            Manifest.permission.RECEIVE_SMS,
+                            Manifest.permission.READ_SMS
                     },
                     SMS_PERMISSION_REQUEST_CODE);
             return;
@@ -119,10 +120,10 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
         // Check foreground service data sync permission for Android 14+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.FOREGROUND_SERVICE_DATA_SYNC)
-                    != PackageManager.PERMISSION_GRANTED) {
+            if (ContextCompat.checkSelfPermission(this,
+                    Manifest.permission.FOREGROUND_SERVICE_DATA_SYNC) != PackageManager.PERMISSION_GRANTED) {
                 ActivityCompat.requestPermissions(this,
-                        new String[]{Manifest.permission.FOREGROUND_SERVICE_DATA_SYNC},
+                        new String[] { Manifest.permission.FOREGROUND_SERVICE_DATA_SYNC },
                         FOREGROUND_SERVICE_PERMISSION_REQUEST_CODE);
                 return;
             }
@@ -134,9 +135,9 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
-                                         @NonNull int[] grantResults) {
+            @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        
+
         if (requestCode == SMS_PERMISSION_REQUEST_CODE) {
             boolean allGranted = true;
             for (int result : grantResults) {
@@ -149,8 +150,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 // All SMS permissions granted, check for foreground service permission
                 checkAndRequestPermissions();
             } else {
-                Toast.makeText(this, "SMS permissions are required for the app to function properly", 
-                    Toast.LENGTH_LONG).show();
+                Toast.makeText(this, "SMS permissions are required for the app to function properly",
+                        Toast.LENGTH_LONG).show();
             }
         } else if (requestCode == FOREGROUND_SERVICE_PERMISSION_REQUEST_CODE) {
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
@@ -163,10 +164,10 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     @Override
     public boolean onNavigationItemSelected(@NonNull MenuItem item) {
         int id = item.getItemId();
-        
+
         // Get the current fragment
         Fragment currentFragment = getSupportFragmentManager().findFragmentById(R.id.nav_host_fragment);
-        
+
         // If we're in AccountDetailsFragment, pop it first and then navigate
         if (currentFragment instanceof AccountDetailsFragment) {
             getSupportFragmentManager().popBackStackImmediate();
@@ -203,7 +204,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         } else if (id == R.id.nav_recurring_payments) {
             navController.navigate(R.id.navigation_recurring_payments);
         } else if (id == R.id.nav_settings) {
-            // TODO: Handle settings
+            navController.navigate(R.id.navigation_settings);
         } else if (id == R.id.nav_about) {
             // TODO: Handle about
         }
