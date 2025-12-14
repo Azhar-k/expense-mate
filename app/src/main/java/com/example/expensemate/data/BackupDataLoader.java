@@ -670,46 +670,4 @@ public class BackupDataLoader {
             Log.e(TAG, "Error reading entity file " + sectionName, e);
         }
     }
-
-    public void loadBackupDataFromFile(File backupFile, Runnable onCompletion) {
-        executorService.execute(() -> {
-            try (BufferedReader reader = new BufferedReader(new java.io.FileReader(backupFile))) {
-                String line;
-                String currentSection = "";
-                StringBuilder currentEntity = new StringBuilder();
-
-                while ((line = reader.readLine()) != null) {
-                    if (line.startsWith("=== ")) {
-                        // Process previous entity if exists
-                        if (currentEntity.length() > 0) {
-                            processEntity(currentSection, currentEntity.toString());
-                            currentEntity = new StringBuilder();
-                        }
-                        currentSection = line.substring(4, line.length() - 4);
-                        continue;
-                    }
-
-                    if (line.equals("---")) {
-                        // Process current entity
-                        processEntity(currentSection, currentEntity.toString());
-                        currentEntity = new StringBuilder();
-                    } else {
-                        currentEntity.append(line).append("\n");
-                    }
-                }
-
-                // Process last entity if exists
-                if (currentEntity.length() > 0) {
-                    processEntity(currentSection, currentEntity.toString());
-                }
-
-            } catch (IOException e) {
-                Log.e(TAG, "Error reading backup file", e);
-            } finally {
-                if (onCompletion != null) {
-                    onCompletion.run();
-                }
-            }
-        });
-    }
 }
