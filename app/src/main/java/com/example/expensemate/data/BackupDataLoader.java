@@ -155,6 +155,15 @@ public class BackupDataLoader {
                             transaction.setLinkedRecurringPaymentId(Long.parseLong(value));
                         }
                         break;
+                    case "SMS Body":
+                        transaction.setSmsBody(value);
+                        break;
+                    case "SMS Sender":
+                        transaction.setSmsSender(value);
+                        break;
+                    case "SMS Hash":
+                        transaction.setSmsHash(value);
+                        break;
                 }
             }
 
@@ -303,11 +312,15 @@ public class BackupDataLoader {
                     case "Description":
                         description = value;
                         break;
+                    case "Is Default":
+                        isDefault = Boolean.parseBoolean(value);
+                        break;
                 }
             }
 
             if (!name.isEmpty()) {
                 Account account = new Account(name, accountNumber, bank, expiryDate, description);
+                account.setDefault(isDefault);
 
                 // Set the original ID to preserve referential integrity
                 if (originalId != -1) {
@@ -380,6 +393,7 @@ public class BackupDataLoader {
                     data.append(String.format("Bank: %s\n", a.getBank()));
                     data.append(String.format("Expiry Date: %s\n", a.getExpiryDate()));
                     data.append(String.format("Description: %s\n", a.getDescription()));
+                    data.append(String.format("Is Default: %b\n", a.isDefault()));
                     data.append("---\n");
                 }
             }
@@ -400,6 +414,9 @@ public class BackupDataLoader {
                 data.append(String.format("Is excluded from summary: %s\n", t.isExcludedFromSummary()));
                 data.append(String.format("Account id: %s\n", t.getAccountId()));
                 data.append(String.format("Linked Payment ID: %s\n", t.getLinkedRecurringPaymentId()));
+                data.append(String.format("SMS Body: %s\n", t.getSmsBody()));
+                data.append(String.format("SMS Sender: %s\n", t.getSmsSender()));
+                data.append(String.format("SMS Hash: %s\n", t.getSmsHash()));
                 data.append("---\n");
             }
 
@@ -496,9 +513,9 @@ public class BackupDataLoader {
             if (accounts != null) {
                 for (Account a : accounts) {
                     data.append(String.format(
-                            "ID: %d\nName: %s\nAccount Number: %s\nBank: %s\nExpiry Date: %s\nDescription: %s\n---\n",
+                            "ID: %d\nName: %s\nAccount Number: %s\nBank: %s\nExpiry Date: %s\nDescription: %s\nIs Default: %b\n---\n",
                             a.getId(), a.getName(), a.getAccountNumber(), a.getBank(), a.getExpiryDate(),
-                            a.getDescription()));
+                            a.getDescription(), a.isDefault()));
                 }
             }
         } else if (entityName.equals("TRANSACTIONS")) {
@@ -507,10 +524,10 @@ public class BackupDataLoader {
                     twoMonthsAgo, new Date(), null, null, null, null, null, null, null, null);
             for (Transaction t : transactions) {
                 data.append(String.format(
-                        "ID: %d\nAmount: %.2f\nDescription: %s\nDate: %s\nTransaction Type: %s\nReceiver: %s\nCategory: %s\nIs excluded from summary: %s\nAccount id: %s\nLinked Payment ID: %s\n---\n",
+                        "ID: %d\nAmount: %.2f\nDescription: %s\nDate: %s\nTransaction Type: %s\nReceiver: %s\nCategory: %s\nIs excluded from summary: %s\nAccount id: %s\nLinked Payment ID: %s\nSMS Body: %s\nSMS Sender: %s\nSMS Hash: %s\n---\n",
                         t.getId(), t.getAmount(), t.getDescription(), t.getDate(), t.getTransactionType(),
                         t.getReceiverName(), t.getCategory(), t.isExcludedFromSummary(), t.getAccountId(),
-                        t.getLinkedRecurringPaymentId()));
+                        t.getLinkedRecurringPaymentId(), t.getSmsBody(), t.getSmsSender(), t.getSmsHash()));
             }
         }
 
