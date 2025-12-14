@@ -101,13 +101,14 @@ public class BackupDataLoader {
             String[] lines = data.split("\n");
             for (String line : lines) {
                 String[] parts = line.split(": ", 2);
-                if (parts.length != 2) continue;
+                if (parts.length != 2)
+                    continue;
                 String key = parts[0].trim();
                 String value = parts[1].trim();
-                Log.d("Transaction", "key:"+key+" val:"+value);
+                Log.d("Transaction", "key:" + key + " val:" + value);
                 Account defaultAccount = database.accountDao().getDefaultAccountSync();
                 if (defaultAccount != null) {
-                    Log.d("Transaction", "default account exist. Id:"+defaultAccount.getId());
+                    Log.d("Transaction", "default account exist. Id:" + defaultAccount.getId());
                     transaction.setAccountId(defaultAccount.getId());
                 } else {
                     Log.d("Transaction", "default account do not exist");
@@ -139,7 +140,7 @@ public class BackupDataLoader {
                     case "Category":
                         transaction.setCategory(value);
                         break;
-                    case "Account id" :
+                    case "Account id":
                         if (!value.equalsIgnoreCase("null")) {
                             transaction.setAccountId(Long.parseLong(value));
                         }
@@ -158,7 +159,8 @@ public class BackupDataLoader {
             }
 
             if (transaction.getTransactionType() == null) {
-                Log.d("Transaction", "Transaction type is null. Not inserting the transaction. Id:"+ transaction.getId());
+                Log.d("Transaction",
+                        "Transaction type is null. Not inserting the transaction. Id:" + transaction.getId());
             } else {
                 if (transaction.getReceiverName() == null) {
                     transaction.setReceiverName("");
@@ -181,11 +183,12 @@ public class BackupDataLoader {
 
             for (String line : lines) {
                 String[] parts = line.split(": ", 2);
-                if (parts.length != 2) continue;
+                if (parts.length != 2)
+                    continue;
 
                 String key = parts[0].trim();
                 String value = parts[1].trim();
-                Log.d("Category", "key:"+key+" val:"+value);
+                Log.d("Category", "key:" + key + " val:" + value);
                 switch (key) {
                     case "Name":
                         name = value;
@@ -211,15 +214,16 @@ public class BackupDataLoader {
     private void processRecurringPayment(String data) {
         try {
             RecurringPayment payment = new RecurringPayment("", 0.0, 1, new Date());
-            
+
             String[] lines = data.split("\n");
             for (String line : lines) {
                 String[] parts = line.split(": ", 2);
-                if (parts.length != 2) continue;
+                if (parts.length != 2)
+                    continue;
 
                 String key = parts[0].trim();
                 String value = parts[1].trim();
-                Log.d("RecPayment", "key:"+key+" val:"+value);
+                Log.d("RecPayment", "key:" + key + " val:" + value);
 
                 switch (key) {
                     case "ID":
@@ -249,7 +253,7 @@ public class BackupDataLoader {
             }
 
             if (payment.getName() == null || payment.getName().trim().isEmpty()) {
-                //Do not insert
+                // Do not insert
             } else {
                 database.recurringPaymentDao().insert(payment);
             }
@@ -271,11 +275,12 @@ public class BackupDataLoader {
 
             for (String line : lines) {
                 String[] parts = line.split(": ", 2);
-                if (parts.length != 2) continue;
+                if (parts.length != 2)
+                    continue;
 
                 String key = parts[0].trim();
                 String value = parts[1].trim();
-                Log.d("Account", "key:"+key+" val:"+value);
+                Log.d("Account", "key:" + key + " val:" + value);
 
                 switch (key) {
                     case "ID":
@@ -303,12 +308,12 @@ public class BackupDataLoader {
 
             if (!name.isEmpty()) {
                 Account account = new Account(name, accountNumber, bank, expiryDate, description);
-                
+
                 // Set the original ID to preserve referential integrity
                 if (originalId != -1) {
                     account.setId(originalId);
                 }
-                
+
                 // Check if account with same ID already exists
                 List<Account> existingAccounts = database.accountDao().getAllAccountsSync();
                 boolean accountExists = false;
@@ -320,7 +325,7 @@ public class BackupDataLoader {
                         }
                     }
                 }
-                
+
                 if (!accountExists) {
                     database.accountDao().insert(account);
                     Log.d("Account", "Inserted account: " + name + " with ID: " + originalId);
@@ -338,7 +343,7 @@ public class BackupDataLoader {
     public static void exportDatabaseData(Context context, AppDatabase database) {
         exportDatabaseDataToLocal(context, database);
     }
-    
+
     public static void exportDatabaseDataToLocal(Context context, AppDatabase database) {
         try {
             StringBuilder data = new StringBuilder();
@@ -387,7 +392,7 @@ public class BackupDataLoader {
             data.append("=== TRANSACTIONS ===\n");
             Date twoMonthsAgo = new Date(System.currentTimeMillis() - (60L * 24 * 60 * 60 * 1000 * 60)); // 60 days ago
             List<Transaction> transactions = database.transactionDao().getFilteredTransactions(
-                twoMonthsAgo, new Date(), null, null, null, null, null, null, null, null);
+                    twoMonthsAgo, new Date(), null, null, null, null, null, null, null, null);
             for (Transaction t : transactions) {
                 data.append(String.format("ID: %d\n", t.getId()));
                 data.append(String.format("Amount: %.2f\n", t.getAmount()));
@@ -426,8 +431,9 @@ public class BackupDataLoader {
             Log.e("DatabaseExport", "Error exporting data", e);
         }
     }
-    
-    public static void exportDatabaseDataToGoogleDrive(Context context, AppDatabase database, GoogleDriveService.DriveCallback callback) {
+
+    public static void exportDatabaseDataToGoogleDrive(Context context, AppDatabase database,
+            GoogleDriveService.DriveCallback callback) {
         try {
             StringBuilder data = new StringBuilder();
             data.append("=== Database Export ").append(new Date()).append(" ===\n\n");
@@ -475,7 +481,7 @@ public class BackupDataLoader {
             data.append("=== TRANSACTIONS ===\n");
             Date twoMonthsAgo = new Date(System.currentTimeMillis() - (60L * 24 * 60 * 60 * 1000 * 60)); // 60 days ago
             List<Transaction> transactions = database.transactionDao().getFilteredTransactions(
-                twoMonthsAgo, new Date(), null, null, null, null, null, null, null, null);
+                    twoMonthsAgo, new Date(), null, null, null, null, null, null, null, null);
             for (Transaction t : transactions) {
                 data.append(String.format("ID: %d\n", t.getId()));
                 data.append(String.format("Amount: %.2f\n", t.getAmount()));
@@ -499,7 +505,7 @@ public class BackupDataLoader {
             // Upload to Google Drive
             GoogleDriveService driveService = new GoogleDriveService(context);
             GoogleSignInHelper signInHelper = new GoogleSignInHelper(context);
-            
+
             if (signInHelper.isSignedIn()) {
                 driveService.initializeDriveService(signInHelper.getAccessToken());
                 driveService.uploadBackupToDrive(tempFile, new GoogleDriveService.DriveCallback() {
@@ -524,21 +530,21 @@ public class BackupDataLoader {
             } else {
                 callback.onError("User not signed in to Google Drive");
             }
-            
+
         } catch (Exception e) {
             Log.e("DatabaseExport", "Error exporting data to Google Drive", e);
             callback.onError("Error exporting data: " + e.getMessage());
         }
     }
-    
+
     public static void loadBackupDataFromGoogleDrive(Context context, GoogleDriveService.DriveCallback callback) {
         try {
             // Create temporary file for download
             File tempFile = new File(context.getCacheDir(), "temp_restore_" + System.currentTimeMillis() + ".txt");
-            
+
             GoogleDriveService driveService = new GoogleDriveService(context);
             GoogleSignInHelper signInHelper = new GoogleSignInHelper(context);
-            
+
             if (signInHelper.isSignedIn()) {
                 driveService.initializeDriveService(signInHelper.getAccessToken());
                 driveService.downloadBackupFromDrive(tempFile, new GoogleDriveService.DriveCallback() {
@@ -546,13 +552,13 @@ public class BackupDataLoader {
                     public void onSuccess(String message) {
                         // Process the downloaded file
                         BackupDataLoader loader = new BackupDataLoader(context);
-                        loader.loadBackupDataFromFile(tempFile);
-                        
-                        // Clean up temp file
-                        if (tempFile.exists()) {
-                            tempFile.delete();
-                        }
-                        callback.onSuccess("Backup restored from Google Drive successfully");
+                        loader.loadBackupDataFromFile(tempFile, () -> {
+                            // Clean up temp file
+                            if (tempFile.exists()) {
+                                tempFile.delete();
+                            }
+                            callback.onSuccess("Backup restored from Google Drive successfully");
+                        });
                     }
 
                     @Override
@@ -567,14 +573,14 @@ public class BackupDataLoader {
             } else {
                 callback.onError("User not signed in to Google Drive");
             }
-            
+
         } catch (Exception e) {
             Log.e("BackupDataLoader", "Error loading backup from Google Drive", e);
             callback.onError("Error loading backup: " + e.getMessage());
         }
     }
-    
-    public void loadBackupDataFromFile(File backupFile) {
+
+    public void loadBackupDataFromFile(File backupFile, Runnable onCompletion) {
         executorService.execute(() -> {
             try (BufferedReader reader = new BufferedReader(new java.io.FileReader(backupFile))) {
                 String line;
@@ -608,7 +614,11 @@ public class BackupDataLoader {
 
             } catch (IOException e) {
                 Log.e(TAG, "Error reading backup file", e);
+            } finally {
+                if (onCompletion != null) {
+                    onCompletion.run();
+                }
             }
         });
     }
-} 
+}
