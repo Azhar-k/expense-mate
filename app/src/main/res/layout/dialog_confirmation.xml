@@ -4,15 +4,14 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:background="@color/white"
     android:padding="24dp">
 
     <TextView
         android:id="@+id/tvDialogTitle"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:textColor="@color/black"
-        android:textSize="24sp"
+        android:textColor="?attr/colorOnSurface"
+        android:textAppearance="?attr/textAppearanceHeadlineSmall"
         android:textStyle="bold"
         android:layout_marginBottom="16dp"/>
 
@@ -20,8 +19,8 @@
         android:id="@+id/tvDialogMessage"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:textColor="@color/black"
-        android:textSize="16sp"
+        android:textColor="?attr/colorOnSurfaceVariant"
+        android:textAppearance="?attr/textAppearanceBodyMedium"
         android:layout_marginBottom="24dp"/>
 
     <LinearLayout
@@ -36,14 +35,15 @@
             android:layout_height="wrap_content"
             android:layout_marginEnd="8dp"
             android:text="Cancel"
-            style="@style/Widget.MaterialComponents.Button.TextButton" />
+            style="@style/Widget.Material3.Button.TextButton" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnPositive"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Delete"
-            style="@style/Widget.MaterialComponents.Button.TextButton" />
+            android:textColor="?attr/colorError"
+            style="@style/Widget.Material3.Button.TextButton" />
     </LinearLayout>
 
 </LinearLayout> 

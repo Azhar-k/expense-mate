@@ -13,14 +13,14 @@
         <com.google.android.material.appbar.AppBarLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="@color/primary">
+            android:background="?attr/colorPrimary">
 
             <androidx.appcompat.widget.Toolbar
                 android:id="@+id/toolbar"
                 android:layout_width="match_parent"
                 android:layout_height="?attr/actionBarSize"
-                android:background="@color/bar"
-                app:titleTextColor="@color/white" />
+                android:background="?attr/colorPrimary"
+                app:titleTextColor="?attr/colorOnPrimary" />
 
         </com.google.android.material.appbar.AppBarLayout>
 
@@ -38,15 +38,13 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_gravity="bottom"
-            android:background="@color/white"
-            app:itemIconTint="@color/bottom_nav_item_color"
-            app:itemTextColor="@color/bottom_nav_item_color"
+            android:background="?attr/colorSurface"
             app:menu="@menu/bottom_nav_menu">
-
+            
             <View
                 android:layout_width="match_parent"
                 android:layout_height="1dp"
-                android:background="@color/divider" />
+                android:background="?attr/colorOutline" />
 
         </com.google.android.material.bottomnavigation.BottomNavigationView>
 

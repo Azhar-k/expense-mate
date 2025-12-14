@@ -3,7 +3,6 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:background="@color/white"
     android:padding="32dp"
     android:layout_margin="16dp">
 
@@ -11,8 +10,8 @@
         android:id="@+id/tvDialogTitle"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:textColor="@color/black"
-        android:textSize="28sp"
+        android:textColor="?attr/colorOnSurface"
+        android:textAppearance="?attr/textAppearanceHeadlineSmall"
         android:textStyle="bold"
         android:layout_marginBottom="24dp"/>
 

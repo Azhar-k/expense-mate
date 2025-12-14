@@ -5,9 +5,9 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginBottom="8dp"
-    app:cardCornerRadius="8dp"
-    app:cardElevation="2dp"
-    app:cardBackgroundColor="@color/white">
+    style="@style/Widget.Material3.CardView.Elevated"
+    app:cardElevation="1dp"
+    app:cardBackgroundColor="?attr/colorSurfaceContainerLow">
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
@@ -18,9 +18,9 @@
             android:id="@+id/tvCategoryName"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:textColor="@color/black"
-            android:textSize="18sp"
+            android:textColor="?attr/colorOnSurface"
             android:textStyle="bold"
+            android:textAppearance="?attr/textAppearanceTitleMedium"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintEnd_toStartOf="@id/btnEdit"
@@ -31,8 +31,8 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
-            android:textColor="@color/secondary_text"
-            android:textSize="14sp"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            android:textAppearance="?attr/textAppearanceBodyMedium"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/tvCategoryName"
             tools:text="Type: EXPENSE" />
@@ -48,7 +48,7 @@
             app:layout_constraintEnd_toStartOf="@id/btnDelete"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintBottom_toBottomOf="parent"
-            app:tint="@color/black" />
+            app:tint="?attr/colorOnSurfaceVariant" />
 
         <ImageButton
             android:id="@+id/btnDelete"
@@ -61,7 +61,7 @@
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintBottom_toBottomOf="parent"
-            app:tint="@color/black" />
+            app:tint="?attr/colorOnSurfaceVariant" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 

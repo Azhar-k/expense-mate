@@ -5,9 +5,9 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_margin="8dp"
-    app:cardElevation="4dp"
-    app:cardCornerRadius="8dp"
-    app:cardBackgroundColor="@color/white">
+    style="@style/Widget.Material3.CardView.Elevated"
+    app:cardElevation="1dp"
+    app:cardBackgroundColor="?attr/colorSurfaceContainerLow">
 
     <LinearLayout
         android:id="@+id/account_container"
@@ -32,17 +32,17 @@
                     android:id="@+id/account_name"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:textSize="18sp"
+                    android:textAppearance="?attr/textAppearanceTitleMedium"
                     android:textStyle="bold"
-                    android:textColor="@color/black"/>
+                    android:textColor="?attr/colorOnSurface"/>
 
                 <TextView
                     android:id="@+id/default_account_indicator"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Default Account"
-                    android:textColor="@color/primary"
-                    android:textSize="14sp"
+                    android:textColor="?attr/colorPrimary"
+                    android:textAppearance="?attr/textAppearanceBodySmall"
                     android:visibility="gone"/>
             </LinearLayout>
 
@@ -54,7 +54,7 @@
                 android:contentDescription="Set as default account"
                 android:padding="12dp"
                 android:src="@drawable/ic_star_border"
-                app:tint="@color/black" />
+                app:tint="?attr/colorOnSurfaceVariant" />
 
             <ImageButton
                 android:id="@+id/btn_edit"
@@ -64,7 +64,7 @@
                 android:contentDescription="Edit account"
                 android:padding="12dp"
                 android:src="@drawable/ic_edit"
-                app:tint="@color/black" />
+                app:tint="?attr/colorOnSurfaceVariant" />
 
             <ImageButton
                 android:id="@+id/btn_delete"
@@ -74,7 +74,7 @@
                 android:contentDescription="Delete account"
                 android:padding="12dp"
                 android:src="@drawable/ic_delete"
-                app:tint="@color/black" />
+                app:tint="?attr/colorOnSurfaceVariant" />
         </LinearLayout>
 
         <TextView
@@ -82,31 +82,31 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
-            android:textSize="16sp"
-            android:textColor="@color/black"/>
+            android:textAppearance="?attr/textAppearanceBodyMedium"
+            android:textColor="?attr/colorOnSurface"/>
 
         <TextView
             android:id="@+id/account_bank"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
-            android:textSize="16sp"
-            android:textColor="@color/black"/>
+            android:textAppearance="?attr/textAppearanceBodyMedium"
+            android:textColor="?attr/colorOnSurface"/>
 
         <TextView
             android:id="@+id/account_expiry"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
-            android:textSize="16sp"
-            android:textColor="@color/black"/>
+            android:textAppearance="?attr/textAppearanceBodyMedium"
+            android:textColor="?attr/colorOnSurface"/>
 
         <TextView
             android:id="@+id/account_description"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
-            android:textSize="16sp"
-            android:textColor="@color/secondary_text"/>
+            android:textAppearance="?attr/textAppearanceBodySmall"
+            android:textColor="?attr/colorOnSurfaceVariant"/>
     </LinearLayout>
 </com.google.android.material.card.MaterialCardView> 

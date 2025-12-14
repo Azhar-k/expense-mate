@@ -2,11 +2,11 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="176dp"
-    android:background="@color/bar"
+    android:background="?attr/colorPrimaryContainer"
     android:gravity="bottom"
     android:orientation="vertical"
     android:padding="16dp"
-    android:theme="@style/ThemeOverlay.AppCompat.Dark">
+    android:theme="@style/ThemeOverlay.Material3.DynamicColors.DayNight">
 
     <ImageView
         android:layout_width="64dp"
@@ -18,7 +18,8 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
         android:text="Expense Mate"
-        android:textAppearance="@style/TextAppearance.AppCompat.Body1"
+        android:textAppearance="?attr/textAppearanceTitleLarge"
+        android:textColor="?attr/colorOnPrimaryContainer"
         android:textSize="20sp" />
 
 </LinearLayout>

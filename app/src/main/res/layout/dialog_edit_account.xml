@@ -8,15 +8,14 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:background="@color/white"
         android:padding="24dp">
 
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="Account Details"
-            android:textColor="@color/black"
-            android:textSize="24sp"
+            android:textColor="?attr/colorOnSurface"
+            android:textAppearance="?attr/textAppearanceHeadlineSmall"
             android:textStyle="bold"
             android:layout_marginBottom="16dp"/>
 
@@ -26,15 +25,14 @@
             android:layout_height="wrap_content"
             android:layout_marginBottom="16dp"
             android:hint="Account Name"
-            style="@style/CustomTextInputLayout">
+            style="@style/Widget.Material3.TextInputLayout.OutlinedBox">
 
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/etAccountName"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:inputType="text"
-                android:textColor="@color/black"
-                android:textSize="16sp"
+                android:textColor="?attr/colorOnSurface"
                 android:padding="12dp" />
 
         </com.google.android.material.textfield.TextInputLayout>
@@ -45,15 +43,14 @@
             android:layout_height="wrap_content"
             android:layout_marginBottom="16dp"
             android:hint="Account Number (Optional)"
-            style="@style/CustomTextInputLayout">
+            style="@style/Widget.Material3.TextInputLayout.OutlinedBox">
 
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/etAccountNumber"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:inputType="text"
-                android:textColor="@color/black"
-                android:textSize="16sp"
+                android:textColor="?attr/colorOnSurface"
                 android:padding="12dp" />
 
         </com.google.android.material.textfield.TextInputLayout>
@@ -64,15 +61,14 @@
             android:layout_height="wrap_content"
             android:layout_marginBottom="16dp"
             android:hint="Bank (Optional)"
-            style="@style/CustomTextInputLayout">
+            style="@style/Widget.Material3.TextInputLayout.OutlinedBox">
 
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/etBank"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:inputType="text"
-                android:textColor="@color/black"
-                android:textSize="16sp"
+                android:textColor="?attr/colorOnSurface"
                 android:padding="12dp" />
 
         </com.google.android.material.textfield.TextInputLayout>
@@ -83,7 +79,7 @@
             android:layout_height="wrap_content"
             android:layout_marginBottom="16dp"
             android:hint="Expiry Date (Optional)"
-            style="@style/CustomTextInputLayout">
+            style="@style/Widget.Material3.TextInputLayout.OutlinedBox">
 
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/etExpiryDate"
@@ -91,8 +87,7 @@
                 android:layout_height="wrap_content"
                 android:inputType="none"
                 android:focusable="false"
-                android:textColor="@color/black"
-                android:textSize="16sp"
+                android:textColor="?attr/colorOnSurface"
                 android:padding="12dp" />
 
         </com.google.android.material.textfield.TextInputLayout>
@@ -103,7 +98,7 @@
             android:layout_height="wrap_content"
             android:layout_marginBottom="16dp"
             android:hint="Description (Optional)"
-            style="@style/CustomTextInputLayout">
+            style="@style/Widget.Material3.TextInputLayout.OutlinedBox">
 
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/etDescription"
@@ -111,8 +106,7 @@
                 android:layout_height="wrap_content"
                 android:inputType="textMultiLine"
                 android:minLines="2"
-                android:textColor="@color/black"
-                android:textSize="16sp"
+                android:textColor="?attr/colorOnSurface"
                 android:padding="12dp" />
 
         </com.google.android.material.textfield.TextInputLayout>
@@ -130,14 +124,15 @@
                 android:layout_height="wrap_content"
                 android:layout_marginEnd="8dp"
                 android:text="Cancel"
-                style="@style/Widget.MaterialComponents.Button.TextButton" />
+                android:textColor="?attr/colorError"
+                style="@style/Widget.Material3.Button.TextButton" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnPositive"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Save"
-                style="@style/Widget.MaterialComponents.Button.TextButton" />
+                style="@style/Widget.Material3.Button.TextButton" />
         </LinearLayout>
 
     </LinearLayout>

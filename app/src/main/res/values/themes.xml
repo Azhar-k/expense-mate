@@ -1,33 +1,46 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <!-- Base application theme. -->
-    <style name="Theme.ExpenseMate" parent="Theme.MaterialComponents.Light.NoActionBar">
+    <style name="Theme.ExpenseMate" parent="Theme.Material3.DayNight.NoActionBar">
         <!-- Primary brand color. -->
-        <item name="colorPrimary">@color/primary</item>
-        <item name="colorPrimaryVariant">@color/primary</item>
-        <item name="colorOnPrimary">@color/white</item>
+        <item name="colorPrimary">@color/md_theme_light_primary</item>
+        <item name="colorOnPrimary">@color/md_theme_light_onPrimary</item>
+        <item name="colorPrimaryContainer">@color/md_theme_light_primaryContainer</item>
+        <item name="colorOnPrimaryContainer">@color/md_theme_light_onPrimaryContainer</item>
+        
         <!-- Secondary brand color. -->
-        <item name="colorSecondary">@color/accent</item>
-        <item name="colorSecondaryVariant">@color/accent</item>
-        <item name="colorOnSecondary">@color/white</item>
+        <item name="colorSecondary">@color/md_theme_light_secondary</item>
+        <item name="colorOnSecondary">@color/md_theme_light_onSecondary</item>
+        <item name="colorSecondaryContainer">@color/md_theme_light_secondaryContainer</item>
+        <item name="colorOnSecondaryContainer">@color/md_theme_light_onSecondaryContainer</item>
+        
+        <!-- Tertiary brand color. -->
+        <item name="colorTertiary">@color/md_theme_light_tertiary</item>
+        <item name="colorOnTertiary">@color/md_theme_light_onTertiary</item>
+        <item name="colorTertiaryContainer">@color/md_theme_light_tertiaryContainer</item>
+        <item name="colorOnTertiaryContainer">@color/md_theme_light_onTertiaryContainer</item>
+        
+        <!-- Background & Surface -->
+        <item name="android:colorBackground">@color/md_theme_light_background</item>
+        <item name="colorOnBackground">@color/md_theme_light_onBackground</item>
+        <item name="colorSurface">@color/md_theme_light_surface</item>
+        <item name="colorOnSurface">@color/md_theme_light_onSurface</item>
+        <item name="colorSurfaceVariant">@color/md_theme_light_surfaceVariant</item>
+        <item name="colorOnSurfaceVariant">@color/md_theme_light_onSurfaceVariant</item>
+        <item name="colorOutline">@color/md_theme_light_outline</item>
+
         <!-- Status bar color. -->
-        <item name="android:statusBarColor">@color/primary</item>
-        <item name="android:navigationBarColor">@color/primary</item>
-        <!-- Background colors -->
-        <item name="android:windowBackground">@color/background</item>
-        <item name="android:colorBackground">@color/background</item>
-        <!-- Text colors -->
-        <item name="android:textColorPrimary">@color/primary_text</item>
-        <item name="android:textColorSecondary">@color/secondary_text</item>
+        <item name="android:statusBarColor">?attr/colorPrimary</item>
+        <item name="android:navigationBarColor">?attr/colorSurface</item>
     </style>
 
     <style name="Theme.ExpenseMate.NoActionBar">
         <item name="windowActionBar">false</item>
         <item name="windowNoTitle">true</item>
-        <item name="android:statusBarColor">@color/bar</item>
-        <item name="android:navigationBarColor">@color/primary</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">?attr/colorSurface</item>
     </style>
 
-    <style name="Theme.ExpenseMate.AppBarOverlay" parent="ThemeOverlay.AppCompat.Dark.ActionBar" />
+    <style name="Theme.ExpenseMate.AppBarOverlay" parent="ThemeOverlay.Material3.Dark.ActionBar" />
 
-    <style name="Theme.ExpenseMate.PopupOverlay" parent="ThemeOverlay.AppCompat.Light" />
+    <style name="Theme.ExpenseMate.PopupOverlay" parent="ThemeOverlay.Material3.Light" />
 </resources>
