@@ -61,6 +61,15 @@
         android:text="Restore Data from Drive"
         android:enabled="false"
         android:backgroundTint="#FF5722"
+        android:layout_marginBottom="16dp" />
+
+    <Button
+        android:id="@+id/btn_delete_old_backups"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Delete Old Backups"
+        android:enabled="false"
+        android:backgroundTint="@android:color/holo_red_light"
         android:layout_marginBottom="24dp" />
 
     <TextView

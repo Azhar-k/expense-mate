@@ -34,6 +34,7 @@ public class SettingsFragment extends Fragment {
     private Button btnSignOut;
     private Button btnBackup;
     private Button btnRestore;
+    private Button btnDeleteOldBackups;
     private TextView textAccountStatus;
     private TextView textStatus;
 
@@ -77,6 +78,7 @@ public class SettingsFragment extends Fragment {
         btnBackup = root.findViewById(R.id.btn_backup);
         btnRestore = root.findViewById(R.id.btn_restore);
         textAccountStatus = root.findViewById(R.id.text_account_status);
+        btnDeleteOldBackups = root.findViewById(R.id.btn_delete_old_backups);
         textStatus = root.findViewById(R.id.text_status);
 
         setupListeners();
@@ -125,6 +127,7 @@ public class SettingsFragment extends Fragment {
             new Thread(() -> {
                 BackupDataLoader.loadBackupDataFromGoogleDrive(requireContext(),
                         new GoogleDriveService.DriveCallback() {
+
                             @Override
                             public void onSuccess(String message) {
                                 requireActivity().runOnUiThread(() -> {
@@ -143,6 +146,39 @@ public class SettingsFragment extends Fragment {
                                 });
                             }
                         });
+            }).start();
+        });
+
+        btnDeleteOldBackups.setOnClickListener(v -> {
+            textStatus.setText("Deleting old backups...");
+            btnDeleteOldBackups.setEnabled(false);
+
+            new Thread(() -> {
+                GoogleDriveService driveService = new GoogleDriveService(requireContext());
+                GoogleSignInHelper signInHelper = new GoogleSignInHelper(requireContext());
+
+                if (signInHelper.isSignedIn()) {
+                    driveService.initializeDriveService(signInHelper.getAccessToken());
+                    driveService.deleteOldBackups(new GoogleDriveService.DriveCallback() {
+                        @Override
+                        public void onSuccess(String message) {
+                            requireActivity().runOnUiThread(() -> {
+                                textStatus.setText("Success: " + message);
+                                btnDeleteOldBackups.setEnabled(true);
+                                Toast.makeText(getContext(), message, Toast.LENGTH_SHORT).show();
+                            });
+                        }
+
+                        @Override
+                        public void onError(String error) {
+                            requireActivity().runOnUiThread(() -> {
+                                textStatus.setText("Error: " + error);
+                                btnDeleteOldBackups.setEnabled(true);
+                                Log.e(TAG, error);
+                            });
+                        }
+                    });
+                }
             }).start();
         });
     }
@@ -176,6 +212,7 @@ public class SettingsFragment extends Fragment {
             btnSignOut.setVisibility(View.VISIBLE);
             btnBackup.setEnabled(true);
             btnRestore.setEnabled(true);
+            btnDeleteOldBackups.setEnabled(true);
 
             GoogleSignInAccount account = GoogleSignIn.getLastSignedInAccount(requireContext());
             if (account != null) {
@@ -186,6 +223,7 @@ public class SettingsFragment extends Fragment {
             btnSignOut.setVisibility(View.GONE);
             btnBackup.setEnabled(false);
             btnRestore.setEnabled(false);
+            btnDeleteOldBackups.setEnabled(false);
             textAccountStatus.setText("Not signed in");
         }
     }

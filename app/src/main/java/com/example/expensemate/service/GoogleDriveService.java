@@ -164,6 +164,52 @@ public class GoogleDriveService {
         });
     }
 
+    public void deleteOldBackups(DriveCallback callback) {
+        executorService.execute(() -> {
+            try {
+                String appFolderId = getAppFolderId();
+                if (appFolderId == null) {
+                    callback.onError("App folder not found");
+                    return;
+                }
+
+                // List all backup folders
+                FileList fileList = driveService.files().list()
+                        .setQ("'" + appFolderId
+                                + "' in parents and mimeType='application/vnd.google-apps.folder' and name contains 'Backup_'")
+                        .setOrderBy("createdTime desc")
+                        .setFields("files(id, name, createdTime)")
+                        .execute();
+
+                List<File> files = fileList.getFiles();
+                if (files == null || files.isEmpty()) {
+                    callback.onSuccess("No backups found to delete");
+                    return;
+                }
+
+                if (files.size() <= 1) {
+                    callback.onSuccess("No old backups to delete (only 1 or 0 exists)");
+                    return;
+                }
+
+                // Keep the first (latest) one, delete the rest
+                int deletedCount = 0;
+                for (int i = 1; i < files.size(); i++) {
+                    File fileToDelete = files.get(i);
+                    driveService.files().delete(fileToDelete.getId()).execute();
+                    deletedCount++;
+                    Log.d(TAG, "Deleted old backup folder: " + fileToDelete.getName());
+                }
+
+                callback.onSuccess("Deleted " + deletedCount + " old backup(s)");
+
+            } catch (IOException e) {
+                Log.e(TAG, "Error deleting old backups", e);
+                callback.onError("Failed to delete old backups: " + e.getMessage());
+            }
+        });
+    }
+
     public void uploadFileToFolder(String folderId, java.io.File file, String mimeType, DriveCallback callback) {
         executorService.execute(() -> {
             try {

@@ -340,10 +340,6 @@ public class BackupDataLoader {
         }
     }
 
-    public static void exportDatabaseData(Context context, AppDatabase database) {
-        // exportDatabaseDataToLocal(context, database);
-    }
-
     public static void exportDatabaseDataToLocal(Context context, AppDatabase database) {
         try {
             StringBuilder data = new StringBuilder();
