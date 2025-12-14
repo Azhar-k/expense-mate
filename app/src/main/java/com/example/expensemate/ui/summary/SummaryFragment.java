@@ -112,7 +112,12 @@ public class SummaryFragment extends Fragment {
                 accountNames.add(account.getName());
             }
             // Add "All" as the second option
-            accountNames.add(1, "All");
+            if (accountNames.size() == 0) {
+                accountNames.add(0, "All");
+            } else {
+                accountNames.add(1, "All");
+            }
+
             ArrayAdapter<String> adapter = new ArrayAdapter<>(
                 requireContext(),
                 android.R.layout.simple_dropdown_item_1line,
