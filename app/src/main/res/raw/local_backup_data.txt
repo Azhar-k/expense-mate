@@ -1,0 +1,1486 @@
+=== Database Export Sun May 25 10:41:32 GMT+05:30 2025 ===
+
+=== TRANSACTIONS ===
+ID: 513
+Amount: 105.00
+Description: Rs.105.00 spent on your SBI Credit Card ending with 8426 at tiffinboxmess on 24-05-25 via UPI (Ref No. 514427960533). Trxn. not done by you? Report at https://sbicard.com/Dispute
+Date: Sat May 24 21:41:45 GMT+05:30 2025
+Transaction Type: DEBIT
+Receiver: your SBI Credit Card ending with 8426 at tiffinboxmess on 24
+Category: Food
+Is excluded from summary: false
+Account id: 2
+Linked Payment ID: null
+---
+ID: 518
+Amount: 600.00
+Description: Rs.600.00 spent on your SBI Credit Card ending with 8426 at LENSKART on 24-05-25 via UPI (Ref No. 514424959895). Trxn. not done by you? Report at https://sbicard.com/Dispute
+Date: Sat May 24 18:48:02 GMT+05:30 2025
+Transaction Type: DEBIT
+Receiver: your SBI Credit Card ending with 8426 at LENSKART on 24
+Category: Household
+Is excluded from summary: false
+Account id: 2
+Linked Payment ID: null
+---
+ID: 510
+Amount: 10000.00
+Description: self transfer
+Date: Sat May 24 10:09:21 GMT+05:30 2025
+Transaction Type: CREDIT
+Receiver:
+Category: Default
+Is excluded from summary: false
+Account id: 3
+Linked Payment ID: null
+---
+ID: 509
+Amount: 10000.00
+Description: interlock
+Date: Sat May 24 08:38:19 GMT+05:30 2025
+Transaction Type: DEBIT
+Receiver:
+Category: Others
+Is excluded from summary: false
+Account id: 2
+Linked Payment ID: null
+---
+ID: 519
+Amount: 105.00
+Description: Rs.105.00 spent on your SBI Credit Card ending with 8426 at tiffinboxmess on 24-05-25 via UPI (Ref No. 514417666122). Trxn. not done by you? Report at https://sbicard.com/Dispute
+Date: Sat May 24 08:17:35 GMT+05:30 2025
+Transaction Type: DEBIT
+Receiver: your SBI Credit Card ending with 8426 at tiffinboxmess on 24
+Category: Food
+Is excluded from summary: false
+Account id: 2
+Linked Payment ID: null
+---
+ID: 507
+Amount: 969.03
+Description: INR 969.03 spent using ICICI Bank Card XX0012 on 24-May-25 on IND*Amazon. Avl Limit: INR 52,627.50. If not you, call 1800 2662/SMS BLOCK 0012 to 9215676766.
+Date: Sat May 24 06:49:07 GMT+05:30 2025
+Transaction Type: DEBIT
+Receiver: ICICI Bank Card XX0012 on 24
+Category: Household
+Is excluded from summary: false
+Account id: 2
+Linked Payment ID: null
+---
+ID: 506
+Amount: 49.00
+Description: Rs.49.00 spent on your SBI Credit Card ending with 8426 at LENSKART SOLUTIONS PRIV on 23-05-25 via UPI (Ref No. 514313556180). Trxn. not done by you? Rep
+Date: Fri May 23 19:58:40 GMT+05:30 2025
+Transaction Type: DEBIT
+Receiver: your SBI Credit Card ending with 8426 at LENSKART SOLUTIONS PRIV on 23
+Category: Others
+Is excluded from summary: false
+Account id: 2
+Linked Payment ID: null
+---
+ID: 505
+Amount: 80000.00
+Description: Dear Customer, Acct XX678 is credited with Rs 80000.00 on 23-May-25 from MARSHIDA MARIYA. UPI:550979634244-ICICI Bank.
+Date: Fri May 23 19:55:49 GMT+05:30 2025
+Transaction Type: CREDIT
+Receiver: MARSHIDA MARIYA
+Category: Default
+Is excluded from summary: false
+Account id: 3
+Linked Payment ID: null
+---
+ID: 481
+Amount: 7500.00
+Description:
+Date: Thu May 22 21:38:36 GMT+05:30 2025
+Transaction Type: DEBIT
+Receiver: Amjith
+Category: Default
+Is excluded from summary: false
+Account id: 7
+Linked Payment ID: null
+---
+ID: 480
+Amount: 2400.00
+Description:
+Date: Thu May 22 21:38:09 GMT+05:30 2025
+Transaction Type: DEBIT
+Receiver: Shibin
+Category: Default
+Is excluded from summary: false
+Account id: 7
+Linked Payment ID: null
+---
+ID: 479
+Amount: 5000.00
+Description:
+Date: Thu May 22 21:37:35 GMT+05:30 2025
+Transaction Type: DEBIT
+Receiver: zuhair
+Category: Default
+Is excluded from summary: false
+Account id: 7
+Linked Payment ID: null
+---
+ID: 483
+Amount: 150.00
+Description: Debit transaction
+Date: Thu May 22 21:35:03 GMT+05:30 2025
+Transaction Type: DEBIT
+Receiver: your SBI Credit Card ending with 8426 at tiffinboxmess on 22
+Category: Food
+Is excluded from summary: false
+Account id: 2
+Linked Payment ID: null
+---
+ID: 471
+Amount: 186.00
+Description: Debit transaction
+Date: Thu May 22 18:49:09 GMT+05:30 2025
+Transaction Type: DEBIT
+Receiver: J J ENTERPRISES
+Category: Household
+Is excluded from summary: false
+Account id: 2
+Linked Payment ID: null
+---
+ID: 475
+Amount: 390.04
+Description: Debit transaction
+Date: Thu May 22 13:15:35 GMT+05:30 2025
+Transaction Type: DEBIT
+Receiver: your SBI Credit Card ending with 8426 at ZOMATO on 22
+Category: Outside Food
+Is excluded from summary: false
+Account id: 2
+Linked Payment ID: null
+---
+ID: 466
+Amount: 10000.00
+Description: Debit transaction
+Date: Thu May 22 11:10:14 GMT+05:30 2025
+Transaction Type: DEBIT
+Receiver: YAHKOOB P V
+Category: Default
+Is excluded from summary: false
+Account id: 3
+Linked Payment ID: null
+---
+ID: 465
+Amount: 110.00
+Description: lunch psragon
+Date: Thu May 22 07:44:45 GMT+05:30 2025
+Transaction Type: DEBIT
+Receiver: jijothottumkal
+Category: Food
+Is excluded from summary: false
+Account id: 2
+Linked Payment ID: null
+---
+ID: 474
+Amount: 200.00
+Description: Debit transaction
+Date: Wed May 21 21:36:37 GMT+05:30 2025
+Transaction Type: DEBIT
+Receiver: your SBI Credit Card ending with 8426 at tiffinboxmess on 21
+Category: Food
+Is excluded from summary: false
+Account id: 2
+Linked Payment ID: null
+---
+ID: 463
+Amount: 56.00
+Description: Debit transaction
+Date: Wed May 21 16:19:50 GMT+05:30 2025
+Transaction Type: DEBIT
+Receiver: J J ENTERPRISES
+Category: Food
+Is excluded from summary: false
+Account id: 2
+Linked Payment ID: null
+---
+ID: 462
+Amount: 6700.00
+Description:
+Date: Tue May 20 22:50:19 GMT+05:30 2025
+Transaction Type: CREDIT
+Receiver:
+Category: Default
+Is excluded from summary: false
+Account id: 5
+Linked Payment ID: null
+---
+ID: 461
+Amount: 700.00
+Description:
+Date: Tue May 20 22:49:43 GMT+05:30 2025
+Transaction Type: CREDIT
+Receiver:
+Category: Default
+Is excluded from summary: false
+Account id: 6
+Linked Payment ID: null
+---
+ID: 456
+Amount: 215.00
+Description: Debit transaction
+Date: Tue May 20 21:08:13 GMT+05:30 2025
+Transaction Type: DEBIT
+Receiver: your SBI Credit Card ending with 8426 at tiffinboxmess on 20
+Category: Food
+Is excluded from summary: false
+Account id: 2
+Linked Payment ID: null
+---
+ID: 455
+Amount: 150000.00
+Description:
+Date: Tue May 20 14:37:00 GMT+05:30 2025
+Transaction Type: DEBIT
+Receiver:
+Category: Default
+Is excluded from summary: false
+Account id: 4
+Linked Payment ID: null
+---
+ID: 454
+Amount: 400000.00
+Description:
+Date: Tue May 20 14:36:40 GMT+05:30 2025
+Transaction Type: DEBIT
+Receiver:
+Category: Default
+Is excluded from summary: false
+Account id: 4
+Linked Payment ID: null
+---
+ID: 445
+Amount: 140.00
+Description: Debit transaction
+Date: Tue May 20 14:32:08 GMT+05:30 2025
+Transaction Type: DEBIT
+Receiver: Kareem s Agenci
+Category: Household
+Is excluded from summary: false
+Account id: 2
+Linked Payment ID: null
+---
+ID: 443
+Amount: 1300.00
+Description: train return ticket
+Date: Tue May 20 14:24:23 GMT+05:30 2025
+Transaction Type: DEBIT
+Receiver:
+Category: Kasargod
+Is excluded from summary: false
+Account id: 2
+Linked Payment ID: null
+---
+ID: 442
+Amount: 2025.00
+Description: Debit transaction
+Date: Tue May 20 14:17:55 GMT+05:30 2025
+Transaction Type: DEBIT
+Receiver: KSEB
+Category: Household
+Is excluded from summary: false
+Account id: 2
+Linked Payment ID: null
+---
+ID: 441
+Amount: 10233.90
+Description: Debit transaction
+Date: Mon May 19 18:41:56 GMT+05:30 2025
+Transaction Type: DEBIT
+Receiver: CRED Club
+Category: Default
+Is excluded from summary: false
+Account id: 2
+Linked Payment ID: 19
+---
+ID: 424
+Amount: 105.00
+Description: Debit transaction
+Date: Sun May 18 21:55:31 GMT+05:30 2025
+Transaction Type: DEBIT
+Receiver: your SBI Credit Card ending with 8426 at tiffinboxmess on 18
+Category: Food
+Is excluded from summary: false
+Account id: 2
+Linked Payment ID: null
+---
+ID: 425
+Amount: 60.00
+Description: Debit transaction
+Date: Sun May 18 20:00:47 GMT+05:30 2025
+Transaction Type: DEBIT
+Receiver: J J ENTERPRISES
+Category: Food
+Is excluded from summary: false
+Account id: 2
+Linked Payment ID: null
+---
+ID: 426
+Amount: 1200.00
+Description: Debit transaction
+Date: Sun May 18 19:52:13 GMT+05:30 2025
+Transaction Type: DEBIT
+Receiver: BP Petrol Pump
+Category: Fuel
+Is excluded from summary: false
+Account id: 2
+Linked Payment ID: null
+---
+ID: 427
+Amount: 101.86
+Description: Debit transaction
+Date: Sun May 18 19:43:51 GMT+05:30 2025
+Transaction Type: DEBIT
+Receiver: your SBI Credit Card ending with 8426 at SMART Irinjalakuda TXWG on 18
+Category: Food
+Is excluded from summary: false
+Account id: 2
+Linked Payment ID: null
+---
+ID: 429
+Amount: 310.00
+Description: Debit transaction
+Date: Sun May 18 17:35:49 GMT+05:30 2025
+Transaction Type: DEBIT
+Receiver: PAN F and B Koc
+Category: Movies
+Is excluded from summary: false
+Account id: 2
+Linked Payment ID: null
+---
+ID: 430
+Amount: 30.00
+Description: Debit transaction
+Date: Sun May 18 16:29:13 GMT+05:30 2025
+Transaction Type: DEBIT
+Receiver: your SBI Credit Card ending with 8426 at ABAD BUILDERS PRIVAT on 18
+Category: Movies
+Is excluded from summary: false
+Account id: 2
+Linked Payment ID: null
+---
+ID: 257
+Amount: 311.92
+Description: Debit transaction
+Date: Sun May 18 10:58:06 GMT+05:30 2025
+Transaction Type: DEBIT
+Receiver: @ RSP
+Category: Movies
+Is excluded from summary: false
+Account id: 2
+Linked Payment ID: null
+---
+ID: 256
+Amount: 4000.00
+Description: Debit transaction
+Date: Sun May 18 10:03:23 GMT+05:30 2025
+Transaction Type: DEBIT
+Receiver: mayannaderi oki
+Category: Home Food
+Is excluded from summary: false
+Account id: 2
+Linked Payment ID: null
+---
+ID: 255
+Amount: 2207.00
+Description: electricity
+Date: Sun May 18 09:47:34 GMT+05:30 2025
+Transaction Type: DEBIT
+Receiver:
+Category: Home Household
+Is excluded from summary: false
+Account id: 2
+Linked Payment ID: null
+---
+ID: 254
+Amount: 325.00
+Description: Debit transaction
+Date: Sun May 18 00:27:44 GMT+05:30 2025
+Transaction Type: DEBIT
+Receiver: ANILKUMAR VS
+Category: Kasargod
+Is excluded from summary: false
+Account id: 2
+Linked Payment ID: null
+---
+ID: 253
+Amount: 586.00
+Description: train ticket
+Date: Sat May 17 23:11:08 GMT+05:30 2025
+Transaction Type: DEBIT
+Receiver:
+Category: Kasargod
+Is excluded from summary: false
+Account id: 2
+Linked Payment ID: null
+---
+ID: 252
+Amount: 130.00
+Description: Debit transaction
+Date: Sat May 17 14:50:59 GMT+05:30 2025
+Transaction Type: DEBIT
+Receiver: your SBI Credit Card ending with 8426 at ABHIJITH P on 17
+Category: Kasargod
+Is excluded from summary: false
+Account id: 2
+Linked Payment ID: null
+---
+ID: 251
+Amount: 80.00
+Description: Debit transaction
+Date: Sat May 17 14:49:17 GMT+05:30 2025
+Transaction Type: DEBIT
+Receiver: HABEEBK
+Category: Kasargod
+Is excluded from summary: false
+Account id: 2
+Linked Payment ID: null
+---
+ID: 250
+Amount: 413.00
+Description: Debit transaction
+Date: Sat May 17 14:37:42 GMT+05:30 2025
+Transaction Type: DEBIT
+Receiver: your SBI Credit Card ending with 8426 at CITAPANIFRIEDCHICK on 17
+Category: Kasargod
+Is excluded from summary: false
+Account id: 2
+Linked Payment ID: null
+---
+ID: 249
+Amount: 75.00
+Description: Debit transaction
+Date: Sat May 17 12:47:14 GMT+05:30 2025
+Transaction Type: DEBIT
+Receiver: your SBI Credit Card ending with 8426 at DM Aris on 17
+Category: Kasargod
+Is excluded from summary: false
+Account id: 2
+Linked Payment ID: null
+---
+ID: 247
+Amount: 55.00
+Description: Debit transaction
+Date: Sat May 17 10:03:55 GMT+05:30 2025
+Transaction Type: DEBIT
+Receiver: your SBI Credit Card ending with 8426 at DM Aris on 17
+Category: Kasargod
+Is excluded from summary: false
+Account id: 2
+Linked Payment ID: null
+---
+ID: 246
+Amount: 42.00
+Description: Debit transaction
+Date: Sat May 17 06:32:12 GMT+05:30 2025
+Transaction Type: DEBIT
+Receiver: your SBI Credit Card ending with 8426 at CITY PALACE on 17
+Category: Kasargod
+Is excluded from summary: false
+Account id: 2
+Linked Payment ID: null
+---
+ID: 245
+Amount: 19.00
+Description: Debit transaction
+Date: Fri May 16 21:03:47 GMT+05:30 2025
+Transaction Type: DEBIT
+Receiver: Jio
+Category: Kasargod
+Is excluded from summary: false
+Account id: 2
+Linked Payment ID: null
+---
+ID: 244
+Amount: 1344.00
+Description: Debit transaction
+Date: Fri May 16 17:10:33 GMT+05:30 2025
+Transaction Type: DEBIT
+Receiver: NAVEENCHANDRA K
+Category: Kasargod
+Is excluded from summary: false
+Account id: 2
+Linked Payment ID: null
+---
+ID: 243
+Amount: 20.00
+Description: Debit transaction
+Date: Fri May 16 16:37:18 GMT+05:30 2025
+Transaction Type: DEBIT
+Receiver: your SBI Credit Card ending with 8426 at Abhilash Hotel on 16
+Category: Kasargod
+Is excluded from summary: false
+Account id: 2
+Linked Payment ID: null
+---
+ID: 242
+Amount: 20.00
+Description: Debit transaction
+Date: Fri May 16 16:34:00 GMT+05:30 2025
+Transaction Type: DEBIT
+Receiver: SHREE LAKSHMI B
+Category: Kasargod
+Is excluded from summary: false
+Account id: 2
+Linked Payment ID: null
+---
+ID: 241
+Amount: 30.00
+Description: Debit transaction
+Date: Fri May 16 09:51:48 GMT+05:30 2025
+Transaction Type: DEBIT
+Receiver: your SBI Credit Card ending with 8426 at SUNIL CATERING SERVICES on 16
+Category: Kasargod
+Is excluded from summary: false
+Account id: 2
+Linked Payment ID: null
+---
+ID: 240
+Amount: 95.00
+Description: Debit transaction
+Date: Fri May 16 07:24:25 GMT+05:30 2025
+Transaction Type: DEBIT
+Receiver: ERODE CAFE DD C
+Category: Kasargod
+Is excluded from summary: false
+Account id: 2
+Linked Payment ID: null
+---
+ID: 239
+Amount: 310.00
+Description: Debit transaction
+Date: Fri May 16 07:17:07 GMT+05:30 2025
+Transaction Type: DEBIT
+Receiver: JOSE THOMAS
+Category: Kasargod
+Is excluded from summary: false
+Account id: 2
+Linked Payment ID: null
+---
+ID: 237
+Amount: 69.00
+Description: Debit transaction
+Date: Thu May 15 13:47:38 GMT+05:30 2025
+Transaction Type: DEBIT
+Receiver: your SBI Credit Card ending with 8426 at N N MEDICALS on 15
+Category: Hospital
+Is excluded from summary: false
+Account id: 2
+Linked Payment ID: null
+---
+ID: 236
+Amount: 1334.50
+Description: Debit transaction
+Date: Thu May 15 10:01:40 GMT+05:30 2025
+Transaction Type: DEBIT
+Receiver: IRCTC APP UPI
+Category: Kasargod
+Is excluded from summary: false
+Account id: 2
+Linked Payment ID: null
+---
+ID: 235
+Amount: 85.00
+Description: Debit transaction
+Date: Wed May 14 21:44:04 GMT+05:30 2025
+Transaction Type: DEBIT
+Receiver: your SBI Credit Card ending with 8426 at tiffinboxmess on 14
+Category: Food
+Is excluded from summary: false
+Account id: 2
+Linked Payment ID: null
+---
+ID: 234
+Amount: 115.00
+Description: Debit transaction
+Date: Wed May 14 18:18:39 GMT+05:30 2025
+Transaction Type: DEBIT
+Receiver: your SBI Credit Card ending with 8426 at SHAMMEER M M on 14
+Category: Outside Food
+Is excluded from summary: false
+Account id: 2
+Linked Payment ID: null
+---
+ID: 233
+Amount: 145.00
+Description: Debit transaction
+Date: Tue May 13 21:39:00 GMT+05:30 2025
+Transaction Type: DEBIT
+Receiver: your SBI Credit Card ending with 8426 at tiffinboxmess on 13
+Category: Food
+Is excluded from summary: false
+Account id: 2
+Linked Payment ID: null
+---
+ID: 232
+Amount: 60.00
+Description: Debit transaction
+Date: Tue May 13 17:52:55 GMT+05:30 2025
+Transaction Type: DEBIT
+Receiver: your SBI Credit Card ending with 8426 at RENJU R  CHANDRAN on 13
+Category: Food
+Is excluded from summary: false
+Account id: 2
+Linked Payment ID: null
+---
+ID: 231
+Amount: 299.00
+Description: Debit transaction
+Date: Tue May 13 11:20:43 GMT+05:30 2025
+Transaction Type: DEBIT
+Receiver: ICICI Bank Card XX0012 on 13
+Category: Household
+Is excluded from summary: false
+Account id: 2
+Linked Payment ID: null
+---
+ID: 227
+Amount: 25500.00
+Description: Debit transaction
+Date: Tue May 13 10:30:26 GMT+05:30 2025
+Transaction Type: DEBIT
+Receiver: azharazvtp-2@oksbi
+Category: Default
+Is excluded from summary: false
+Account id: 2
+Linked Payment ID: 3
+---
+ID: 226
+Amount: 260.00
+Description: Debit transaction
+Date: Mon May 12 21:42:30 GMT+05:30 2025
+Transaction Type: DEBIT
+Receiver: your SBI Credit Card ending with 8426 at tiffinboxmess on 12
+Category: Food
+Is excluded from summary: false
+Account id: 2
+Linked Payment ID: null
+---
+ID: 225
+Amount: 250.00
+Description: Debit transaction
+Date: Mon May 12 18:10:58 GMT+05:30 2025
+Transaction Type: DEBIT
+Receiver: VISHAL K
+Category: Others
+Is excluded from summary: false
+Account id: 2
+Linked Payment ID: null
+---
+ID: 223
+Amount: 75.00
+Description: Debit transaction
+Date: Mon May 12 13:32:19 GMT+05:30 2025
+Transaction Type: DEBIT
+Receiver: your SBI Credit Card ending with 8426 at HungerBox on 12
+Category: Food
+Is excluded from summary: false
+Account id: 2
+Linked Payment ID: null
+---
+ID: 222
+Amount: 50.00
+Description: aadhar
+Date: Mon May 12 10:42:10 GMT+05:30 2025
+Transaction Type: DEBIT
+Receiver: UNIQUE IDENTIFI
+Category: Others
+Is excluded from summary: false
+Account id: 2
+Linked Payment ID: null
+---
+ID: 56
+Amount: 150.00
+Description: Debit transaction
+Date: Sun May 11 22:17:37 GMT+05:30 2025
+Transaction Type: DEBIT
+Receiver: your SBI Credit Card ending with 8426 at tiffinboxmess on 11
+Category: Food
+Is excluded from summary: false
+Account id: 2
+Linked Payment ID: null
+---
+ID: 210
+Amount: 130.00
+Description: Debit transaction
+Date: Sun May 11 19:52:26 GMT+05:30 2025
+Transaction Type: DEBIT
+Receiver: J J ENTERPRISES
+Category: Food
+Is excluded from summary: false
+Account id: 2
+Linked Payment ID: null
+---
+ID: 211
+Amount: 700.00
+Description: Debit transaction
+Date: Sun May 11 19:42:45 GMT+05:30 2025
+Transaction Type: DEBIT
+Receiver: HP AUTO CARE CE
+Category: Fuel
+Is excluded from summary: false
+Account id: 2
+Linked Payment ID: null
+---
+ID: 212
+Amount: 363.00
+Description: Debit transaction
+Date: Sun May 11 19:29:00 GMT+05:30 2025
+Transaction Type: DEBIT
+Receiver: your SBI Credit Card ending with 8426 at SMART Irinjalakuda TXWG on 11
+Category: Household
+Is excluded from summary: false
+Account id: 2
+Linked Payment ID: null
+---
+ID: 55
+Amount: 299.00
+Description: sinu recharge
+Date: Sun May 11 15:12:14 GMT+05:30 2025
+Transaction Type: DEBIT
+Receiver:
+Category: Others
+Is excluded from summary: false
+Account id: 2
+Linked Payment ID: null
+---
+ID: 53
+Amount: 464.87
+Description: Debit transaction
+Date: Sun May 11 12:53:30 GMT+05:30 2025
+Transaction Type: DEBIT
+Receiver: @ ZOMATO LTD on 11MAY25 12
+Category: Outside Food
+Is excluded from summary: false
+Account id: 2
+Linked Payment ID: null
+---
+ID: 52
+Amount: 145.00
+Description: Debit transaction
+Date: Sat May 10 22:03:20 GMT+05:30 2025
+Transaction Type: DEBIT
+Receiver: your SBI Credit Card ending with 8426 at tiffinboxmess on 10
+Category: Food
+Is excluded from summary: false
+Account id: 2
+Linked Payment ID: null
+---
+ID: 51
+Amount: 150.00
+Description: Debit transaction
+Date: Fri May 09 21:21:12 GMT+05:30 2025
+Transaction Type: DEBIT
+Receiver: your SBI Credit Card ending with 8426 at tiffinboxmess on 09
+Category: Outside Food
+Is excluded from summary: false
+Account id: 2
+Linked Payment ID: null
+---
+ID: 50
+Amount: 250.00
+Description: Debit transaction
+Date: Fri May 09 20:37:14 GMT+05:30 2025
+Transaction Type: DEBIT
+Receiver: RUKSANA N V
+Category: Outside Food
+Is excluded from summary: false
+Account id: 2
+Linked Payment ID: null
+---
+ID: 49
+Amount: 110.00
+Description:
+Date: Fri May 09 20:36:33 GMT+05:30 2025
+Transaction Type: DEBIT
+Receiver:
+Category: Food
+Is excluded from summary: false
+Account id: 2
+Linked Payment ID: null
+---
+ID: 48
+Amount: 386.00
+Description:
+Date: Fri May 09 20:35:23 GMT+05:30 2025
+Transaction Type: DEBIT
+Receiver:
+Category: Outside Food
+Is excluded from summary: false
+Account id: 2
+Linked Payment ID: null
+---
+ID: 47
+Amount: 133.00
+Description: Debit transaction
+Date: Fri May 09 13:42:30 GMT+05:30 2025
+Transaction Type: DEBIT
+Receiver: J J ENTERPRISES
+Category: Food
+Is excluded from summary: false
+Account id: 2
+Linked Payment ID: null
+---
+ID: 46
+Amount: 1334.00
+Description: friends food
+Date: Fri May 09 09:39:37 GMT+05:30 2025
+Transaction Type: DEBIT
+Receiver:
+Category: Others
+Is excluded from summary: false
+Account id: 2
+Linked Payment ID: null
+---
+ID: 45
+Amount: 94.00
+Description: Debit transaction
+Date: Thu May 08 19:51:09 GMT+05:30 2025
+Transaction Type: DEBIT
+Receiver: J J ENTERPRISES
+Category: Food
+Is excluded from summary: false
+Account id: 2
+Linked Payment ID: null
+---
+ID: 44
+Amount: 35.00
+Description: Debit transaction
+Date: Thu May 08 14:20:16 GMT+05:30 2025
+Transaction Type: DEBIT
+Receiver: HungerBox
+Category: Food
+Is excluded from summary: false
+Account id: 2
+Linked Payment ID: null
+---
+ID: 42
+Amount: 5000.00
+Description: test
+Date: Thu May 08 09:09:08 GMT+05:30 2025
+Transaction Type: DEBIT
+Receiver:
+Category: Entertainment
+Is excluded from summary: false
+Account id: 2
+Linked Payment ID: 22
+---
+ID: 41
+Amount: 10000.00
+Description: Debit transaction
+Date: Thu May 08 07:47:55 GMT+05:30 2025
+Transaction Type: DEBIT
+Receiver: THE KERALA STAT
+Category: Others
+Is excluded from summary: false
+Account id: 2
+Linked Payment ID: 6
+---
+ID: 40
+Amount: 140.00
+Description: water
+Date: Wed May 07 21:42:35 GMT+05:30 2025
+Transaction Type: DEBIT
+Receiver: Kareem s Agenci
+Category: Food
+Is excluded from summary: false
+Account id: 2
+Linked Payment ID: null
+---
+ID: 39
+Amount: 200.00
+Description: Debit transaction
+Date: Wed May 07 21:16:10 GMT+05:30 2025
+Transaction Type: DEBIT
+Receiver: your SBI Credit Card ending with 8426 at tiffinboxmess on 07
+Category: Food
+Is excluded from summary: false
+Account id: 2
+Linked Payment ID: null
+---
+ID: 36
+Amount: 211.00
+Description: Debit transaction
+Date: Tue May 06 17:50:11 GMT+05:30 2025
+Transaction Type: DEBIT
+Receiver: J J ENTERPRISES
+Category: Food
+Is excluded from summary: false
+Account id: 2
+Linked Payment ID: null
+---
+ID: 35
+Amount: 35.00
+Description: Debit transaction
+Date: Tue May 06 17:30:23 GMT+05:30 2025
+Transaction Type: DEBIT
+Receiver: HungerBox
+Category: Outside Food
+Is excluded from summary: false
+Account id: 2
+Linked Payment ID: null
+---
+ID: 33
+Amount: 100.00
+Description: Debit transaction
+Date: Mon May 05 23:32:48 GMT+05:30 2025
+Transaction Type: DEBIT
+Receiver: your SBI Credit Card ending with 8426 at HAIYANG on 05
+Category: Outside Food
+Is excluded from summary: false
+Account id: 2
+Linked Payment ID: null
+---
+ID: 32
+Amount: 169.00
+Description: Debit transaction
+Date: Mon May 05 23:04:23 GMT+05:30 2025
+Transaction Type: DEBIT
+Receiver: your SBI Credit Card ending with 8426 at SCHALLER FISHBAE PRIVAT on 05
+Category: Outside Food
+Is excluded from summary: false
+Account id: 2
+Linked Payment ID: null
+---
+ID: 31
+Amount: 140.00
+Description: Debit transaction
+Date: Mon May 05 23:00:26 GMT+05:30 2025
+Transaction Type: DEBIT
+Receiver: your SBI Credit Card ending with 8426 at HAIYANG on 05
+Category: Outside Food
+Is excluded from summary: false
+Account id: 2
+Linked Payment ID: null
+---
+ID: 29
+Amount: 66.00
+Description: Debit transaction
+Date: Mon May 05 22:36:35 GMT+05:30 2025
+Transaction Type: DEBIT
+Receiver: your SBI Credit Card ending with 8426 at C M MALL on 05
+Category: Household
+Is excluded from summary: false
+Account id: 2
+Linked Payment ID: null
+---
+ID: 28
+Amount: 586.00
+Description: Debit transaction
+Date: Mon May 05 22:28:47 GMT+05:30 2025
+Transaction Type: DEBIT
+Receiver: your SBI Credit Card ending with 8426 at 18860APOLLOPHARMACY on 05
+Category: Others
+Is excluded from summary: false
+Account id: 2
+Linked Payment ID: null
+---
+ID: 27
+Amount: 260.00
+Description: tiffin
+Date: Mon May 05 21:57:24 GMT+05:30 2025
+Transaction Type: DEBIT
+Receiver:
+Category: Food
+Is excluded from summary: false
+Account id: 2
+Linked Payment ID: null
+---
+ID: 26
+Amount: 10000.00
+Description:
+Date: Mon May 05 16:58:24 GMT+05:30 2025
+Transaction Type: DEBIT
+Receiver: testing
+Category: Entertainment
+Is excluded from summary: false
+Account id: 2
+Linked Payment ID: 22
+---
+ID: 20
+Amount: 743.00
+Description: Debit transaction
+Date: Mon May 05 09:50:00 GMT+05:30 2025
+Transaction Type: DEBIT
+Receiver: ICICI Bank Card XX0012 on 05
+Category: Household
+Is excluded from summary: false
+Account id: 2
+Linked Payment ID: null
+---
+ID: 18
+Amount: 200.00
+Description: allegra, metformin
+Date: Sun May 04 21:57:19 GMT+05:30 2025
+Transaction Type: DEBIT
+Receiver: RUKSANA N V
+Category: Hospital
+Is excluded from summary: false
+Account id: 2
+Linked Payment ID: null
+---
+ID: 16
+Amount: 205.00
+Description: springles
+Date: Sun May 04 20:18:39 GMT+05:30 2025
+Transaction Type: DEBIT
+Receiver:
+Category: Outside Food
+Is excluded from summary: false
+Account id: 2
+Linked Payment ID: null
+---
+ID: 15
+Amount: 105.00
+Description: Debit transaction
+Date: Sun May 04 19:39:50 GMT+05:30 2025
+Transaction Type: DEBIT
+Receiver: your SBI Credit Card ending with 8426 at tiffinboxmess on 04
+Category: Food
+Is excluded from summary: false
+Account id: 2
+Linked Payment ID: null
+---
+ID: 14
+Amount: 98.00
+Description: Debit transaction
+Date: Sun May 04 18:24:35 GMT+05:30 2025
+Transaction Type: DEBIT
+Receiver: J J ENTERPRISES
+Category: Household
+Is excluded from summary: false
+Account id: 2
+Linked Payment ID: null
+---
+ID: 13
+Amount: 17.00
+Description: Debit transaction
+Date: Sun May 04 15:42:15 GMT+05:30 2025
+Transaction Type: DEBIT
+Receiver: your SBI Credit Card ending with 8426 at ANTO  SEBASTIAN on 04
+Category: Outside Food
+Is excluded from summary: false
+Account id: 2
+Linked Payment ID: null
+---
+ID: 12
+Amount: 750.00
+Description: Debit transaction
+Date: Sun May 04 15:39:22 GMT+05:30 2025
+Transaction Type: DEBIT
+Receiver: AJAYAKUMAR P K
+Category: Outside Food
+Is excluded from summary: false
+Account id: 2
+Linked Payment ID: null
+---
+ID: 10
+Amount: 140.00
+Description: Debit transaction
+Date: Sun May 04 11:15:43 GMT+05:30 2025
+Transaction Type: DEBIT
+Receiver: Kareem s Agenci
+Category: Household
+Is excluded from summary: false
+Account id: 2
+Linked Payment ID: null
+---
+ID: 9
+Amount: 475.00
+Description:
+Date: Sun May 04 09:24:08 GMT+05:30 2025
+Transaction Type: DEBIT
+Receiver:
+Category: Outside Food
+Is excluded from summary: false
+Account id: 2
+Linked Payment ID: null
+---
+ID: 8
+Amount: 250.00
+Description:
+Date: Sun May 04 09:23:26 GMT+05:30 2025
+Transaction Type: DEBIT
+Receiver:
+Category: Vehicle
+Is excluded from summary: false
+Account id: 2
+Linked Payment ID: null
+---
+ID: 7
+Amount: 1750.00
+Description: Cursor AI
+Date: Sun May 04 09:22:11 GMT+05:30 2025
+Transaction Type: DEBIT
+Receiver:
+Category: Others
+Is excluded from summary: false
+Account id: 2
+Linked Payment ID: null
+---
+ID: 6
+Amount: 130.00
+Description: Debit transaction
+Date: Sat May 03 21:09:45 GMT+05:30 2025
+Transaction Type: DEBIT
+Receiver: K S SASI
+Category: Food
+Is excluded from summary: false
+Account id: 2
+Linked Payment ID: null
+---
+ID: 5
+Amount: 46000.00
+Description:
+Date: Sat May 03 19:50:25 GMT+05:30 2025
+Transaction Type: CREDIT
+Receiver:
+Category: Others
+Is excluded from summary: false
+Account id: 2
+Linked Payment ID: null
+---
+ID: 4
+Amount: 291.00
+Description:
+Date: Sat May 03 19:49:59 GMT+05:30 2025
+Transaction Type: DEBIT
+Receiver:
+Category: Movies
+Is excluded from summary: false
+Account id: 2
+Linked Payment ID: null
+---
+ID: 3
+Amount: 575.00
+Description:
+Date: Sat May 03 19:49:40 GMT+05:30 2025
+Transaction Type: DEBIT
+Receiver:
+Category: Food
+Is excluded from summary: false
+Account id: 2
+Linked Payment ID: null
+---
+ID: 2
+Amount: 420.00
+Description: mandi
+Date: Sat May 03 19:49:22 GMT+05:30 2025
+Transaction Type: DEBIT
+Receiver:
+Category: Outside Food
+Is excluded from summary: false
+Account id: 2
+Linked Payment ID: null
+---
+
+=== CATEGORIES ===
+ID: 11
+Name: Business
+Type: INCOME
+---
+ID: 1
+Name: Default
+Type: EXPENSE
+---
+ID: 8
+Name: Default
+Type: INCOME
+---
+ID: 5
+Name: Entertainment
+Type: EXPENSE
+---
+ID: 12
+Name: Family
+Type: EXPENSE
+---
+ID: 2
+Name: Food
+Type: EXPENSE
+---
+ID: 4
+Name: Fuel
+Type: EXPENSE
+---
+ID: 13
+Name: Gift
+Type: INCOME
+---
+ID: 14
+Name: Home Entertainment
+Type: EXPENSE
+---
+ID: 15
+Name: Home Food
+Type: EXPENSE
+---
+ID: 16
+Name: Home Household
+Type: EXPENSE
+---
+ID: 17
+Name: Hospital
+Type: EXPENSE
+---
+ID: 3
+Name: Household
+Type: EXPENSE
+---
+ID: 18
+Name: Investment
+Type: INCOME
+---
+ID: 19
+Name: Kasargod
+Type: EXPENSE
+---
+ID: 20
+Name: Movies
+Type: EXPENSE
+---
+ID: 7
+Name: Others
+Type: EXPENSE
+---
+ID: 10
+Name: Others
+Type: INCOME
+---
+ID: 21
+Name: Outside Food
+Type: EXPENSE
+---
+ID: 6
+Name: Personal
+Type: EXPENSE
+---
+ID: 9
+Name: Salary
+Type: INCOME
+---
+ID: 22
+Name: Transport
+Type: EXPENSE
+---
+ID: 23
+Name: Vehicle
+Type: EXPENSE
+---
+
+=== RECURRING PAYMENTS ===
+ID: 1
+Name: Car emi
+Amount: 17500.00
+Due Day: 1
+Expiry Date: Wed Sep 19 21:36:55 GMT+05:30 2029
+Is Completed: false
+Last Completed Date: Sat May 24 11:40:25 GMT+05:30 2025
+---
+ID: 8
+Name: Vappa
+Amount: 12000.00
+Due Day: 1
+Expiry Date: Mon Jun 01 11:02:20 GMT+05:30 2026
+Is Completed: false
+Last Completed Date: Sat May 24 11:40:25 GMT+05:30 2025
+---
+ID: 9
+Name: Sinu
+Amount: 3000.00
+Due Day: 1
+Expiry Date: Thu Jan 01 11:03:03 GMT+05:30 2026
+Is Completed: false
+Last Completed Date: Sat May 24 11:40:25 GMT+05:30 2025
+---
+ID: 10
+Name: SBI Gold loan
+Amount: 7000.00
+Due Day: 1
+Expiry Date: Mon Dec 01 11:03:44 GMT+05:30 2025
+Is Completed: false
+Last Completed Date: Sat May 24 11:40:25 GMT+05:30 2025
+---
+ID: 14
+Name: Laptop EMI
+Amount: 11000.00
+Due Day: 1
+Expiry Date: Fri Aug 01 11:11:34 GMT+05:30 2025
+Is Completed: false
+Last Completed Date: Sat May 24 11:40:25 GMT+05:30 2025
+---
+ID: 16
+Name: Credit card SBI
+Amount: 0.00
+Due Day: 1
+Expiry Date: Sat May 05 11:14:57 GMT+05:30 2040
+Is Completed: false
+Last Completed Date: Sat May 24 11:40:25 GMT+05:30 2025
+---
+ID: 7
+Name: Umma
+Amount: 2000.00
+Due Day: 2
+Expiry Date: Mon Jun 01 11:01:48 GMT+05:30 2026
+Is Completed: false
+Last Completed Date: Sat May 24 11:40:25 GMT+05:30 2025
+---
+ID: 15
+Name: Savings
+Amount: 5000.00
+Due Day: 2
+Expiry Date: Wed May 05 11:13:40 GMT+05:30 2032
+Is Completed: false
+Last Completed Date: Sat May 24 11:40:25 GMT+05:30 2025
+---
+ID: 18
+Name: Credit Card HDFC
+Amount: 0.00
+Due Day: 3
+Expiry Date: Sat May 05 11:16:35 GMT+05:30 2035
+Is Completed: false
+Last Completed Date: Sat May 24 11:40:25 GMT+05:30 2025
+---
+ID: 17
+Name: Credit card ICICI
+Amount: 0.00
+Due Day: 4
+Expiry Date: Sat May 05 11:16:15 GMT+05:30 2035
+Is Completed: false
+Last Completed Date: Sat May 24 11:40:25 GMT+05:30 2025
+---
+ID: 4
+Name: Flat rent
+Amount: 19500.00
+Due Day: 5
+Expiry Date: Fri Dec 05 11:00:12 GMT+05:30 2025
+Is Completed: false
+Last Completed Date: Sat May 24 11:40:25 GMT+05:30 2025
+---
+ID: 5
+Name: Thahir kuri
+Amount: 7500.00
+Due Day: 5
+Expiry Date: Thu Jun 05 11:00:49 GMT+05:30 2025
+Is Completed: false
+Last Completed Date: Sat May 24 11:40:25 GMT+05:30 2025
+---
+ID: 12
+Name: Home wifi
+Amount: 495.00
+Due Day: 5
+Expiry Date: Sun May 05 11:10:18 GMT+05:30 2030
+Is Completed: false
+Last Completed Date: Sat May 24 11:40:25 GMT+05:30 2025
+---
+ID: 13
+Name: Flat wifi
+Amount: 594.00
+Due Day: 5
+Expiry Date: Sun May 05 11:10:46 GMT+05:30 2030
+Is Completed: false
+Last Completed Date: Sat May 24 11:40:25 GMT+05:30 2025
+---
+ID: 6
+Name: KSFE Kuri
+Amount: 10000.00
+Due Day: 7
+Expiry Date: Sun Sep 07 11:01:13 GMT+05:30 2025
+Is Completed: false
+Last Completed Date: Sat May 24 11:40:25 GMT+05:30 2025
+---
+ID: 11
+Name: Immachi
+Amount: 2500.00
+Due Day: 10
+Expiry Date: Fri Jan 01 11:05:17 GMT+05:30 2027
+Is Completed: false
+Last Completed Date: Sat May 24 11:40:25 GMT+05:30 2025
+---
+ID: 3
+Name: Home Loan
+Amount: 10500.00
+Due Day: 14
+Expiry Date: Tue Sep 30 08:41:16 GMT+05:30 2031
+Is Completed: false
+Last Completed Date: Sat May 24 11:40:25 GMT+05:30 2025
+---
+ID: 19
+Name: Credit card Amazon ICICI
+Amount: 0.00
+Due Day: 22
+Expiry Date: Sat May 05 11:16:55 GMT+05:30 2035
+Is Completed: false
+Last Completed Date: Sat May 24 11:40:25 GMT+05:30 2025
+---
+ID: 22
+Name: test
+Amount: 10000.00
+Due Day: 25
+Expiry Date: Fri May 30 16:58:15 GMT+05:30 2025
+Is Completed: false
+Last Completed Date: Sat May 24 11:40:25 GMT+05:30 2025
+---
+
+=== ACCOUNTS ===
+ID: 5
+Name: Charity
+Account Number:
+Bank: Federal Bank
+Expiry Date: null
+Description:
+---
+ID: 7
+Name: Credit
+Account Number:
+Bank:
+Expiry Date: null
+Description:
+---
+ID: 2
+Name: Daily
+Account Number:
+Bank:
+Expiry Date: null
+Description:
+---
+ID: 4
+Name: FD
+Account Number:
+Bank:
+Expiry Date: null
+Description:
+---
+ID: 8
+Name: Insurance
+Account Number:
+Bank: Kotak
+Expiry Date: null
+Description: ICICI
+---
+ID: 3
+Name: Interlock
+Account Number:
+Bank:
+Expiry Date: null
+Description:
+---
+ID: 6
+Name: Kalyana Kuri
+Account Number:
+Bank: Federal
+Expiry Date: null
+Description:
+---
+ID: 1
+Name: Savings
+Account Number:
+Bank: Kotak
+Expiry Date: null
+Description: Default savings account
+---
