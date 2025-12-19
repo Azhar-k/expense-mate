@@ -12,6 +12,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
+import androidx.appcompat.app.AlertDialog;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -92,94 +93,117 @@ public class SettingsFragment extends Fragment {
         btnSignOut.setOnClickListener(v -> signOut());
 
         btnBackup.setOnClickListener(v -> {
-            textStatus.setText("Backing up data...");
-            btnBackup.setEnabled(false);
+            new AlertDialog.Builder(requireContext())
+                    .setTitle("Backup Data")
+                    .setMessage(
+                            "Are you sure you want to backup data to Google Drive? This will overwrite existing backup.")
+                    .setPositiveButton("Yes", (dialog, which) -> {
+                        textStatus.setText("Backing up data...");
+                        btnBackup.setEnabled(false);
 
-            AppDatabase db = AppDatabase.getDatabase(requireContext());
-            new Thread(() -> {
-                BackupDataLoader.exportDatabaseDataToGoogleDrive(requireContext(), db,
-                        new GoogleDriveService.DriveCallback() {
-                            @Override
-                            public void onSuccess(String message) {
-                                requireActivity().runOnUiThread(() -> {
-                                    textStatus.setText("Success: " + message);
-                                    btnBackup.setEnabled(true);
-                                    Toast.makeText(getContext(), message, Toast.LENGTH_SHORT).show();
-                                });
-                            }
+                        AppDatabase db = AppDatabase.getDatabase(requireContext());
+                        new Thread(() -> {
+                            BackupDataLoader.exportDatabaseDataToGoogleDrive(requireContext(), db,
+                                    new GoogleDriveService.DriveCallback() {
+                                        @Override
+                                        public void onSuccess(String message) {
+                                            requireActivity().runOnUiThread(() -> {
+                                                textStatus.setText("Success: " + message);
+                                                btnBackup.setEnabled(true);
+                                                Toast.makeText(getContext(), message, Toast.LENGTH_SHORT).show();
+                                            });
+                                        }
 
-                            @Override
-                            public void onError(String error) {
-                                requireActivity().runOnUiThread(() -> {
-                                    textStatus.setText("Error: " + error);
-                                    btnBackup.setEnabled(true);
-                                    Log.e(TAG, error);
-                                });
-                            }
-                        });
-            }).start();
+                                        @Override
+                                        public void onError(String error) {
+                                            requireActivity().runOnUiThread(() -> {
+                                                textStatus.setText("Error: " + error);
+                                                btnBackup.setEnabled(true);
+                                                Log.e(TAG, error);
+                                            });
+                                        }
+                                    });
+                        }).start();
+                    })
+                    .setNegativeButton("No", null)
+                    .show();
         });
 
         btnRestore.setOnClickListener(v -> {
-            textStatus.setText("Restoring data...");
-            btnRestore.setEnabled(false);
+            new AlertDialog.Builder(requireContext())
+                    .setTitle("Restore Data")
+                    .setMessage(
+                            "Are you sure you want to restore data from Google Drive? This will DELETE all current local data.")
+                    .setPositiveButton("Yes", (dialog, which) -> {
+                        textStatus.setText("Restoring data...");
+                        btnRestore.setEnabled(false);
 
-            new Thread(() -> {
-                BackupDataLoader.loadBackupDataFromGoogleDrive(requireContext(),
-                        new GoogleDriveService.DriveCallback() {
+                        new Thread(() -> {
+                            BackupDataLoader.loadBackupDataFromGoogleDrive(requireContext(),
+                                    new GoogleDriveService.DriveCallback() {
 
-                            @Override
-                            public void onSuccess(String message) {
-                                requireActivity().runOnUiThread(() -> {
-                                    textStatus.setText("Success: " + message);
-                                    btnRestore.setEnabled(true);
-                                    Toast.makeText(getContext(), message, Toast.LENGTH_SHORT).show();
-                                });
-                            }
+                                        @Override
+                                        public void onSuccess(String message) {
+                                            requireActivity().runOnUiThread(() -> {
+                                                textStatus.setText("Success: " + message);
+                                                btnRestore.setEnabled(true);
+                                                Toast.makeText(getContext(), message, Toast.LENGTH_SHORT).show();
+                                            });
+                                        }
 
-                            @Override
-                            public void onError(String error) {
-                                requireActivity().runOnUiThread(() -> {
-                                    textStatus.setText("Error: " + error);
-                                    btnRestore.setEnabled(true);
-                                    Log.e(TAG, error);
-                                });
-                            }
-                        });
-            }).start();
+                                        @Override
+                                        public void onError(String error) {
+                                            requireActivity().runOnUiThread(() -> {
+                                                textStatus.setText("Error: " + error);
+                                                btnRestore.setEnabled(true);
+                                                Log.e(TAG, error);
+                                            });
+                                        }
+                                    });
+                        }).start();
+                    })
+                    .setNegativeButton("No", null)
+                    .show();
         });
 
         btnDeleteOldBackups.setOnClickListener(v -> {
-            textStatus.setText("Deleting old backups...");
-            btnDeleteOldBackups.setEnabled(false);
+            new AlertDialog.Builder(requireContext())
+                    .setTitle("Delete Old Backups")
+                    .setMessage("Are you sure you want to delete old backups from Google Drive?")
+                    .setPositiveButton("Yes", (dialog, which) -> {
+                        textStatus.setText("Deleting old backups...");
+                        btnDeleteOldBackups.setEnabled(false);
 
-            new Thread(() -> {
-                GoogleDriveService driveService = new GoogleDriveService(requireContext());
-                GoogleSignInHelper signInHelper = new GoogleSignInHelper(requireContext());
+                        new Thread(() -> {
+                            GoogleDriveService driveService = new GoogleDriveService(requireContext());
+                            GoogleSignInHelper signInHelper = new GoogleSignInHelper(requireContext());
 
-                if (signInHelper.isSignedIn()) {
-                    driveService.initializeDriveService(signInHelper.getAccessToken());
-                    driveService.deleteOldBackups(new GoogleDriveService.DriveCallback() {
-                        @Override
-                        public void onSuccess(String message) {
-                            requireActivity().runOnUiThread(() -> {
-                                textStatus.setText("Success: " + message);
-                                btnDeleteOldBackups.setEnabled(true);
-                                Toast.makeText(getContext(), message, Toast.LENGTH_SHORT).show();
-                            });
-                        }
+                            if (signInHelper.isSignedIn()) {
+                                driveService.initializeDriveService(signInHelper.getAccessToken());
+                                driveService.deleteOldBackups(new GoogleDriveService.DriveCallback() {
+                                    @Override
+                                    public void onSuccess(String message) {
+                                        requireActivity().runOnUiThread(() -> {
+                                            textStatus.setText("Success: " + message);
+                                            btnDeleteOldBackups.setEnabled(true);
+                                            Toast.makeText(getContext(), message, Toast.LENGTH_SHORT).show();
+                                        });
+                                    }
 
-                        @Override
-                        public void onError(String error) {
-                            requireActivity().runOnUiThread(() -> {
-                                textStatus.setText("Error: " + error);
-                                btnDeleteOldBackups.setEnabled(true);
-                                Log.e(TAG, error);
-                            });
-                        }
-                    });
-                }
-            }).start();
+                                    @Override
+                                    public void onError(String error) {
+                                        requireActivity().runOnUiThread(() -> {
+                                            textStatus.setText("Error: " + error);
+                                            btnDeleteOldBackups.setEnabled(true);
+                                            Log.e(TAG, error);
+                                        });
+                                    }
+                                });
+                            }
+                        }).start();
+                    })
+                    .setNegativeButton("No", null)
+                    .show();
         });
     }
 
