@@ -35,42 +35,42 @@ public class BackupDataLoader {
     }
 
     public void loadBackupData() {
-        executorService.execute(() -> {
-            try (BufferedReader reader = new BufferedReader(
-                    new InputStreamReader(context.getResources().openRawResource(R.raw.local_backup_data)))) {
-                String line;
-                String currentSection = "";
-                StringBuilder currentEntity = new StringBuilder();
-
-                while ((line = reader.readLine()) != null) {
-                    if (line.startsWith("=== ")) {
-                        // Process previous entity if exists
-                        if (currentEntity.length() > 0) {
-                            processEntity(currentSection, currentEntity.toString());
-                            currentEntity = new StringBuilder();
-                        }
-                        currentSection = line.substring(4, line.length() - 4);
-                        continue;
-                    }
-
-                    if (line.equals("---")) {
-                        // Process current entity
-                        processEntity(currentSection, currentEntity.toString());
-                        currentEntity = new StringBuilder();
-                    } else {
-                        currentEntity.append(line).append("\n");
-                    }
-                }
-
-                // Process last entity if exists
-                if (currentEntity.length() > 0) {
-                    processEntity(currentSection, currentEntity.toString());
-                }
-
-            } catch (IOException e) {
-                Log.e(TAG, "Error reading backup file from resources", e);
-            }
-        });
+//        executorService.execute(() -> {
+//            try (BufferedReader reader = new BufferedReader(
+//                    new InputStreamReader(context.getResources().openRawResource(R.raw.local_backup_data)))) {
+//                String line;
+//                String currentSection = "";
+//                StringBuilder currentEntity = new StringBuilder();
+//
+//                while ((line = reader.readLine()) != null) {
+//                    if (line.startsWith("=== ")) {
+//                        // Process previous entity if exists
+//                        if (currentEntity.length() > 0) {
+//                            processEntity(currentSection, currentEntity.toString());
+//                            currentEntity = new StringBuilder();
+//                        }
+//                        currentSection = line.substring(4, line.length() - 4);
+//                        continue;
+//                    }
+//
+//                    if (line.equals("---")) {
+//                        // Process current entity
+//                        processEntity(currentSection, currentEntity.toString());
+//                        currentEntity = new StringBuilder();
+//                    } else {
+//                        currentEntity.append(line).append("\n");
+//                    }
+//                }
+//
+//                // Process last entity if exists
+//                if (currentEntity.length() > 0) {
+//                    processEntity(currentSection, currentEntity.toString());
+//                }
+//
+//            } catch (IOException e) {
+//                Log.e(TAG, "Error reading backup file from resources", e);
+//            }
+//        });
     }
 
     private void processEntity(String section, String entityData) {
@@ -97,7 +97,6 @@ public class BackupDataLoader {
     private void processTransaction(String data) {
         try {
             Transaction transaction = new Transaction();
-            transaction.setAccountId(database.accountDao().getDefaultAccountSync().getId());
             String[] lines = data.split("\n");
             for (String line : lines) {
                 String[] parts = line.split(": ", 2);
@@ -105,15 +104,7 @@ public class BackupDataLoader {
                     continue;
                 String key = parts[0].trim();
                 String value = parts[1].trim();
-                Log.d("Transaction", "key:" + key + " val:" + value);
-                Account defaultAccount = database.accountDao().getDefaultAccountSync();
-                if (defaultAccount != null) {
-                    Log.d("Transaction", "default account exist. Id:" + defaultAccount.getId());
-                    transaction.setAccountId(defaultAccount.getId());
-                } else {
-                    Log.d("Transaction", "default account do not exist");
-                }
-
+                Log.i("Transaction", "key:" + key + " val:" + value);
                 switch (key) {
                     case "ID":
                         transaction.setId(Long.parseLong(value));
@@ -129,7 +120,7 @@ public class BackupDataLoader {
                         break;
                     case "Transaction Type":
                         if (value.trim().isEmpty()) {
-                            Log.d("Transaction", "Setting value as DEBIT for transaction type as it is empty");
+                            Log.i("Transaction", "Setting value as DEBIT for transaction type as it is empty");
                             value = "DEBIT";
                         }
                         transaction.setTransactionType(value);
@@ -142,7 +133,10 @@ public class BackupDataLoader {
                         break;
                     case "Account id":
                         if (!value.equalsIgnoreCase("null")) {
+                            Log.i("", "Account id is present for transaction id:" + transaction.getId());
                             transaction.setAccountId(Long.parseLong(value));
+                            Log.i("", "Account id is " + transaction.getAccountId() + " for transaction id:"
+                                    + transaction.getId());
                         }
                         break;
                     case "Is excluded from summary":
@@ -167,8 +161,14 @@ public class BackupDataLoader {
                 }
             }
 
+            if (transaction.getAccountId() == null) {
+                Account defaultAccount = database.accountDao().getDefaultAccountSync();
+                Log.i("Transaction", "Account do not exist for transaction. Adding default account. Transaction Id:" + transaction.getId());
+                transaction.setAccountId(defaultAccount.getId());
+            }
+
             if (transaction.getTransactionType() == null) {
-                Log.d("Transaction",
+                Log.i("Transaction",
                         "Transaction type is null. Not inserting the transaction. Id:" + transaction.getId());
             } else {
                 if (transaction.getReceiverName() == null) {
@@ -197,7 +197,7 @@ public class BackupDataLoader {
 
                 String key = parts[0].trim();
                 String value = parts[1].trim();
-                Log.d("Category", "key:" + key + " val:" + value);
+                Log.i("Category", "key:" + key + " val:" + value);
                 switch (key) {
                     case "Name":
                         name = value;
@@ -232,7 +232,7 @@ public class BackupDataLoader {
 
                 String key = parts[0].trim();
                 String value = parts[1].trim();
-                Log.d("RecPayment", "key:" + key + " val:" + value);
+                Log.i("RecPayment", "key:" + key + " val:" + value);
 
                 switch (key) {
                     case "ID":
@@ -289,7 +289,7 @@ public class BackupDataLoader {
 
                 String key = parts[0].trim();
                 String value = parts[1].trim();
-                Log.d("Account", "key:" + key + " val:" + value);
+                Log.i("Account", "key:" + key + " val:" + value);
 
                 switch (key) {
                     case "ID":
@@ -341,9 +341,9 @@ public class BackupDataLoader {
 
                 if (!accountExists) {
                     database.accountDao().insert(account);
-                    Log.d("Account", "Inserted account: " + name + " with ID: " + originalId);
+                    Log.i("Account", "Inserted account: " + name + " with ID: " + originalId);
                 } else {
-                    Log.d("Account", "Account with ID " + originalId + " already exists: " + name);
+                    Log.i("Account", "Account with ID " + originalId + " already exists: " + name);
                 }
             }
         } catch (ParseException e) {
@@ -423,7 +423,7 @@ public class BackupDataLoader {
             // Save to file
             File exportDir = new File(context.getFilesDir(), "database_exports");
             if (!exportDir.exists()) {
-                Log.d("DatabaseExport", "directory do not exist. Creating it");
+                Log.i("DatabaseExport", "directory do not exist. Creating it");
                 exportDir.mkdirs();
             }
 
@@ -435,11 +435,11 @@ public class BackupDataLoader {
             }
 
             if (exportFile.exists()) {
-                Log.d("DatabaseExport", "File exists after writing: " + exportFile.getAbsolutePath());
+                Log.i("DatabaseExport", "File exists after writing: " + exportFile.getAbsolutePath());
             } else {
-                Log.d("DatabaseExport", "File does NOT exist after writing!");
+                Log.i("DatabaseExport", "File does NOT exist after writing!");
             }
-            Log.d("DatabaseExport", "Data exported to: " + exportFile.getAbsolutePath());
+            Log.i("DatabaseExport", "Data exported to: " + exportFile.getAbsolutePath());
         } catch (Exception e) {
             Log.e("DatabaseExport", "Error exporting data", e);
         }
@@ -588,7 +588,12 @@ public class BackupDataLoader {
 
                                     BackupDataLoader loader = new BackupDataLoader(context);
 
+                                    Log.i(TAG, "Starting restore process...");
                                     // Download and process in order
+                                    Log.i(TAG, "Clearing all tables...");
+                                    AppDatabase.getDatabase(context).clearAllTables();
+                                    Log.i(TAG, "Tables cleared.");
+
                                     processFileIfExists(context, driveService, fileMap, "categories.txt", "CATEGORIES",
                                             loader);
                                     processFileIfExists(context, driveService, fileMap, "recurring_payments.txt",
@@ -598,6 +603,7 @@ public class BackupDataLoader {
                                     processFileIfExists(context, driveService, fileMap, "transactions.txt",
                                             "TRANSACTIONS", loader);
 
+                                    Log.i(TAG, "Restore process completed.");
                                     callback.onSuccess("Restore completed successfully");
                                 } catch (Exception e) {
                                     Log.e(TAG, "Error restoring data", e);
@@ -628,6 +634,7 @@ public class BackupDataLoader {
     private static void processFileIfExists(Context context, GoogleDriveService driveService,
             java.util.Map<String, String> fileMap, String fileName, String sectionName, BackupDataLoader loader) {
         if (fileMap.containsKey(fileName)) {
+            Log.i(TAG, "Found file: " + fileName + ". Downloading...");
             File tempFile = new File(context.getCacheDir(), "restore_" + fileName);
             // This needs to be synchronous for the order to matter.
             // But downloadFile is async. We need to handle this.
@@ -651,6 +658,7 @@ public class BackupDataLoader {
                     loader.loadSingleEntityFromFile(tempFile, sectionName);
                     if (tempFile.exists())
                         tempFile.delete();
+                    Log.i(TAG, "Finished processing " + fileName);
                     latch.countDown();
                 }
 
@@ -666,6 +674,8 @@ public class BackupDataLoader {
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
+        } else {
+            Log.i(TAG, "File not found in backup: " + fileName);
         }
     }
 
