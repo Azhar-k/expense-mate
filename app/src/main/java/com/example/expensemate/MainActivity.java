@@ -28,6 +28,8 @@ import com.google.android.material.navigation.NavigationView;
 import com.example.expensemate.service.SmsMonitorService;
 import android.widget.Toast;
 
+import androidx.appcompat.app.AppCompatDelegate;
+
 public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
     private static final String TAG = "MainActivity";
     private static final int SMS_PERMISSION_REQUEST_CODE = 123;
@@ -40,6 +42,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        // Force Light Mode to ensure white background
+        AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO);
         setContentView(R.layout.activity_main);
 
         // Set up toolbar
