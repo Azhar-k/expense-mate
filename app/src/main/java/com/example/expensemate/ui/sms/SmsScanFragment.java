@@ -259,6 +259,17 @@ public class SmsScanFragment extends Fragment {
         input.setMinLines(3);
         input.setGravity(android.view.Gravity.TOP | android.view.Gravity.START);
 
+        // Auto-paste from clipboard
+        android.content.ClipboardManager clipboard = (android.content.ClipboardManager) 
+            requireContext().getSystemService(android.content.Context.CLIPBOARD_SERVICE);
+        if (clipboard != null && clipboard.hasPrimaryClip() && 
+            clipboard.getPrimaryClipDescription().hasMimeType(android.content.ClipDescription.MIMETYPE_TEXT_PLAIN)) {
+            android.content.ClipData.Item item = clipboard.getPrimaryClip().getItemAt(0);
+            if (item != null && item.getText() != null) {
+                input.setText(item.getText());
+            }
+        }
+
         android.widget.FrameLayout container = new android.widget.FrameLayout(requireContext());
         android.widget.FrameLayout.LayoutParams params = new android.widget.FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
