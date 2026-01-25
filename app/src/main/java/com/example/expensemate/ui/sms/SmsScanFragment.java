@@ -55,7 +55,9 @@ public class SmsScanFragment extends Fragment {
         setupDatePickers();
 
         // Setup scan button
+        // Setup scan button
         binding.btnScanSms.setOnClickListener(v -> scanSms());
+        binding.btnPasteSms.setOnClickListener(v -> showPasteSmsDialog());
 
         return root;
     }
@@ -68,45 +70,44 @@ public class SmsScanFragment extends Fragment {
     private void showDatePicker(boolean isFromDate) {
         Calendar calendar = isFromDate ? fromDate : toDate;
         DatePickerDialog datePickerDialog = new DatePickerDialog(
-            requireContext(),
-            (view, year, month, dayOfMonth) -> {
-                calendar.set(year, month, dayOfMonth);
-                if (isFromDate) {
-                    // Set time to start of day (00:00:00)
-                    calendar.set(Calendar.HOUR_OF_DAY, 0);
-                    calendar.set(Calendar.MINUTE, 0);
-                    calendar.set(Calendar.SECOND, 0);
-                    calendar.set(Calendar.MILLISECOND, 0);
-                    binding.etFromDate.setText(dateFormat.format(calendar.getTime()));
-                } else {
-                    // Set time to end of day (23:59:59.999)
-                    calendar.set(Calendar.HOUR_OF_DAY, 23);
-                    calendar.set(Calendar.MINUTE, 59);
-                    calendar.set(Calendar.SECOND, 59);
-                    calendar.set(Calendar.MILLISECOND, 999);
-                    binding.etToDate.setText(dateFormat.format(calendar.getTime()));
-                }
-            },
-            calendar.get(Calendar.YEAR),
-            calendar.get(Calendar.MONTH),
-            calendar.get(Calendar.DAY_OF_MONTH)
-        );
+                requireContext(),
+                (view, year, month, dayOfMonth) -> {
+                    calendar.set(year, month, dayOfMonth);
+                    if (isFromDate) {
+                        // Set time to start of day (00:00:00)
+                        calendar.set(Calendar.HOUR_OF_DAY, 0);
+                        calendar.set(Calendar.MINUTE, 0);
+                        calendar.set(Calendar.SECOND, 0);
+                        calendar.set(Calendar.MILLISECOND, 0);
+                        binding.etFromDate.setText(dateFormat.format(calendar.getTime()));
+                    } else {
+                        // Set time to end of day (23:59:59.999)
+                        calendar.set(Calendar.HOUR_OF_DAY, 23);
+                        calendar.set(Calendar.MINUTE, 59);
+                        calendar.set(Calendar.SECOND, 59);
+                        calendar.set(Calendar.MILLISECOND, 999);
+                        binding.etToDate.setText(dateFormat.format(calendar.getTime()));
+                    }
+                },
+                calendar.get(Calendar.YEAR),
+                calendar.get(Calendar.MONTH),
+                calendar.get(Calendar.DAY_OF_MONTH));
         datePickerDialog.show();
     }
 
     private void scanSms() {
-        if (binding.etFromDate.getText().toString().isEmpty() || 
-            binding.etToDate.getText().toString().isEmpty()) {
+        if (binding.etFromDate.getText().toString().isEmpty() ||
+                binding.etToDate.getText().toString().isEmpty()) {
             Toast.makeText(requireContext(), "Please select both dates", Toast.LENGTH_SHORT).show();
             return;
         }
 
         // Check if we have the required permissions
-        if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.READ_SMS) 
-                != PackageManager.PERMISSION_GRANTED) {
-            Toast.makeText(requireContext(), 
-                "SMS read permission is required to scan messages. Please grant the permission in Settings.", 
-                Toast.LENGTH_LONG).show();
+        if (ContextCompat.checkSelfPermission(requireContext(),
+                Manifest.permission.READ_SMS) != PackageManager.PERMISSION_GRANTED) {
+            Toast.makeText(requireContext(),
+                    "SMS read permission is required to scan messages. Please grant the permission in Settings.",
+                    Toast.LENGTH_LONG).show();
             return;
         }
 
@@ -118,26 +119,25 @@ public class SmsScanFragment extends Fragment {
                 ContentResolver contentResolver = requireContext().getContentResolver();
                 Uri uri = Uri.parse("content://sms/inbox");
                 String[] projection = {
-                    Telephony.Sms._ID,
-                    Telephony.Sms.ADDRESS,
-                    Telephony.Sms.BODY,
-                    Telephony.Sms.DATE
+                        Telephony.Sms._ID,
+                        Telephony.Sms.ADDRESS,
+                        Telephony.Sms.BODY,
+                        Telephony.Sms.DATE
                 };
 
-                String selection = Telephony.Sms.DATE + " >= ? AND " + 
-                                 Telephony.Sms.DATE + " <= ?";
+                String selection = Telephony.Sms.DATE + " >= ? AND " +
+                        Telephony.Sms.DATE + " <= ?";
                 String[] selectionArgs = {
-                    String.valueOf(fromDate.getTimeInMillis()),
-                    String.valueOf(toDate.getTimeInMillis())
+                        String.valueOf(fromDate.getTimeInMillis()),
+                        String.valueOf(toDate.getTimeInMillis())
                 };
 
                 Cursor cursor = contentResolver.query(
-                    uri,
-                    projection,
-                    selection,
-                    selectionArgs,
-                    Telephony.Sms.DATE + " DESC"
-                );
+                        uri,
+                        projection,
+                        selection,
+                        selectionArgs,
+                        Telephony.Sms.DATE + " DESC");
 
                 int processedCount = 0;
                 int createdCount = 0;
@@ -157,9 +157,9 @@ public class SmsScanFragment extends Fragment {
                             processedCount++;
                             Log.d("SmsScanFragment", "Processing the scanned SMS: " + body);
                             allSms.add(body);
-                            
-                            SmsTransactionHandler.TransactionResult result = 
-                                SmsTransactionHandler.handleSms(body, sender, viewModel, new Date(date));
+
+                            SmsTransactionHandler.TransactionResult result = SmsTransactionHandler.handleSms(body,
+                                    sender, viewModel, new Date(date));
                             if (result.success) {
                                 success.add(body);
                                 createdCount++;
@@ -187,15 +187,15 @@ public class SmsScanFragment extends Fragment {
 
                 // Log unmatched SMS to console
                 Log.i("SmsScanFragment", "=== Scan Results ===");
-                Log.i("SmsScanFragment", String.format("Processed %d SMS, Created %d transactions", 
-                    finalProcessedCount, finalCreatedCount));
+                Log.i("SmsScanFragment", String.format("Processed %d SMS, Created %d transactions",
+                        finalProcessedCount, finalCreatedCount));
 
-//                if (!allSms.isEmpty()) {
-//                    Log.i("SmsScanFragment", "\n=== All SMS (" + allSms.size() + ") ===");
-//                    for (String sms : allSms) {
-//                        Log.i("SmsScanFragment", "\n" + sms);
-//                    }
-//                }
+                // if (!allSms.isEmpty()) {
+                // Log.i("SmsScanFragment", "\n=== All SMS (" + allSms.size() + ") ===");
+                // for (String sms : allSms) {
+                // Log.i("SmsScanFragment", "\n" + sms);
+                // }
+                // }
 
                 if (!success.isEmpty()) {
                     Log.i("SmsScanFragment", "\n=== Success SMS (" + success.size() + ") ===");
@@ -230,19 +230,18 @@ public class SmsScanFragment extends Fragment {
                 requireActivity().runOnUiThread(() -> {
                     binding.btnScanSms.setEnabled(true);
                     binding.tvScanStatus.setText(String.format(
-                        "Scan complete!\nProcessed %d SMS\nCreated %d transactions",
-                        finalProcessedCount,
-                        finalCreatedCount
-                    ));
+                            "Scan complete!\nProcessed %d SMS\nCreated %d transactions",
+                            finalProcessedCount,
+                            finalCreatedCount));
                 });
 
             } catch (SecurityException e) {
                 requireActivity().runOnUiThread(() -> {
                     binding.btnScanSms.setEnabled(true);
                     binding.tvScanStatus.setText("Permission denied. Please grant SMS read permission in Settings.");
-                    Toast.makeText(requireContext(), 
-                        "SMS read permission is required to scan messages. Please grant the permission in Settings.", 
-                        Toast.LENGTH_LONG).show();
+                    Toast.makeText(requireContext(),
+                            "SMS read permission is required to scan messages. Please grant the permission in Settings.",
+                            Toast.LENGTH_LONG).show();
                 });
             } catch (Exception e) {
                 requireActivity().runOnUiThread(() -> {
@@ -254,6 +253,59 @@ public class SmsScanFragment extends Fragment {
         });
     }
 
+    private void showPasteSmsDialog() {
+        android.widget.EditText input = new android.widget.EditText(requireContext());
+        input.setHint("Paste SMS content here...");
+        input.setMinLines(3);
+        input.setGravity(android.view.Gravity.TOP | android.view.Gravity.START);
+
+        android.widget.FrameLayout container = new android.widget.FrameLayout(requireContext());
+        android.widget.FrameLayout.LayoutParams params = new android.widget.FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT);
+        int margin = (int) getResources().getDimension(R.dimen.activity_horizontal_margin);
+        params.leftMargin = margin;
+        params.rightMargin = margin;
+        input.setLayoutParams(params);
+        container.addView(input);
+
+        int padding = (int) (16 * getResources().getDisplayMetrics().density);
+        container.setPadding(padding, padding / 2, padding, padding / 2);
+
+        new android.app.AlertDialog.Builder(requireContext())
+                .setTitle("Paste SMS")
+                .setView(container)
+                .setPositiveButton("Process", (dialog, which) -> {
+                    String smsBody = input.getText().toString().trim();
+                    if (!smsBody.isEmpty()) {
+                        processPastedSms(smsBody);
+                    }
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    private void processPastedSms(String body) {
+        binding.tvScanStatus.setText("Processing...");
+
+        executorService.execute(() -> {
+            Date date = new Date();
+            // Use empty sender as per requirements
+            SmsTransactionHandler.TransactionResult result = SmsTransactionHandler.handleSms(body, "", viewModel, date);
+
+            requireActivity().runOnUiThread(() -> {
+                if (result.success) {
+                    Toast.makeText(requireContext(), "Transaction added successfully", Toast.LENGTH_SHORT).show();
+                    binding.tvScanStatus.setText("Last processed: Added successfully");
+                } else {
+                    String message = "Failed to add transaction: " + result.reason;
+                    Toast.makeText(requireContext(), message, Toast.LENGTH_LONG).show();
+                    binding.tvScanStatus.setText("Last processed: Failed (" + result.reason + ")");
+                }
+            });
+        });
+    }
+
     @Override
     public void onDestroyView() {
         super.onDestroyView();
@@ -262,4 +314,4 @@ public class SmsScanFragment extends Fragment {
             executorService.shutdown();
         }
     }
-} 
+}
