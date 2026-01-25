@@ -76,6 +76,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                         destination.getId() == R.id.navigation_recurring_payments ||
                         destination.getId() == R.id.navigation_sms_scan ||
                         destination.getId() == R.id.navigation_self_transfer ||
+                        destination.getId() == R.id.navigation_regex_patterns ||
                         destination.getId() == R.id.navigation_settings) {
                     bottomNavView.setVisibility(View.GONE);
                     if (destination.getId() == R.id.navigation_categories) {
@@ -86,6 +87,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                         navigationView.setCheckedItem(R.id.nav_self_transfer);
                     } else if (destination.getId() == R.id.navigation_settings) {
                         navigationView.setCheckedItem(R.id.nav_settings);
+                    } else if (destination.getId() == R.id.navigation_regex_patterns) {
+                        navigationView.setCheckedItem(R.id.nav_regex_patterns);
                     } else {
                         navigationView.setCheckedItem(R.id.nav_recurring_payments);
                     }
@@ -191,6 +194,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             navController.navigate(R.id.navigation_sms_scan);
         } else if (id == R.id.nav_recurring_payments) {
             navController.navigate(R.id.navigation_recurring_payments);
+        } else if (id == R.id.nav_regex_patterns) {
+            navController.navigate(R.id.navigation_regex_patterns);
         } else if (id == R.id.nav_settings) {
             navController.navigate(R.id.navigation_settings);
         } else if (id == R.id.nav_about) {

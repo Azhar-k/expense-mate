@@ -25,6 +25,10 @@
             android:icon="@drawable/ic_sms"
             android:title="Scan SMS" />
         <item
+            android:id="@+id/nav_regex_patterns"
+            android:icon="@drawable/ic_sms"
+            android:title="SMS Patterns" />
+        <item
             android:id="@+id/nav_settings"
             android:icon="@drawable/ic_settings"
             android:title="Settings" />

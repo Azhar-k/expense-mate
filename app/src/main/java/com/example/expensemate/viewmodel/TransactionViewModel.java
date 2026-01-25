@@ -24,6 +24,7 @@ public class TransactionViewModel extends AndroidViewModel {
     private static final String TAG = "TransactionViewModel";
     private final AppDatabase database;
     private final TransactionDao transactionDao;
+    private final com.example.expensemate.data.RegexPatternDao regexPatternDao;
     private final ExecutorService executorService;
     private final MutableLiveData<String> selectedMonth = new MutableLiveData<>();
     private final MutableLiveData<String> selectedYear = new MutableLiveData<>();
@@ -50,6 +51,7 @@ public class TransactionViewModel extends AndroidViewModel {
         Log.d(TAG, "Initializing TransactionViewModel");
         database = AppDatabase.getDatabase(application);
         transactionDao = database.transactionDao();
+        regexPatternDao = database.regexPatternDao();
         executorService = Executors.newSingleThreadExecutor();
         accountViewModel = new AccountViewModel(application);
 
@@ -342,6 +344,10 @@ public class TransactionViewModel extends AndroidViewModel {
 
     public int countTransactionsBySmsHash(String smsHash) {
         return transactionDao.countTransactionsBySmsHash(smsHash);
+    }
+
+    public List<com.example.expensemate.data.RegexPattern> getAllRegexPatternsSync() {
+        return regexPatternDao.getAllPatternsSync();
     }
 
     @Override

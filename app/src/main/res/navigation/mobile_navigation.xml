@@ -53,6 +53,12 @@
         tools:layout="@layout/fragment_settings" />
 
     <fragment
+        android:id="@+id/navigation_regex_patterns"
+        android:name="com.example.expensemate.ui.regex.RegexPatternsFragment"
+        android:label="SMS Patterns"
+        tools:layout="@layout/fragment_regex_patterns" />
+
+    <fragment
         android:id="@+id/account_details_fragment"
         android:name="com.example.expensemate.ui.accounts.AccountDetailsFragment"
         android:label="Account Details"
