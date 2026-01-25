@@ -166,16 +166,18 @@ Comprehensive list of all transactions with advanced filtering capabilities.
 Manage all financial accounts (bank accounts, wallets, credit cards).
 
 ### Components
-
+#### Net balance 
+Calculated as below
+- Net Balance is calculated as:Total Income (All Accounts) - Total Expense (All Accounts)
+- Transactions excluded from summary have not been considered for balance calculation.
+- An info button with info icon. When clicking on it, explain how balance is calculated,
 #### Account List
 - **RecyclerView**: Displays all accounts
 - **Account Item Display**:
   - Account name
   - Bank name
   - Account number (if available)
-  - Default account indicator (star icon)
-  - Balance information (if calculated)
-
+  - Default account indicator
 
 ### Add Account
 
@@ -330,7 +332,7 @@ Manually scan SMS messages from a date range to extract and import transactions.
 - **To Date**: Date picker button (defaults to today)
 
 #### Action Button
-- **Scan SMS Button**: Large button to initiate scan
+- **Scan SMS Button**: Button to initiate scan
 
 #### Status Display
 - **Status Text**: Shows scan progress and results
@@ -344,13 +346,15 @@ Manually scan SMS messages from a date range to extract and import transactions.
 - Creates transactions for matched SMS
 - Skips duplicates (using SMS hash)
 - Logs results (matched, unmatched, duplicates, errors)
-
+- User can also paste the sms body manually in a text area and process it in the same way as that of processing the scanned sms.
+- user can either use the scan functionality or manually paste the sms text
 ### Interactions
 - Select date range before scanning
 - Requires SMS read permission
 - Shows progress during scan
 - Displays summary after completion
 - Button disabled during scan
+- Paste the sms body manually and process it
 
 ---
 
