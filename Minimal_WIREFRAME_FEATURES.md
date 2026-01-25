@@ -21,6 +21,43 @@ ExpenseMate is a comprehensive personal finance management Android application t
 12. **Customizable regex**: Users can configure more regex patterns for SMS parsing and transaction processing in addition to the system ones.
 ---
 
+## General notes
+- Get the user's default currency from api and show the symbols accordingly wherever needed.
+- When showing amount, use color-coded: Red for debit, Green for credit
+- Use a common theme/components for text input fields, Headings, etc
+- Use a standard look and feel for the sections that allow add, edit, delete options of different entities.
+- Have form validation before add/edit an item (Mandatory field check, type check etc)
+## Data Models
+
+### Transaction
+- Amount, Description, Date/Time
+- Transaction Type (DEBIT/CREDIT)
+- Category, Account (Reference to account and category table)
+- Counterparty Name, SMS Body, SMS Sender
+- SMS Hash (for duplicate detection)
+- Linked Recurring Payment ID
+- Exclude from Summary flag
+
+### Account
+- Name, Account Number, Bank
+- Expiry Date, Description
+- Default Account flag
+
+### Category
+- Name (unique identifier)
+- Type (EXPENSE/INCOME)
+
+### Recurring Payment
+- Name, Amount, Due Day (1-31)
+- Expiry Date
+- Completion Status
+- Last Completed Date
+
+### Regex
+Define one for regex
+
+---
+
 ## Navigation Structure
 ### Bottom Navigation Bar (Primary Navigation)
 - **Summary** (Home screen - default)
@@ -40,20 +77,156 @@ ExpenseMate is a comprehensive personal finance management Android application t
 
 I will give the screen details one by one
 
-## Screen 0: Login screen
+## Screen: Login
 
  - Allow user regisration and login.
  - Registration with email, username and password 
  - Login with email and password
 
  When the application is opened, if not logged in, navigate to this screen.
-
-## Screen 1: Summary (Home Screen)
+## Screen: Transactions
 
 ### Purpose
-Main dashboard showing financial overview with monthly breakdowns and category-wise spending analysis. Get the user's default currency from api and show the symbols accordingly
+Comprehensive list of all transactions with advanced filtering capabilities.
 
 ### Components
+
+- **Account Dropdown**: Filter transactions by account ("All" or specific account). 
+  - By default, show the transactions of default account
+
+#### Filter Options
+- **Date Range**:
+  - From Date picker (defaults to 30 days ago)
+  - To Date picker (defaults to today)
+- **Transaction Type**: Dropdown (DEBIT, CREDIT, or empty for all)
+- **Free text field**: Search in description or counterparty
+- **Description**: Text input for partial matching
+- **Counterparty Name**: Text input for partial matching
+- **Category**: Dropdown with all categories
+- **Recurring Payment**: Dropdown with all recurring payments
+- **Amount**: Range filter
+- **Exclude from Summary**: Toggle switch
+- **Action Buttons**:
+  - Apply Filters button
+  - Clear Filters button (resets to default 30-day range)
+  - Close button (X icon)
+
+
+#### Transaction List
+- Displays transactions in reverse chronological order (newest first)
+- **Transaction Item Display**:
+  - Date and time
+  - Description
+  - Amount (color-coded: Red for debit, Green for credit)
+  - Category name
+  - Account name
+  - Transaction type indicator
+  - Linked recurring payment if any
+- **Empty State**: Message displayed when no transactions match filters
+
+### Add/Edit Transaction
+
+#### Input Fields
+- **Amount**: Number input
+- **Description**: Text input
+- **Date**: Date picker with time selection
+- **Transaction Type**: Dropdown (DEBIT/CREDIT)
+- **Category**: Dropdown with categories
+- **Account**: Dropdown with accounts
+- **Counterparty Name**: Text input (optional)
+- **Recurring payment**: Dropdown with recurring payments
+- **Notes**: Additional text field (if available)
+
+
+### Interactions
+- Default view shows last 30 days of transactions
+- Account dropdown filters transactions immediately
+- Filter allows complex multi-criteria filtering
+- Add/Edit option
+- Link a transaction to a recurring payment and mark the recurring payment as completed
+- Exclude the transaction from summary screen
+
+---
+
+## Screen : Accounts
+
+### Purpose
+Manage all financial accounts (bank accounts, wallets, credit cards).
+
+#### Net balance
+Calculated as below
+- Net Balance is calculated as:Total Income (All Accounts) - Total Expense (All Accounts)
+- Transactions excluded from summary have not been considered for balance calculation.
+- An info button with info icon. When clicking on it, explain how balance is calculated
+
+#### Account List
+- **RecyclerView**: Displays all accounts
+- **Account Item Display**:
+  - Account name
+  - Default account indicator
+  - Account Balance 
+    - Color-coded (green/red based on positive/negative) 
+
+### Add Account
+
+#### Input Fields
+- **Account Name**: Text input (required)
+- **Account Number**: Text input (optional)
+- **Bank**: Text input (optional)
+- **Expiry Date**: Date picker (optional, for credit cards)
+- **Description**: Text input (optional)
+
+### Account Details Screen (Navigated from Account List)
+
+
+- **Account Information Header**: Shows account name and details
+- **Total Balance Display**:
+  - balance amount
+  - Color-coded (green/red based on positive/negative)
+- **Date Range Selectors**:
+  - defaults to 30 days ago
+
+- **Transaction List**: showing transactions for this account within date range
+- **Empty State**: Message when no transactions in range
+
+### Interactions
+- Add/edit or delete account options
+- Select an account as default
+- Click account item to view details
+- Set default account (only one can be default)
+- Cannot delete default account
+- Date range selection updates transaction list
+- Transactions scroll to top when date range changes
+---
+
+## Screen : Categories
+
+### Purpose
+Manage expense and income categories for transaction organization.
+#### Category List
+- **RecyclerView**: Displays all categories. Different section for Expense and Income categories.
+- **Category Item Display**:
+  - Category name
+  - Category type badge (EXPENSE/INCOME)
+
+### Add/Edit Category
+
+#### Input Fields
+- **Category Name**: Text input (required)
+- **Category Type**: Dropdown (EXPENSE or INCOME)
+
+### Interactions
+- Create custom categories for expenses and income
+- Edit category name and type
+- Delete categories (with confirmation)
+- Categories are used throughout app for transaction classification
+
+---
+
+## Screen : Summary (Home Screen)
+
+### Purpose
+Main dashboard showing financial overview with monthly breakdowns and category-wise spending analysis.
 
 #### Header Section
 - Shows current month and year (e.g., "January 2024") for which the summaryto be shown. Default current month
@@ -83,6 +256,7 @@ Main dashboard showing financial overview with monthly breakdowns and category-w
 - Toggle between expense and income breakdowns
 - Click category to view detailed transactions
 - Category breakdown can be hidden/shown via switch
+- Do not count the transactions that are excluded from summary
 
 ### Data Displayed
 - Monthly totals (expense, income, balance)
@@ -91,159 +265,10 @@ Main dashboard showing financial overview with monthly breakdowns and category-w
 
 ---
 
-## Screen 2: Transactions
-
-### Purpose
-Comprehensive list of all transactions with advanced filtering capabilities.
-
-### Components
-
-- **Account Dropdown**: Filter transactions by account ("All" or specific account)
-- **Filter FAB**: Floating Action Button with filter icon to open filter bottom sheet
-- **Filter FAB**: Add transaction button.
-
-#### Transaction List
-- **RecyclerView**: Displays transactions in reverse chronological order (newest first)
-- **Transaction Item Display**:
-  - Date and time
-  - Description
-  - Amount (color-coded: Red for debit, Green for credit)
-  - Category name
-  - Account name
-  - Transaction type indicator
-  - Linked recurring payment if any
-- **Empty State**: Message displayed when no transactions match filters
-
-#### Filter Options
-- **Date Range**:
-  - From Date picker (defaults to 30 days ago)
-  - To Date picker (defaults to today)
-- **Transaction Type**: Dropdown (DEBIT, CREDIT, or empty for all)
-- **Description**: Text input for partial matching
-- **Counterparty Name**: Text input for partial matching
-- **Category**: Dropdown with all categories
-- **Recurring Payment**: Dropdown with all recurring payments
-- **Amount**: Text input for exact amount match
-- **Exclude from Summary**: Toggle switch
-- **Action Buttons**:
-  - Apply Filters button
-  - Clear Filters button (resets to default 30-day range)
-  - Close button (X icon)
-
-### Add/Edit Transaction 
-
-#### Input Fields
-- **Amount**: Number input
-- **Description**: Text input
-- **Date**: Date picker with time selection
-- **Transaction Type**: Dropdown (DEBIT/CREDIT)
-- **Category**: Dropdown with categories
-- **Account**: Dropdown with accounts
-- **Counterparty Name**: Text input (optional)
-- **Recurring payment**: Dropdown with recurring payments
-- **Notes**: Additional text field (if available)
-
-#### Actions
-- Save button
-- Cancel button
-- Delete button (when editing)
-
-### Interactions
-- Default view shows last 30 days of transactions
-- Account dropdown filters transactions immediately
-- Filter bottom sheet allows complex multi-criteria filtering
-- Click transaction item to edit
-- Swipe or long-press for delete action (if implemented)
-- Add new transaction via FAB
-- Link a transaction to a recurring payment
-- Exclude the transaction from summary screen
-
----
-
-## Screen 3: Accounts
-
-### Purpose
-Manage all financial accounts (bank accounts, wallets, credit cards).
-
-### Components
-#### Net balance 
-Calculated as below
-- Net Balance is calculated as:Total Income (All Accounts) - Total Expense (All Accounts)
-- Transactions excluded from summary have not been considered for balance calculation.
-- An info button with info icon. When clicking on it, explain how balance is calculated,
-#### Account List
-- **RecyclerView**: Displays all accounts
-- **Account Item Display**:
-  - Account name
-  - Bank name
-  - Account number (if available)
-  - Default account indicator
-
-### Add Account
-
-#### Input Fields
-- **Account Name**: Text input (required)
-- **Account Number**: Text input (optional)
-- **Bank**: Text input (optional)
-- **Expiry Date**: Date picker (optional, for credit cards)
-- **Description**: Text input (optional)
-
-### Account Details Screen (Navigated from Account List)
-
-#### Components
-- **Account Information Header**: Shows account name and details
-- **Total Balance Display**: 
-  - balance amount
-  - Color-coded (green/red based on positive/negative)
-- **Date Range Selectors**:
-  - defaults to 30 days ago
-
-- **Transaction List**: RecyclerView showing transactions for this account within date range
-- **Empty State**: Message when no transactions in range
-
-### Interactions
-- Add/edit or delete account options
-- Select an account as default
-- Click account item to view details
-- Set default account (only one can be default)
-- Cannot delete default account
-- Date range selection updates transaction list
-- Transactions scroll to top when date range changes
----
-
-## Screen 4: Categories
-
-### Purpose
-Manage expense and income categories for transaction organization.
-
-### Components
-
-#### Category List
-- **RecyclerView**: Displays all categories
-- **Category Item Display**:
-  - Category name
-  - Category type badge (EXPENSE/INCOME)
-
-### Add/Edit Category
-
-#### Input Fields
-- **Category Name**: Text input (required)
-- **Category Type**: Dropdown (EXPENSE or INCOME)
-
-### Interactions
-- Create custom categories for expenses and income
-- Edit category name and type
-- Delete categories (with confirmation)
-- Categories are used throughout app for transaction classification
-
----
-
-## Screen 5: Self Transfer
+## Screen : Self Transfer
 
 ### Purpose
 Record transfers between user's own accounts without affecting net worth.
-
-### Components
 
 #### Form Fields
 - **From Account**: Dropdown to select source account
@@ -268,16 +293,13 @@ Record transfers between user's own accounts without affecting net worth.
 - Account dropdowns show all available accounts
 - Category dropdown defaults to the default category
 - Date defaults to current date/time
-- Form validation before transfer execution
-
 ---
 
-## Screen 6: Recurring Payments
+## Screen : Recurring Payments
 
 ### Purpose
 Track and manage recurring bills, subscriptions, and payments.
 
-### Components
 
 #### Header Section
 - **Total Amount**: Sum of all recurring payment amounts
@@ -285,7 +307,7 @@ Track and manage recurring bills, subscriptions, and payments.
 - **Select All Button**: Toggle to mark all payments as completed/uncompleted
 
 #### Recurring Payment List
-- **RecyclerView**: Displays all recurring payments
+- Displays all recurring payments
 - **Payment Item Display**:
   - Payment name
   - Amount
@@ -295,9 +317,6 @@ Track and manage recurring bills, subscriptions, and payments.
   - Edit button
   - Delete button
 
-#### Floating Action Button
-- **Add Recurring Payment FAB**: Opens dialog to add new payment
-
 ### Add/Edit Recurring Payment Dialog
 
 #### Input Fields
@@ -306,27 +325,21 @@ Track and manage recurring bills, subscriptions, and payments.
 - **Due Day**: Number input (1-31, required)
 - **Expiry Date**: Date picker (required)
 
-#### Actions
-- Add/Save button
-- Cancel button
-- Delete button (when editing)
 
 ### Interactions
+- Add new recurring payment
 - Mark payments as completed/uncompleted via checkbox
 - Select all button toggles all payments
 - Edit payment details
 - Delete payments with confirmation
-- Payments can be linked to transactions
+- Highlight the expired recurring payment
 
 ---
 
-## Screen 7: Scan SMS
+## Screen : Scan SMS
 
 ### Purpose
 Manually scan SMS messages from a date range to extract and import transactions.
-
-### Components
-
 #### Date Selection
 - **From Date**: Date picker button (defaults to today)
 - **To Date**: Date picker button (defaults to today)
@@ -336,7 +349,6 @@ Manually scan SMS messages from a date range to extract and import transactions.
 
 #### Status Display
 - **Status Text**: Shows scan progress and results
-  - "Scanning SMS..." during scan
   - "Scan complete! Processed X SMS, Created Y transactions" after completion
   - Error messages if permission denied or scan fails
 
@@ -348,6 +360,7 @@ Manually scan SMS messages from a date range to extract and import transactions.
 - Logs results (matched, unmatched, duplicates, errors)
 - User can also paste the sms body manually in a text area and process it in the same way as that of processing the scanned sms.
 - user can either use the scan functionality or manually paste the sms text
+
 ### Interactions
 - Select date range before scanning
 - Requires SMS read permission
@@ -355,10 +368,11 @@ Manually scan SMS messages from a date range to extract and import transactions.
 - Displays summary after completion
 - Button disabled during scan
 - Paste the sms body manually and process it
+- API should support bulk upload of SMS
 
 ---
 
-## Screen 8: Settings
+## Screen: Settings
 
 ###
 - **Currency selector**
@@ -375,35 +389,6 @@ Manually scan SMS messages from a date range to extract and import transactions.
 ### Interactions
 - Configure the default currency from a currency dropdown
 - View, Add, edit, and delete custom regex
----
-
-
-## Data Models
-
-### Transaction
-- Amount, Description, Date/Time
-- Transaction Type (DEBIT/CREDIT)
-- Category, Account
-- Counterparty Name, SMS Body, SMS Sender
-- SMS Hash (for duplicate detection)
-- Linked Recurring Payment ID
-- Exclude from Summary flag
-
-### Account
-- Name, Account Number, Bank
-- Expiry Date, Description
-- Default Account flag
-
-### Category
-- Name (unique identifier)
-- Type (EXPENSE/INCOME)
-
-### Recurring Payment
-- Name, Amount, Due Day (1-31)
-- Expiry Date
-- Completion Status
-- Last Completed Date
-
 ---
 
 ## Permissions Required
