@@ -18,7 +18,7 @@ ExpenseMate is a comprehensive personal finance management Android application t
 9. **Account Details**: Individual account transaction history
 10. **SMS Scanning**: Manual scan of historical SMS messages
 11. **Google Drive Backup**: Cloud backup and restore functionality
-12. **Privacy-First**: All SMS processing happens locally on device
+12. **Customizable regex**: Users can configure more regex patterns for SMS parsing and transaction processing in addition to the system ones.
 ---
 
 ## Navigation Structure
@@ -365,30 +365,16 @@ Manually scan SMS messages from a date range to extract and import transactions.
 
 ### Functionality
 
-#### Backup
-- Exports all database data to Google Drive
-- Stores in private folder: `ExpenseMate_Backups`
-- Overwrites existing backup
-- Confirmation dialog before backup
-
-#### Restore
-- Loads backup from Google Drive
-- Replaces all local data
-- Confirmation dialog (warns about data deletion)
-- Shows success/error status
-
-#### Delete Old Backups
-- Removes old backup files from Google Drive
-- Keeps only recent backups
-- Confirmation dialog
+#### Currency selector
+- Allow user to store their default currency.
+- This currency should be ued to show in various screens where amount is displayed
+#### Manage regex
+- Allow the user to view, add, edit and delete the regex. 
+- Do not allow the system regex to be edited or deleted
 
 ### Interactions
-- Sign in required for backup/restore features
-- Buttons disabled when not signed in
-- Confirmation dialogs for destructive actions
-- Status updates during operations
-- Toast notifications for success/errors
-
+- Configure the default currency from a currency dropdown
+- View, Add, edit, and delete custom regex
 ---
 
 
