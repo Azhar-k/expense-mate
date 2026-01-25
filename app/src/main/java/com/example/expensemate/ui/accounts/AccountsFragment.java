@@ -34,6 +34,9 @@ public class AccountsFragment extends Fragment implements AccountsAdapter.OnAcco
     private SimpleDateFormat dateFormat;
     private Calendar calendar;
 
+    private com.example.expensemate.viewmodel.TransactionViewModel transactionViewModel;
+    private android.widget.TextView tvNetBalance;
+
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -47,6 +50,8 @@ public class AccountsFragment extends Fragment implements AccountsAdapter.OnAcco
             @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_accounts, container, false);
 
+        tvNetBalance = view.findViewById(R.id.tvNetBalance);
+
         RecyclerView recyclerView = view.findViewById(R.id.rvAccounts);
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
         adapter = new AccountsAdapter(this);
@@ -56,12 +61,23 @@ public class AccountsFragment extends Fragment implements AccountsAdapter.OnAcco
         fabAddAccount.setOnClickListener(v -> showAddAccountDialog());
 
         accountViewModel = new ViewModelProvider(this).get(AccountViewModel.class);
+        transactionViewModel = new ViewModelProvider(requireActivity())
+                .get(com.example.expensemate.viewmodel.TransactionViewModel.class);
+
         accountViewModel.getAllAccounts().observe(getViewLifecycleOwner(), accounts -> {
             adapter.submitList(accounts);
         });
 
         accountViewModel.getDefaultAccount().observe(getViewLifecycleOwner(), defaultAccount -> {
             adapter.setDefaultAccount(defaultAccount);
+        });
+
+        transactionViewModel.getNetBalance().observe(getViewLifecycleOwner(), balance -> {
+            if (balance != null) {
+                tvNetBalance.setText(String.format("₹%.2f", balance));
+                tvNetBalance.setTextColor(requireContext().getColor(
+                        balance >= 0 ? R.color.credit_color : R.color.debit_color));
+            }
         });
 
         return view;

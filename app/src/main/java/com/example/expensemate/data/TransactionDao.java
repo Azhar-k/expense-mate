@@ -11,115 +11,128 @@ import java.util.List;
 
 @Dao
 public interface TransactionDao {
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    void insertTransaction(Transaction transaction);
+        @Insert(onConflict = OnConflictStrategy.REPLACE)
+        void insertTransaction(Transaction transaction);
 
-    @Delete
-    void deleteTransaction(Transaction transaction);
+        @Delete
+        void deleteTransaction(Transaction transaction);
 
-    @Query("UPDATE transactions SET amount = :amount, description = :description, date = :date, " +
-            "transactionType = :transactionType, " +
-            "receiverName = :receiverName, smsBody = :smsBody, smsSender = :smsSender, category = :category, " +
-            "linkedRecurringPaymentId = :linkedRecurringPaymentId, isExcludedFromSummary = :isExcludedFromSummary, accountId = :accountId WHERE id = :id")
-    void updateTransaction(long id, double amount, String description, Date date, String transactionType, String receiverName,
-                           String smsBody, String smsSender, String category, Long linkedRecurringPaymentId, Long accountId, boolean isExcludedFromSummary);
+        // Global Balance Queries
+        @Query("SELECT COALESCE(SUM(amount), 0) FROM transactions WHERE transactionType = 'CREDIT' AND isExcludedFromSummary = 0")
+        double getTotalIncomeForAllAccounts();
 
-    /****************************************************************************************************/
-    //Summary screen
+        @Query("SELECT COALESCE(SUM(amount), 0) FROM transactions WHERE transactionType = 'DEBIT' AND isExcludedFromSummary = 0")
+        double getTotalExpenseForAllAccounts();
 
-    //Summary screen expense
-    @Query("SELECT COALESCE(SUM(amount), 0) FROM transactions " +
-            "WHERE transactionType = 'DEBIT' AND isExcludedFromSummary = 0 " +
-            "AND strftime('%m', datetime(date/1000, 'unixepoch')) = :month " +
-            "AND strftime('%Y', datetime(date/1000, 'unixepoch')) = :year " +
-            "AND (:accountId IS NULL OR accountId = :accountId)")
-    Double getExpenseForExpenseScreen(String month, String year, Long accountId);
+        @Query("UPDATE transactions SET amount = :amount, description = :description, date = :date, " +
+                        "transactionType = :transactionType, " +
+                        "receiverName = :receiverName, smsBody = :smsBody, smsSender = :smsSender, category = :category, "
+                        +
+                        "linkedRecurringPaymentId = :linkedRecurringPaymentId, isExcludedFromSummary = :isExcludedFromSummary, accountId = :accountId WHERE id = :id")
+        void updateTransaction(long id, double amount, String description, Date date, String transactionType,
+                        String receiverName,
+                        String smsBody, String smsSender, String category, Long linkedRecurringPaymentId,
+                        Long accountId, boolean isExcludedFromSummary);
 
-    //Summary screen income
-    @Query("SELECT COALESCE(SUM(amount), 0) FROM transactions " +
-            "WHERE transactionType = 'CREDIT' AND isExcludedFromSummary = 0 " +
-            "AND strftime('%m', datetime(date/1000, 'unixepoch')) = :month " +
-            "AND strftime('%Y', datetime(date/1000, 'unixepoch')) = :year " +
-            "AND (:accountId IS NULL OR accountId = :accountId)")
-    Double getIncomeForExpenseScreen(String month, String year, Long accountId);
+        /****************************************************************************************************/
+        // Summary screen
 
-    // Category sum for expense section of summary screen
-    @Query("SELECT category, SUM(amount) as total FROM transactions " +
-           "WHERE transactionType = 'DEBIT' AND isExcludedFromSummary = 0 " +
-           "AND strftime('%m', datetime(date/1000, 'unixepoch')) = :month " +
-           "AND strftime('%Y', datetime(date/1000, 'unixepoch')) = :year " +
-           "AND (:accountId IS NULL OR accountId = :accountId) " +
-           "GROUP BY category ORDER BY total DESC")
-    LiveData<List<CategorySum>> getExpenseCategorySumForSummaryScreen(String month, String year, Long accountId);
+        // Summary screen expense
+        @Query("SELECT COALESCE(SUM(amount), 0) FROM transactions " +
+                        "WHERE transactionType = 'DEBIT' AND isExcludedFromSummary = 0 " +
+                        "AND strftime('%m', datetime(date/1000, 'unixepoch')) = :month " +
+                        "AND strftime('%Y', datetime(date/1000, 'unixepoch')) = :year " +
+                        "AND (:accountId IS NULL OR accountId = :accountId)")
+        Double getExpenseForExpenseScreen(String month, String year, Long accountId);
 
-    // Category sum for income section of summary screen
-    @Query("SELECT category, SUM(amount) as total FROM transactions " +
-           "WHERE transactionType = 'CREDIT' AND isExcludedFromSummary = 0 " +
-           "AND strftime('%m', datetime(date/1000, 'unixepoch')) = :month " +
-           "AND strftime('%Y', datetime(date/1000, 'unixepoch')) = :year " +
-           "AND (:accountId IS NULL OR accountId = :accountId) " +
-           "GROUP BY category ORDER BY total DESC")
-    LiveData<List<CategorySum>> getIncomeCategorySumForSummaryScreen(String month, String year, Long accountId);
+        // Summary screen income
+        @Query("SELECT COALESCE(SUM(amount), 0) FROM transactions " +
+                        "WHERE transactionType = 'CREDIT' AND isExcludedFromSummary = 0 " +
+                        "AND strftime('%m', datetime(date/1000, 'unixepoch')) = :month " +
+                        "AND strftime('%Y', datetime(date/1000, 'unixepoch')) = :year " +
+                        "AND (:accountId IS NULL OR accountId = :accountId)")
+        Double getIncomeForExpenseScreen(String month, String year, Long accountId);
 
-    //Transactions shown for each category wise breakup in the summary screen
-    @Query("SELECT * FROM transactions " +
-            "WHERE category = :category " +
-            "AND transactionType = :transactionType " +
-            "AND isExcludedFromSummary = 0 " +
-            "AND strftime('%m', datetime(date/1000, 'unixepoch')) = :month " +
-            "AND strftime('%Y', datetime(date/1000, 'unixepoch')) = :year " +
-            "AND (:accountId IS NULL OR accountId = :accountId) " +
-            "ORDER BY date DESC")
-    LiveData<List<Transaction>> getTransactionsByCategoryForSummaryScreen(String category, String month, String year, Long accountId, String transactionType);
+        // Category sum for expense section of summary screen
+        @Query("SELECT category, SUM(amount) as total FROM transactions " +
+                        "WHERE transactionType = 'DEBIT' AND isExcludedFromSummary = 0 " +
+                        "AND strftime('%m', datetime(date/1000, 'unixepoch')) = :month " +
+                        "AND strftime('%Y', datetime(date/1000, 'unixepoch')) = :year " +
+                        "AND (:accountId IS NULL OR accountId = :accountId) " +
+                        "GROUP BY category ORDER BY total DESC")
+        LiveData<List<CategorySum>> getExpenseCategorySumForSummaryScreen(String month, String year, Long accountId);
 
-    /****************************************************************************************************/
-    //Account details screen
+        // Category sum for income section of summary screen
+        @Query("SELECT category, SUM(amount) as total FROM transactions " +
+                        "WHERE transactionType = 'CREDIT' AND isExcludedFromSummary = 0 " +
+                        "AND strftime('%m', datetime(date/1000, 'unixepoch')) = :month " +
+                        "AND strftime('%Y', datetime(date/1000, 'unixepoch')) = :year " +
+                        "AND (:accountId IS NULL OR accountId = :accountId) " +
+                        "GROUP BY category ORDER BY total DESC")
+        LiveData<List<CategorySum>> getIncomeCategorySumForSummaryScreen(String month, String year, Long accountId);
 
-    //Account details screen income
-    @Query("SELECT COALESCE(SUM(amount), 0) FROM transactions " +
-           "WHERE transactionType = 'CREDIT' " +
-            "AND isExcludedFromSummary = 0 " +
-           "AND accountId = :accountId")
-    double getTotalIncomeForAccountDetailsScreen(long accountId);
+        // Transactions shown for each category wise breakup in the summary screen
+        @Query("SELECT * FROM transactions " +
+                        "WHERE category = :category " +
+                        "AND transactionType = :transactionType " +
+                        "AND isExcludedFromSummary = 0 " +
+                        "AND strftime('%m', datetime(date/1000, 'unixepoch')) = :month " +
+                        "AND strftime('%Y', datetime(date/1000, 'unixepoch')) = :year " +
+                        "AND (:accountId IS NULL OR accountId = :accountId) " +
+                        "ORDER BY date DESC")
+        LiveData<List<Transaction>> getTransactionsByCategoryForSummaryScreen(String category, String month,
+                        String year, Long accountId, String transactionType);
 
-    //Account details screen expense
-    @Query("SELECT COALESCE(SUM(amount), 0) FROM transactions " +
-           "WHERE transactionType = 'DEBIT' " +
-            "AND isExcludedFromSummary = 0 " +
-           "AND accountId = :accountId")
-    double getTotalExpenseForAccountDetailsScreen(long accountId);
+        /****************************************************************************************************/
+        // Account details screen
 
-    //Transactions for account details screen
-    @Query("SELECT * FROM transactions " +
-           "WHERE date BETWEEN :startDate AND :endDate " +
-           "AND accountId = :accountId " +
-           "ORDER BY date DESC")
-    LiveData<List<Transaction>> getTransactionsForAccountDetailsScreen(Date startDate, Date endDate, long accountId);
+        // Account details screen income
+        @Query("SELECT COALESCE(SUM(amount), 0) FROM transactions " +
+                        "WHERE transactionType = 'CREDIT' " +
+                        "AND isExcludedFromSummary = 0 " +
+                        "AND accountId = :accountId")
+        double getTotalIncomeForAccountDetailsScreen(long accountId);
 
-    /****************************************************************************************************/
-    //Transactions screen
+        // Account details screen expense
+        @Query("SELECT COALESCE(SUM(amount), 0) FROM transactions " +
+                        "WHERE transactionType = 'DEBIT' " +
+                        "AND isExcludedFromSummary = 0 " +
+                        "AND accountId = :accountId")
+        double getTotalExpenseForAccountDetailsScreen(long accountId);
 
-    @Query("SELECT * FROM transactions " +
-            "WHERE date BETWEEN :fromDate AND :toDate " +
-            "AND (:accountId IS NULL OR accountId = :accountId) " +
-            "AND (:description IS NULL OR description LIKE '%' || :description || '%') " +
-            "AND (:receiverName IS NULL OR receiverName LIKE '%' || :receiverName || '%') " +
-            "AND (:category IS NULL OR category = :category) " +
-            "AND (:amount IS NULL OR amount = :amount) " +
-            "AND (:transactionType IS NULL OR transactionType = :transactionType) " +
-            "AND (:isExcludedFromSummary IS NULL OR isExcludedFromSummary = :isExcludedFromSummary) " +
-            "AND (:linkedRecurringPaymentId IS NULL OR linkedRecurringPaymentId = :linkedRecurringPaymentId) " +
-            "ORDER BY date DESC")
-    List<Transaction> getFilteredTransactions(Date fromDate, Date toDate, Long accountId, 
-            String description, String receiverName, String category, Double amount,
-            String transactionType, Boolean isExcludedFromSummary, Long linkedRecurringPaymentId);
+        // Transactions for account details screen
+        @Query("SELECT * FROM transactions " +
+                        "WHERE date BETWEEN :startDate AND :endDate " +
+                        "AND accountId = :accountId " +
+                        "ORDER BY date DESC")
+        LiveData<List<Transaction>> getTransactionsForAccountDetailsScreen(Date startDate, Date endDate,
+                        long accountId);
 
-    /****************************************************************************************************/
-    // Queries for purposes other than screen
+        /****************************************************************************************************/
+        // Transactions screen
 
-    @Query("SELECT COUNT(*) FROM transactions WHERE smsHash = :smsHash")
-    int countTransactionsBySmsHash(String smsHash);
+        @Query("SELECT * FROM transactions " +
+                        "WHERE date BETWEEN :fromDate AND :toDate " +
+                        "AND (:accountId IS NULL OR accountId = :accountId) " +
+                        "AND (:description IS NULL OR description LIKE '%' || :description || '%') " +
+                        "AND (:receiverName IS NULL OR receiverName LIKE '%' || :receiverName || '%') " +
+                        "AND (:category IS NULL OR category = :category) " +
+                        "AND (:amount IS NULL OR amount = :amount) " +
+                        "AND (:transactionType IS NULL OR transactionType = :transactionType) " +
+                        "AND (:isExcludedFromSummary IS NULL OR isExcludedFromSummary = :isExcludedFromSummary) " +
+                        "AND (:linkedRecurringPaymentId IS NULL OR linkedRecurringPaymentId = :linkedRecurringPaymentId) "
+                        +
+                        "ORDER BY date DESC")
+        List<Transaction> getFilteredTransactions(Date fromDate, Date toDate, Long accountId,
+                        String description, String receiverName, String category, Double amount,
+                        String transactionType, Boolean isExcludedFromSummary, Long linkedRecurringPaymentId);
 
-    @Query("SELECT * FROM transactions ORDER BY date DESC")
-    List<Transaction> getAllTransactionsSyncOrderByDateAsc();
+        /****************************************************************************************************/
+        // Queries for purposes other than screen
+
+        @Query("SELECT COUNT(*) FROM transactions WHERE smsHash = :smsHash")
+        int countTransactionsBySmsHash(String smsHash);
+
+        @Query("SELECT * FROM transactions ORDER BY date DESC")
+        List<Transaction> getAllTransactionsSyncOrderByDateAsc();
 }
