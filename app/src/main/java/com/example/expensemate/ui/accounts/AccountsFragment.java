@@ -51,6 +51,7 @@ public class AccountsFragment extends Fragment implements AccountsAdapter.OnAcco
         View view = inflater.inflate(R.layout.fragment_accounts, container, false);
 
         tvNetBalance = view.findViewById(R.id.tvNetBalance);
+        view.findViewById(R.id.btnNetBalanceInfo).setOnClickListener(v -> showNetBalanceInfoDialog());
 
         RecyclerView recyclerView = view.findViewById(R.id.rvAccounts);
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
@@ -254,5 +255,14 @@ public class AccountsFragment extends Fragment implements AccountsAdapter.OnAcco
         args.putLong("accountId", account.getId());
         androidx.navigation.Navigation.findNavController(requireView())
                 .navigate(R.id.account_details_fragment, args);
+    }
+
+    private void showNetBalanceInfoDialog() {
+        new AlertDialog.Builder(requireContext())
+                .setTitle("Net Balance")
+                .setMessage(
+                        "Net Balance is calculated as:\n\nTotal Income (All Accounts)\n- Total Expense (All Accounts)\n\nTransactions excluded from summary have not been considered for balance calculation.\n\nThis gives you a complete picture of your financial standing across all your accounts.")
+                .setPositiveButton("OK", (dialog, which) -> dialog.dismiss())
+                .show();
     }
 }

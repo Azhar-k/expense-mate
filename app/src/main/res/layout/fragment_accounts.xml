@@ -28,13 +28,32 @@
                 android:background="@color/background"
                 android:gravity="center">
 
-                <TextView
+                <LinearLayout
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Net Balance"
-                    android:textSize="14sp"
-                    android:textColor="@color/secondary_text"
-                    android:layout_marginBottom="4dp"/>
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginBottom="4dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Net Balance"
+                        android:textSize="14sp"
+                        android:textColor="@color/black"/>
+
+                    <ImageButton
+                        android:id="@+id/btnNetBalanceInfo"
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:layout_marginStart="8dp"
+                        android:padding="4dp"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:src="@drawable/ic_info"
+                        app:tint="@color/secondary_text"
+                        android:contentDescription="Info"/>
+
+                </LinearLayout>
 
                 <TextView
                     android:id="@+id/tvNetBalance"
