@@ -21,6 +21,13 @@ ExpenseMate is a comprehensive personal finance management Android application t
 12. **Customizable regex**: Users can configure more regex patterns for SMS parsing and transaction processing in addition to the system ones.
 ---
 
+## Architecture
+
+1. Expense mate ui: A mobile application client
+2. Expense mate backend: A spring boot backend service to handle core business logic, APIs and database
+3. User management service: A spring boot backend service to allow user registration, login and roles and permissions.
+
+
 ## General notes
 - Get the user's default currency from api and show the symbols accordingly wherever needed.
 - When showing amount, use color-coded: Red for debit, Green for credit
@@ -80,8 +87,12 @@ I will give the screen details one by one
 ## Screen: Login
 
  - Allow user regisration and login.
+ - It is managed by a separate user service
  - Registration with email, username and password 
  - Login with email and password
+ - Call user management service for user registration.
+ - Call user management service for login and generate an auth token.
+ - Use this auth token when calling the expense mate backend APIs
 
  When the application is opened, if not logged in, navigate to this screen.
 ## Screen: Transactions
@@ -141,7 +152,7 @@ Comprehensive list of all transactions with advanced filtering capabilities.
 ### Interactions
 - Default view shows last 30 days of transactions
 - Account dropdown filters transactions immediately
-- Filter allows complex multi-criteria filtering
+- Filter allows for most of the fields of the account
 - Add/Edit option
 - Link a transaction to a recurring payment and mark the recurring payment as completed
 - Exclude the transaction from summary screen
