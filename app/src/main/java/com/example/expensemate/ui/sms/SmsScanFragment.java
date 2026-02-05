@@ -540,31 +540,79 @@ public class SmsScanFragment extends Fragment {
 
     /**
      * Get the address (sender) from a thread ID
+     * Uses a simpler approach to avoid SQL ORDER BY errors
      */
     private String getThreadAddress(ContentResolver contentResolver, long threadId) {
-        Uri threadUri = Uri.parse("content://mms-sms/conversations/" + threadId);
-        Cursor threadCursor = null;
         String address = "";
 
+        // Try to get address from SMS table first
+        Uri smsUri = Uri.parse("content://sms");
+        Cursor smsCursor = null;
         try {
-            threadCursor = contentResolver.query(
-                    threadUri,
+            smsCursor = contentResolver.query(
+                    smsUri,
                     new String[] { "address" },
-                    null,
-                    null,
-                    "date DESC LIMIT 1");
+                    "thread_id = ?",
+                    new String[] { String.valueOf(threadId) },
+                    "_id DESC LIMIT 1");
 
-            if (threadCursor != null && threadCursor.moveToFirst()) {
-                int addressIndex = threadCursor.getColumnIndex("address");
+            if (smsCursor != null && smsCursor.moveToFirst()) {
+                int addressIndex = smsCursor.getColumnIndex("address");
                 if (addressIndex >= 0) {
-                    address = threadCursor.getString(addressIndex);
+                    address = smsCursor.getString(addressIndex);
                 }
             }
         } catch (Exception e) {
-            Log.e("SmsScanFragment", "Error getting thread address: " + e.getMessage(), e);
+            Log.d("SmsScanFragment", "Could not get address from SMS table: " + e.getMessage());
         } finally {
-            if (threadCursor != null) {
-                threadCursor.close();
+            if (smsCursor != null) {
+                smsCursor.close();
+            }
+        }
+
+        // If still empty, try canonical addresses table
+        if (address == null || address.isEmpty()) {
+            Uri canonicalUri = Uri.parse("content://mms-sms/canonical-addresses");
+            Cursor canonicalCursor = null;
+            try {
+                // Get the recipient_ids from threads table first
+                Uri threadsUri = Uri.parse("content://mms-sms/conversations");
+                Cursor threadsCursor = contentResolver.query(
+                        threadsUri,
+                        new String[] { "recipient_ids" },
+                        "_id = ?",
+                        new String[] { String.valueOf(threadId) },
+                        null);
+
+                if (threadsCursor != null && threadsCursor.moveToFirst()) {
+                    int recipientIdsIndex = threadsCursor.getColumnIndex("recipient_ids");
+                    if (recipientIdsIndex >= 0) {
+                        String recipientIds = threadsCursor.getString(recipientIdsIndex);
+                        if (recipientIds != null && !recipientIds.isEmpty()) {
+                            // Query canonical addresses with the recipient ID
+                            canonicalCursor = contentResolver.query(
+                                    canonicalUri,
+                                    new String[] { "address" },
+                                    "_id = ?",
+                                    new String[] { recipientIds },
+                                    null);
+
+                            if (canonicalCursor != null && canonicalCursor.moveToFirst()) {
+                                int addressIndex = canonicalCursor.getColumnIndex("address");
+                                if (addressIndex >= 0) {
+                                    address = canonicalCursor.getString(addressIndex);
+                                }
+                            }
+                        }
+                    }
+                    threadsCursor.close();
+                }
+            } catch (Exception e) {
+                Log.d("SmsScanFragment", "Could not get address from canonical table: " + e.getMessage());
+            } finally {
+                if (canonicalCursor != null) {
+                    canonicalCursor.close();
+                }
             }
         }
 
