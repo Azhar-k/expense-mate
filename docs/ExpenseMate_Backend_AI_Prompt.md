@@ -1,6 +1,6 @@
 You are an expert backend engineer and system architect.
 
-Generate a production-grade backend server for an application called ExpenseMate, a personal finance and expense tracking system.
+Generate a production-grade backend server for an application called walleto, a personal finance and expense tracking system.
 Now we are inside an empty spring boot project. Work on this project.
 
 ## 1. Architecture Responsibilities
@@ -31,7 +31,7 @@ An external User Service handles:
 - Roles and permissions
 - JWT token generation
 
-The ExpenseMate backend:
+The walleto backend:
 - Must NOT implement login or registration
 - Must validate JWT tokens on every request
 - Must extract userId from JWT

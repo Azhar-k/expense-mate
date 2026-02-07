@@ -1,8 +1,8 @@
-# ExpenseMate - Feature Documentation for Wireframe Generation
+# Walleto - Feature Documentation for Wireframe Generation
 
 ## Application Overview
 
-ExpenseMate is a comprehensive personal finance management Android application that automates expense tracking through SMS parsing and provides detailed financial insights. The app features a bottom navigation bar for primary screens and a drawer navigation for secondary features.
+Walleto is a comprehensive personal finance management Android application that automates expense tracking through SMS parsing and provides detailed financial insights. The app features a bottom navigation bar for primary screens and a drawer navigation for secondary features.
 ---
 
 ## Key Features Summary
