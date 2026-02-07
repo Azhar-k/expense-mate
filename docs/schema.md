@@ -39,6 +39,7 @@ erDiagram
         long expiryDate "Timestamp"
         String description
         boolean isDefault
+        String currency
     }
 
     %% Relationships
