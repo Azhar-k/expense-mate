@@ -29,7 +29,7 @@ ExpenseMate is a comprehensive personal finance management Android application t
 
 
 ## General notes
-- Get the user's default currency from api and show the symbols accordingly wherever needed.
+- Get the currency correspoding to an account and show the symbol accordingly wherever needed.
 - When showing amount, use color-coded: Red for debit, Green for credit
 - Use a common theme/components for text input fields, Headings, etc
 - Use a standard look and feel for the sections that allow add, edit, delete options of different entities.
@@ -49,6 +49,7 @@ ExpenseMate is a comprehensive personal finance management Android application t
 - Name, Account Number, Bank
 - Expiry Date, Description
 - Default Account flag
+- Currency
 
 ### Category
 - Name (unique identifier)
@@ -156,21 +157,23 @@ Comprehensive list of all transactions with advanced filtering capabilities.
 - Add/Edit option
 - Link a transaction to a recurring payment and mark the recurring payment as completed
 - Exclude the transaction from summary screen
+- The currency associated with the corresponding account of the transaction should be shown along with the amount
 
 ---
 
 ## Screen : Accounts
 
-### Purpose
-Manage all financial accounts (bank accounts, wallets, credit cards).
+- Manage all financial accounts (bank accounts, wallets, credit cards).
+- Account should be associated with a currency.
+- Where ever an amount is shown, the corresponding account's currency should be shown.
 
-#### Net balance
+### Net balance
 Calculated as below
 - Net Balance is calculated as:Total Income (All Accounts) - Total Expense (All Accounts)
 - Transactions excluded from summary have not been considered for balance calculation.
 - An info button with info icon. When clicking on it, explain how balance is calculated
 
-#### Account List
+### Account List
 - **RecyclerView**: Displays all accounts
 - **Account Item Display**:
   - Account name
@@ -186,6 +189,7 @@ Calculated as below
 - **Bank**: Text input (optional)
 - **Expiry Date**: Date picker (optional, for credit cards)
 - **Description**: Text input (optional)
+- **Currency** should be selected from a dropdown
 
 ### Account Details Screen (Navigated from Account List)
 
@@ -203,6 +207,8 @@ Calculated as below
 ### Interactions
 - Add/edit or delete account options
 - Select an account as default
+- Account should be associated with a currency.
+- Where ever an amount is shown, the corresponding account's currency should be shown.
 - Click account item to view details
 - Set default account (only one can be default)
 - Cannot delete default account
@@ -385,20 +391,11 @@ Manually scan SMS messages from a date range to extract and import transactions.
 
 ## Screen: Settings
 
-###
-- **Currency selector**
-
-### Functionality
-
-#### Currency selector
-- Allow user to store their default currency.
-- This currency should be ued to show in various screens where amount is displayed
-#### Manage regex
+### Manage regex
 - Allow the user to view, add, edit and delete the regex. 
 - Do not allow the system regex to be edited or deleted
 
 ### Interactions
-- Configure the default currency from a currency dropdown
 - View, Add, edit, and delete custom regex
 ---
 

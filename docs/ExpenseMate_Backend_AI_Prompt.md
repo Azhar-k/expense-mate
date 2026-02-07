@@ -55,13 +55,16 @@ The ExpenseMate backend:
 - name
 - accountNumber
 - bank
+- currency
 - expiryDate
 - description
 - isDefault
 
-Rules:
+#### Functionalities
 - Only one default account per user
 - Default account cannot be deleted
+- currency is mandatory for the account.
+- Only allow the standard set of currencies
 
 ### Categories
 - POST /categories
