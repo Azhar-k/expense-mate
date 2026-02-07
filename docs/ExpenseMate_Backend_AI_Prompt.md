@@ -1,6 +1,7 @@
 You are an expert backend engineer and system architect.
 
 Generate a production-grade backend server for an application called ExpenseMate, a personal finance and expense tracking system.
+Now we are inside an empty spring boot project. Work on this project.
 
 ## 1. Architecture Responsibilities
 
@@ -9,12 +10,16 @@ Generate a production-grade backend server for an application called ExpenseMate
 - Use spring boot and hibernate as the framework
 - Use flyway migration
 - Use postgress as the database server
+- Have clear interfaces and abstractions for persistence layer so that we can replace database (eg: postgres to mysql) later easily
 - All the data should be stored against a tenant id.
 - For now, tenantId can be the user id retrieved from the jwt token.
 - All the interface of the persistence layer should accept the tenantId as a parameter as it is mandatory to query the database
 - The application should automatically create database for the given tenant id if not exist.
 - Persistence layer should determine the database to be connected dynamically based on the tenantId of the query.
 - Also store the tenantId as a field in all tables.
+- Use standard exception handling logics. 
+- Differentiate between the exception or error messages that can be shown to the user vs the internal errors or exceptions.
+- Have proper info level and error logging. 
 ---
 
 ## 2. Authentication & Authorization
@@ -95,7 +100,7 @@ Rules:
 - recurringPaymentId
 - isExcludeFromSummary
 
-Rules:
+#### Functionalities
 - SMS hash used for duplicate detection
 - Category type must match transaction type
 - Logic to generate the sms hash is as follows
@@ -116,7 +121,6 @@ private String generateSmsHash(String smsBody, String smsSender) {
         return hash;
     }
 
-#### Functionalities
 - Link a transaction to a recurring payment and mark the recurring payment as completed
 - Exclude the transaction from summary screen
 
@@ -133,14 +137,6 @@ private String generateSmsHash(String smsBody, String smsSender) {
 - **Recurring Payment**: Dropdown with all recurring payments
 - **Amount**: Range filter
 - **Exclude from Summary**: Toggle switch
-
-### SMS Processing
-- POST /sms/process
-- POST /sms/process/bulk
-
-#### Functionalities
-- Parse the sms and identify the transaction details and create a transaction if eligible.s
-- Get the regex from the database and use it for pattern matching.
 
 ### Recurring Payments
 - POST /recurring-payments
@@ -159,6 +155,14 @@ private String generateSmsHash(String smsBody, String smsSender) {
 - expiryDate
 - isCompleted
 - lastCompletedDate
+
+### SMS Processing
+- POST /sms/process
+- POST /sms/process/bulk
+
+#### Functionalities
+- Parse the sms and identify the transaction details and create a transaction if eligible.
+- Get the regex from the database and use it for pattern matching snd identify the transactions.
 
 ### Regex Management
 - GET /regex
@@ -187,7 +191,6 @@ String requestPath; // API endpoint that triggered the action
 String requestMethod; // HTTP method (GET, POST, PUT, DELETE)
 
 ---
-
 
 ### Balance
 - GET /balance/{accountId}
