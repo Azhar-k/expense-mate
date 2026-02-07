@@ -20,6 +20,7 @@ Now we are inside an empty spring boot project. Work on this project.
 - Use standard exception handling logics. 
 - Differentiate between the exception or error messages that can be shown to the user vs the internal errors or exceptions.
 - Have proper info level and error logging. 
+- The tenant id and the user id should be there for all the logs. Set at the thread level.
 ---
 
 ## 2. Authentication & Authorization
