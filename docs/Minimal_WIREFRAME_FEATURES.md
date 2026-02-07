@@ -277,7 +277,7 @@ Main dashboard showing financial overview with monthly breakdowns and category-w
 ---
 
 ## Screen : Self Transfer
-
+  
 ### Purpose
 Record transfers between user's own accounts without affecting net worth.
 
