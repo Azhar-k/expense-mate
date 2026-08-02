@@ -1,16 +1,19 @@
 package com.example.expensemate;
 
 import android.Manifest;
+import android.content.ComponentName;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.provider.Settings;
 import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBarDrawerToggle;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.widget.Toolbar;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
@@ -26,6 +29,7 @@ import com.example.expensemate.ui.accounts.AccountDetailsFragment;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.navigation.NavigationView;
 import com.example.expensemate.service.SmsMonitorService;
+import com.example.expensemate.service.RcsNotificationListenerService;
 import android.widget.Toast;
 
 public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
@@ -36,6 +40,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     private ActionBarDrawerToggle drawerToggle;
     private BottomNavigationView bottomNavView;
     private NavigationView navigationView;
+    private boolean notificationDialogShown = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -104,6 +109,15 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
         // Check and request permissions
         checkAndRequestPermissions();
+        // Check Notification Access permission for RCS listening
+        checkNotificationListenerPermission();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        // Re-check notification listener permission in case user just came back from Settings
+        checkNotificationListenerPermission();
     }
 
     private void checkAndRequestPermissions() {
@@ -211,5 +225,44 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         Intent serviceIntent = new Intent(this, SmsMonitorService.class);
         startService(serviceIntent);
         Log.d(TAG, "SMS Monitor Service started");
+    }
+
+    /**
+     * Checks whether Notification Access is granted for RcsNotificationListenerService.
+     * If not, shows a one-time dialog prompting the user to enable it.
+     */
+    private void checkNotificationListenerPermission() {
+        if (!isNotificationListenerEnabled()) {
+            Log.w(TAG, "Notification Access NOT granted. RCS auto-read will not work.");
+            if (!notificationDialogShown) {
+                notificationDialogShown = true;
+                new AlertDialog.Builder(this)
+                        .setTitle("Enable Notification Access")
+                        .setMessage(
+                                "Expense Mate needs Notification Access to automatically detect " +
+                                "RCS Business transactions from your bank messages.\n\n" +
+                                "Tap \"Open Settings\", find \"Expense Mate\" in the list and enable it.")
+                        .setPositiveButton("Open Settings", (dialog, which) -> {
+                            notificationDialogShown = false; // allow re-prompt if denied again
+                            Intent intent = new Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS);
+                            startActivity(intent);
+                        })
+                        .setNegativeButton("Not Now", null)
+                        .show();
+            }
+        } else {
+            notificationDialogShown = false; // reset so prompt shows if permission is later revoked
+            Log.d(TAG, "Notification Access is granted. RcsNotificationListenerService is active.");
+        }
+    }
+
+    /**
+     * Returns true if RcsNotificationListenerService has been granted Notification Access.
+     */
+    private boolean isNotificationListenerEnabled() {
+        ComponentName cn = new ComponentName(this, RcsNotificationListenerService.class);
+        String flat = Settings.Secure.getString(
+                getContentResolver(), "enabled_notification_listeners");
+        return flat != null && flat.contains(cn.flattenToString());
     }
 }
