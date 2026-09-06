@@ -258,6 +258,16 @@ public class BackupDataLoader {
                             payment.setLastCompletedDate(dateFormat.parse(value));
                         }
                         break;
+                    case "From Account ID":
+                        if (!value.equals("null")) {
+                            payment.setFromAccountId(Long.parseLong(value));
+                        }
+                        break;
+                    case "To Account ID":
+                        if (!value.equals("null")) {
+                            payment.setToAccountId(Long.parseLong(value));
+                        }
+                        break;
                 }
             }
 
@@ -379,6 +389,8 @@ public class BackupDataLoader {
                 data.append(String.format("Expiry Date: %s\n", p.getExpiryDate()));
                 data.append(String.format("Is Completed: %b\n", p.isCompleted()));
                 data.append(String.format("Last Completed Date: %s\n", p.getLastCompletedDate()));
+                data.append(String.format("From Account ID: %s\n", p.getFromAccountId()));
+                data.append(String.format("To Account ID: %s\n", p.getToAccountId()));
                 data.append("---\n");
             }
 
@@ -504,9 +516,9 @@ public class BackupDataLoader {
             List<RecurringPayment> payments = database.recurringPaymentDao().getAllRecurringPaymentsSync();
             for (RecurringPayment p : payments) {
                 data.append(String.format(
-                        "ID: %d\nName: %s\nAmount: %.2f\nDue Day: %d\nExpiry Date: %s\nIs Completed: %b\nLast Completed Date: %s\n---\n",
+                        "ID: %d\nName: %s\nAmount: %.2f\nDue Day: %d\nExpiry Date: %s\nIs Completed: %b\nLast Completed Date: %s\nFrom Account ID: %s\nTo Account ID: %s\n---\n",
                         p.getId(), p.getName(), p.getAmount(), p.getDueDay(), p.getExpiryDate(), p.isCompleted(),
-                        p.getLastCompletedDate()));
+                        p.getLastCompletedDate(), p.getFromAccountId(), p.getToAccountId()));
             }
         } else if (entityName.equals("ACCOUNTS")) {
             List<Account> accounts = database.accountDao().getAllAccountsSync();

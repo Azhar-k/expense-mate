@@ -15,6 +15,8 @@ public class RecurringPayment {
     private Date expiryDate;
     private boolean isCompleted;
     private Date lastCompletedDate;
+    private Long fromAccountId;
+    private Long toAccountId;
 
     public RecurringPayment(String name, double amount, int dueDay, Date expiryDate) {
         this.name = name;
@@ -22,6 +24,8 @@ public class RecurringPayment {
         this.dueDay = dueDay;
         this.expiryDate = expiryDate;
         this.isCompleted = false;
+        this.fromAccountId = null;
+        this.toAccountId = null;
     }
 
     // Getters and Setters
@@ -45,4 +49,10 @@ public class RecurringPayment {
     
     public Date getLastCompletedDate() { return lastCompletedDate; }
     public void setLastCompletedDate(Date lastCompletedDate) { this.lastCompletedDate = lastCompletedDate; }
+
+    public Long getFromAccountId() { return fromAccountId; }
+    public void setFromAccountId(Long fromAccountId) { this.fromAccountId = fromAccountId; }
+
+    public Long getToAccountId() { return toAccountId; }
+    public void setToAccountId(Long toAccountId) { this.toAccountId = toAccountId; }
 } 
