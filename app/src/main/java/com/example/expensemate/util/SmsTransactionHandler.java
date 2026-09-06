@@ -97,6 +97,13 @@ public class SmsTransactionHandler {
     private static final Pattern ICICI_CARD_SPEND_PATTERN = Pattern.compile(
             "Rs\\.?\\s*(\\d{1,3}(?:,\\d{3})*(?:\\.\\d{2})?)\\s+spent on ICICI Bank Card XX\\d{4} on (\\d{2}-[A-Za-z]{3}-\\d{2}) at ([A-Z0-9\\s\\.\\-&]+)");
 
+    private static final Pattern ICICI_CARD_SPEND_NEW_PATTERN = Pattern.compile(
+            "(?:Rs\\.?|INR)\\s*" +
+                    "(\\d{1,3}(?:,\\d{3})*(?:\\.\\d{2})?)\\s+" +
+                    "spent\\s+using\\s+ICICI\\s+Bank\\s+Card\\s+XX(\\d{4})\\s+" +
+                    "on\\s+(\\d{2}-[A-Za-z]{3}-\\d{2})\\s+" +
+                    "on\\s+([^\\.]+)",
+            Pattern.CASE_INSENSITIVE);
     private static final Pattern ICICI_ALT_DEBIT_PATTERN = Pattern.compile(
             "Rs\\.?\\s*(\\d{1,3}(?:,\\d{3})*(?:\\.\\d{2}))\\s+debited from ICICI Bank Acc XX\\d+ on (\\d{2}-[A-Za-z]{3}-\\d{2})\\s+([A-Z0-9\\*\\s\\.]+)\\s+Bal");
 
@@ -369,6 +376,24 @@ public class SmsTransactionHandler {
                 double amount = Double.parseDouble(iciciCardSpendMatcher.group(1).replace(",", ""));
                 String merchant = iciciCardSpendMatcher.group(3).trim();
                 Log.d(TAG, "Found ICICI Credit Card spend: " + amount + " at " + merchant);
+
+                return new Transaction(
+                        amount,
+                        smsBody,
+                        new Date(),
+                        "DEBIT",
+                        merchant,
+                        smsBody,
+                        sender);
+            }
+
+            var iciciCardSpendNewMatcher = ICICI_CARD_SPEND_NEW_PATTERN.matcher(smsBody);
+            if (iciciCardSpendNewMatcher.find()) {
+                double amount = Double.parseDouble(
+                        iciciCardSpendNewMatcher.group(1).replace(",", ""));
+                String merchant = iciciCardSpendNewMatcher.group(4).trim();
+
+                Log.d(TAG, "Found ICICI Credit Card spend (new format): " + amount + " at " + merchant);
 
                 return new Transaction(
                         amount,

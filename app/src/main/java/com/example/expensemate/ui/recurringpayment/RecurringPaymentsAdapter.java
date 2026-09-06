@@ -16,13 +16,16 @@ import com.example.expensemate.data.RecurringPayment;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 public class RecurringPaymentsAdapter extends ListAdapter<RecurringPayment, RecurringPaymentsAdapter.PaymentViewHolder> {
     private final SimpleDateFormat dateFormat = new SimpleDateFormat("MMM dd, yyyy", Locale.getDefault());
     private OnPaymentClickListener listener;
     private RecurringPaymentsFragment fragment;
+    private Map<Long, String> accountNameMap = new HashMap<>();
 
     public RecurringPaymentsAdapter() {
         super(new DiffUtil.ItemCallback<RecurringPayment>() {
@@ -37,7 +40,15 @@ public class RecurringPaymentsAdapter extends ListAdapter<RecurringPayment, Recu
                        oldItem.getAmount() == newItem.getAmount() &&
                        oldItem.getDueDay() == newItem.getDueDay() &&
                        oldItem.getExpiryDate().equals(newItem.getExpiryDate()) &&
-                       oldItem.isCompleted() == newItem.isCompleted();
+                       oldItem.isCompleted() == newItem.isCompleted() &&
+                       areAccountsTheSame(oldItem.getFromAccountId(), newItem.getFromAccountId()) &&
+                       areAccountsTheSame(oldItem.getToAccountId(), newItem.getToAccountId());
+            }
+
+            private boolean areAccountsTheSame(Long old, Long newVal) {
+                if (old == null && newVal == null) return true;
+                if (old == null || newVal == null) return false;
+                return old.equals(newVal);
             }
         });
     }
@@ -62,6 +73,11 @@ public class RecurringPaymentsAdapter extends ListAdapter<RecurringPayment, Recu
 
     public void setFragment(RecurringPaymentsFragment fragment) {
         this.fragment = fragment;
+    }
+
+    public void setAccountNameMap(Map<Long, String> accountNameMap) {
+        this.accountNameMap = accountNameMap;
+        notifyDataSetChanged();
     }
 
     public void setAllSelected(boolean selected) {
@@ -90,9 +106,11 @@ public class RecurringPaymentsAdapter extends ListAdapter<RecurringPayment, Recu
         private final TextView dueDateTextView;
         private final TextView expiryDateTextView;
         private final TextView expiredNoteTextView;
+        private final TextView accountsTextView;
         private final CheckBox completedCheckBox;
         private final ImageButton editButton;
         private final ImageButton deleteButton;
+        private final ImageButton selfTransferButton;
         private final View container;
 
         public PaymentViewHolder(@NonNull View itemView) {
@@ -102,9 +120,11 @@ public class RecurringPaymentsAdapter extends ListAdapter<RecurringPayment, Recu
             dueDateTextView = itemView.findViewById(R.id.payment_due_date);
             expiryDateTextView = itemView.findViewById(R.id.payment_expiry_date);
             expiredNoteTextView = itemView.findViewById(R.id.tv_expired_note);
+            accountsTextView = itemView.findViewById(R.id.payment_accounts);
             completedCheckBox = itemView.findViewById(R.id.payment_completed);
             editButton = itemView.findViewById(R.id.btn_edit);
             deleteButton = itemView.findViewById(R.id.btn_delete);
+            selfTransferButton = itemView.findViewById(R.id.btn_self_transfer);
             container = itemView.findViewById(R.id.payment_container);
 
             editButton.setOnClickListener(v -> {
@@ -118,6 +138,13 @@ public class RecurringPaymentsAdapter extends ListAdapter<RecurringPayment, Recu
                 int position = getAdapterPosition();
                 if (position != RecyclerView.NO_POSITION && fragment != null) {
                     fragment.showDeleteConfirmationDialog(getItem(position));
+                }
+            });
+
+            selfTransferButton.setOnClickListener(v -> {
+                int position = getAdapterPosition();
+                if (position != RecyclerView.NO_POSITION && listener != null) {
+                    listener.onSelfTransferClick(getItem(position));
                 }
             });
 
@@ -135,19 +162,42 @@ public class RecurringPaymentsAdapter extends ListAdapter<RecurringPayment, Recu
             dueDateTextView.setText(String.format(Locale.getDefault(), "Day %d of every month", payment.getDueDay()));
             expiryDateTextView.setText(dateFormat.format(payment.getExpiryDate()));
 
+            // Show account labels
+            String fromName = payment.getFromAccountId() != null ? accountNameMap.get(payment.getFromAccountId()) : null;
+            String toName = payment.getToAccountId() != null ? accountNameMap.get(payment.getToAccountId()) : null;
+
+            if (fromName != null || toName != null) {
+                StringBuilder accountText = new StringBuilder();
+                if (fromName != null && toName != null) {
+                    accountText.append(fromName).append(" → ").append(toName);
+                } else if (fromName != null) {
+                    accountText.append("From: ").append(fromName);
+                } else {
+                    accountText.append("To: ").append(toName);
+                }
+                accountsTextView.setText(accountText.toString());
+                accountsTextView.setVisibility(View.VISIBLE);
+            } else {
+                accountsTextView.setVisibility(View.GONE);
+            }
+
             // Check if payment is expired
             Calendar calendar = Calendar.getInstance();
             Date today = calendar.getTime();
             boolean isExpired = payment.getExpiryDate().before(today);
             
+            boolean isInternal = payment.getFromAccountId() != null && payment.getToAccountId() != null;
+
             if (isExpired) {
                 container.setBackgroundColor(Color.parseColor("#FFFDE7")); // Light yellow
                 expiryDateTextView.setTextColor(Color.RED);
                 expiredNoteTextView.setVisibility(View.VISIBLE);
-                // Disable edit and completion for expired payments
+                // Disable edit, completion, and self transfer for expired payments
                 editButton.setEnabled(false);
                 editButton.setAlpha(0.5f);
                 completedCheckBox.setEnabled(false);
+                selfTransferButton.setEnabled(false);
+                selfTransferButton.setAlpha(0.3f);
             } else {
                 container.setBackgroundColor(Color.WHITE);
                 expiryDateTextView.setTextColor(Color.BLACK);
@@ -155,6 +205,14 @@ public class RecurringPaymentsAdapter extends ListAdapter<RecurringPayment, Recu
                 editButton.setEnabled(true);
                 editButton.setAlpha(1.0f);
                 completedCheckBox.setEnabled(true);
+                // Self transfer is only enabled for internal payments (both from and to accounts assigned)
+                if (isInternal) {
+                    selfTransferButton.setEnabled(true);
+                    selfTransferButton.setAlpha(1.0f);
+                } else {
+                    selfTransferButton.setEnabled(false);
+                    selfTransferButton.setAlpha(0.3f);
+                }
             }
 
             completedCheckBox.setChecked(payment.isCompleted());
@@ -164,5 +222,6 @@ public class RecurringPaymentsAdapter extends ListAdapter<RecurringPayment, Recu
     public interface OnPaymentClickListener {
         void onPaymentClick(RecurringPayment payment);
         void onPaymentStatusChanged(RecurringPayment payment, boolean isCompleted);
+        void onSelfTransferClick(RecurringPayment payment);
     }
-} 
+}
