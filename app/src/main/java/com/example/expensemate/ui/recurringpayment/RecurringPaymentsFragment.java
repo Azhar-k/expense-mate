@@ -449,6 +449,9 @@ public class RecurringPaymentsFragment extends Fragment {
         transactionViewModel.insertTransaction(debitTransaction);
         transactionViewModel.insertTransaction(creditTransaction);
 
+        // Mark the recurring payment as completed
+        viewModel.markAsCompleted(payment);
+
         Toast.makeText(requireContext(), "Self transfer completed successfully", Toast.LENGTH_SHORT).show();
     }
 
