@@ -186,6 +186,8 @@ public class RecurringPaymentsAdapter extends ListAdapter<RecurringPayment, Recu
             Date today = calendar.getTime();
             boolean isExpired = payment.getExpiryDate().before(today);
             
+            boolean isInternal = payment.getFromAccountId() != null && payment.getToAccountId() != null;
+
             if (isExpired) {
                 container.setBackgroundColor(Color.parseColor("#FFFDE7")); // Light yellow
                 expiryDateTextView.setTextColor(Color.RED);
@@ -195,7 +197,7 @@ public class RecurringPaymentsAdapter extends ListAdapter<RecurringPayment, Recu
                 editButton.setAlpha(0.5f);
                 completedCheckBox.setEnabled(false);
                 selfTransferButton.setEnabled(false);
-                selfTransferButton.setAlpha(0.5f);
+                selfTransferButton.setAlpha(0.3f);
             } else {
                 container.setBackgroundColor(Color.WHITE);
                 expiryDateTextView.setTextColor(Color.BLACK);
@@ -203,8 +205,14 @@ public class RecurringPaymentsAdapter extends ListAdapter<RecurringPayment, Recu
                 editButton.setEnabled(true);
                 editButton.setAlpha(1.0f);
                 completedCheckBox.setEnabled(true);
-                selfTransferButton.setEnabled(true);
-                selfTransferButton.setAlpha(1.0f);
+                // Self transfer is only enabled for internal payments (both from and to accounts assigned)
+                if (isInternal) {
+                    selfTransferButton.setEnabled(true);
+                    selfTransferButton.setAlpha(1.0f);
+                } else {
+                    selfTransferButton.setEnabled(false);
+                    selfTransferButton.setAlpha(0.3f);
+                }
             }
 
             completedCheckBox.setChecked(payment.isCompleted());

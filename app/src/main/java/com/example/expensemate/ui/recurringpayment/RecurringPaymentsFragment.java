@@ -7,7 +7,6 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
-import android.widget.Button;
 import android.widget.Toast;
 import android.widget.TextView;
 import android.widget.ImageButton;
@@ -40,13 +39,25 @@ public class RecurringPaymentsFragment extends Fragment {
     private RecurringPaymentsViewModel viewModel;
     private AccountViewModel accountViewModel;
     private TransactionViewModel transactionViewModel;
-    private RecyclerView recyclerView;
-    private RecurringPaymentsAdapter adapter;
+    
+    private RecyclerView externalRecyclerView;
+    private RecyclerView internalRecyclerView;
+    private RecurringPaymentsAdapter externalAdapter;
+    private RecurringPaymentsAdapter internalAdapter;
+    
     private DatePickerHelper expiryDatePicker;
     private ImageButton selectAllButton;
-    private TextView totalAmountTextView;
-    private TextView remainingAmountTextView;
     private TextView selectAllTextView;
+    
+    private TextView overallTotalTextView;
+    private TextView overallRemainingTextView;
+    private TextView externalTotalTextView;
+    private TextView externalRemainingTextView;
+    private TextView internalTotalTextView;
+    private TextView internalRemainingTextView;
+    private TextView emptyExternalTextView;
+    private TextView emptyInternalTextView;
+    
     private boolean isAllSelected = false;
     private List<Account> accountsList = new ArrayList<>();
 
@@ -64,10 +75,24 @@ public class RecurringPaymentsFragment extends Fragment {
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_recurring_payments, container, false);
         
-        recyclerView = view.findViewById(R.id.recurring_payments_recycler_view);
-        recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
-        adapter = new RecurringPaymentsAdapter();
-        adapter.setOnPaymentClickListener(new RecurringPaymentsAdapter.OnPaymentClickListener() {
+        // Find views
+        overallTotalTextView = view.findViewById(R.id.tv_total_amount);
+        overallRemainingTextView = view.findViewById(R.id.tv_remaining_amount);
+        selectAllButton = view.findViewById(R.id.btn_select_all);
+        selectAllTextView = view.findViewById(R.id.tv_select_all);
+        
+        externalTotalTextView = view.findViewById(R.id.tv_external_total_amount);
+        externalRemainingTextView = view.findViewById(R.id.tv_external_remaining_amount);
+        emptyExternalTextView = view.findViewById(R.id.tv_empty_external);
+        externalRecyclerView = view.findViewById(R.id.rv_external_recurring_payments);
+        
+        internalTotalTextView = view.findViewById(R.id.tv_internal_total_amount);
+        internalRemainingTextView = view.findViewById(R.id.tv_internal_remaining_amount);
+        emptyInternalTextView = view.findViewById(R.id.tv_empty_internal);
+        internalRecyclerView = view.findViewById(R.id.rv_internal_recurring_payments);
+
+        // Setup common click listener
+        RecurringPaymentsAdapter.OnPaymentClickListener paymentClickListener = new RecurringPaymentsAdapter.OnPaymentClickListener() {
             @Override
             public void onPaymentClick(RecurringPayment payment) {
                 showEditDialog(payment);
@@ -86,47 +111,87 @@ public class RecurringPaymentsFragment extends Fragment {
             public void onSelfTransferClick(RecurringPayment payment) {
                 showSelfTransferConfirmation(payment);
             }
-        });
-        adapter.setFragment(this);
-        recyclerView.setAdapter(adapter);
+        };
 
-        selectAllButton = view.findViewById(R.id.btn_select_all);
-        selectAllTextView = view.findViewById(R.id.tv_select_all);
-        totalAmountTextView = view.findViewById(R.id.tv_total_amount);
-        remainingAmountTextView = view.findViewById(R.id.tv_remaining_amount);
+        // External RecyclerView setup
+        externalRecyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
+        externalAdapter = new RecurringPaymentsAdapter();
+        externalAdapter.setOnPaymentClickListener(paymentClickListener);
+        externalAdapter.setFragment(this);
+        externalRecyclerView.setAdapter(externalAdapter);
+
+        // Internal RecyclerView setup
+        internalRecyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
+        internalAdapter = new RecurringPaymentsAdapter();
+        internalAdapter.setOnPaymentClickListener(paymentClickListener);
+        internalAdapter.setFragment(this);
+        internalRecyclerView.setAdapter(internalAdapter);
+
         selectAllButton.setOnClickListener(v -> toggleSelectAll());
 
         FloatingActionButton fab = view.findViewById(R.id.fab_add_recurring_payment);
         fab.setOnClickListener(v -> showAddDialog());
 
-        // Observe recurring payments
+        // Observe recurring payments and split into External and Internal
         viewModel.getRecurringPayments().observe(getViewLifecycleOwner(), payments -> {
-            adapter.submitList(payments);
-            updateUI();
-        });
-
-        // Observe total amount
-        viewModel.getTotalAmount().observe(getViewLifecycleOwner(), total -> {
-            if (total != null) {
-                totalAmountTextView.setText(String.format(Locale.getDefault(), "Total: ₹%.2f", total));
+            List<RecurringPayment> externalList = new ArrayList<>();
+            List<RecurringPayment> internalList = new ArrayList<>();
+            
+            double extTotal = 0, extRemaining = 0;
+            double intTotal = 0, intRemaining = 0;
+            
+            if (payments != null) {
+                for (RecurringPayment p : payments) {
+                    boolean isInternal = p.getFromAccountId() != null && p.getToAccountId() != null;
+                    if (isInternal) {
+                        internalList.add(p);
+                        intTotal += p.getAmount();
+                        if (!p.isCompleted()) {
+                            intRemaining += p.getAmount();
+                        }
+                    } else {
+                        externalList.add(p);
+                        extTotal += p.getAmount();
+                        if (!p.isCompleted()) {
+                            extRemaining += p.getAmount();
+                        }
+                    }
+                }
             }
+            
+            // Submit lists to adapters
+            externalAdapter.submitList(externalList);
+            internalAdapter.submitList(internalList);
+            
+            // Update section visibility
+            emptyExternalTextView.setVisibility(externalList.isEmpty() ? View.VISIBLE : View.GONE);
+            emptyInternalTextView.setVisibility(internalList.isEmpty() ? View.VISIBLE : View.GONE);
+            
+            // Update section totals
+            externalTotalTextView.setText(String.format(Locale.getDefault(), "Total: ₹%.2f", extTotal));
+            externalRemainingTextView.setText(String.format(Locale.getDefault(), "Remaining: ₹%.2f", extRemaining));
+            
+            internalTotalTextView.setText(String.format(Locale.getDefault(), "Total: ₹%.2f", intTotal));
+            internalRemainingTextView.setText(String.format(Locale.getDefault(), "Remaining: ₹%.2f", intRemaining));
+            
+            // Update overall totals
+            double overallTotal = extTotal + intTotal;
+            double overallRemaining = extRemaining + intRemaining;
+            overallTotalTextView.setText(String.format(Locale.getDefault(), "Total: ₹%.2f", overallTotal));
+            overallRemainingTextView.setText(String.format(Locale.getDefault(), "Remaining: ₹%.2f", overallRemaining));
+            
+            updateSelectAllButtonState(payments);
         });
 
-        // Observe remaining amount
-        viewModel.getRemainingAmount().observe(getViewLifecycleOwner(), remaining -> {
-            if (remaining != null) {
-                remainingAmountTextView.setText(String.format(Locale.getDefault(), "Remaining: ₹%.2f", remaining));
-            }
-        });
-
-        // Observe accounts to build the name map for the adapter
+        // Observe accounts to build the name map for the adapters
         accountViewModel.getAllAccounts().observe(getViewLifecycleOwner(), accounts -> {
             accountsList = accounts != null ? accounts : new ArrayList<>();
             Map<Long, String> accountNameMap = new HashMap<>();
             for (Account account : accountsList) {
                 accountNameMap.put(account.getId(), account.getName());
             }
-            adapter.setAccountNameMap(accountNameMap);
+            externalAdapter.setAccountNameMap(accountNameMap);
+            internalAdapter.setAccountNameMap(accountNameMap);
         });
 
         return view;
@@ -259,7 +324,6 @@ public class RecurringPaymentsFragment extends Fragment {
                             payment.setFromAccountId(getSelectedAccountId(dialogBinding.etFromAccount));
                             payment.setToAccountId(getSelectedAccountId(dialogBinding.etToAccount));
                             viewModel.insert(payment);
-                            Toast.makeText(requireContext(), "Payment added", Toast.LENGTH_SHORT).show();
                             dialog.dismiss();
                         } catch (NumberFormatException e) {
                             Toast.makeText(requireContext(), "Invalid amount or due day", Toast.LENGTH_SHORT).show();
@@ -278,23 +342,19 @@ public class RecurringPaymentsFragment extends Fragment {
 
     private void showEditDialog(RecurringPayment payment) {
         DialogEditRecurringPaymentBinding dialogBinding = DialogEditRecurringPaymentBinding.inflate(getLayoutInflater());
-
-        // Pre-fill the fields
+        
         dialogBinding.etPaymentName.setText(payment.getName());
         dialogBinding.etAmount.setText(String.valueOf(payment.getAmount()));
         dialogBinding.etDueDate.setText(String.valueOf(payment.getDueDay()));
         
-        // Set up expiry date picker with initial date
+        SimpleDateFormat sdf = new SimpleDateFormat("MMM dd, yyyy", Locale.getDefault());
+        dialogBinding.etExpiryDate.setText(sdf.format(payment.getExpiryDate()));
         expiryDatePicker.setSelectedDate(payment.getExpiryDate());
-        
-        // Set initial expiry date text
-        dialogBinding.etExpiryDate.setText(expiryDatePicker.getSelectedDate() != null ? 
-            new SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()).format(expiryDatePicker.getSelectedDate()) : "");
 
         // Set up expiry date picker click listener
         dialogBinding.etExpiryDate.setOnClickListener(v -> expiryDatePicker.showDatePicker(dialogBinding.etExpiryDate, payment.getExpiryDate()));
 
-        // Set up account dropdowns with pre-selected values
+        // Set up account dropdowns with existing values
         setupAccountDropdowns(dialogBinding, payment.getFromAccountId(), payment.getToAccountId());
 
         BaseDialogHelper dialogHelper = new BaseDialogHelper(
@@ -325,16 +385,13 @@ public class RecurringPaymentsFragment extends Fragment {
                                 return;
                             }
                             
-                            // Create a new payment object with updated values
-                            RecurringPayment updatedPayment = new RecurringPayment(name, amount, dueDay, expiryDate);
-                            updatedPayment.setId(payment.getId());
-                            updatedPayment.setCompleted(payment.isCompleted());
-                            updatedPayment.setLastCompletedDate(payment.getLastCompletedDate());
-                            updatedPayment.setFromAccountId(getSelectedAccountId(dialogBinding.etFromAccount));
-                            updatedPayment.setToAccountId(getSelectedAccountId(dialogBinding.etToAccount));
-                            
-                            viewModel.update(updatedPayment);
-                            Toast.makeText(requireContext(), "Payment updated", Toast.LENGTH_SHORT).show();
+                            payment.setName(name);
+                            payment.setAmount(amount);
+                            payment.setDueDay(dueDay);
+                            payment.setExpiryDate(expiryDate);
+                            payment.setFromAccountId(getSelectedAccountId(dialogBinding.etFromAccount));
+                            payment.setToAccountId(getSelectedAccountId(dialogBinding.etToAccount));
+                            viewModel.update(payment);
                             dialog.dismiss();
                         } catch (NumberFormatException e) {
                             Toast.makeText(requireContext(), "Invalid amount or due day", Toast.LENGTH_SHORT).show();
@@ -352,43 +409,25 @@ public class RecurringPaymentsFragment extends Fragment {
     }
 
     private void showSelfTransferConfirmation(RecurringPayment payment) {
-        // Validate that both accounts are assigned
-        if (payment.getFromAccountId() == null || payment.getToAccountId() == null) {
-            Toast.makeText(requireContext(),
-                    "Both From Account and To Account must be assigned to perform a self transfer.",
-                    Toast.LENGTH_LONG).show();
+        Long fromId = payment.getFromAccountId();
+        Long toId = payment.getToAccountId();
+
+        if (fromId == null || toId == null) {
+            Toast.makeText(requireContext(), "Both From Account and To Account must be assigned to make a self transfer", Toast.LENGTH_LONG).show();
             return;
         }
 
-        if (payment.getFromAccountId().equals(payment.getToAccountId())) {
-            Toast.makeText(requireContext(),
-                    "From Account and To Account must be different.",
-                    Toast.LENGTH_SHORT).show();
+        if (fromId.equals(toId)) {
+            Toast.makeText(requireContext(), "From Account and To Account cannot be the same", Toast.LENGTH_LONG).show();
             return;
         }
 
-        // Resolve account names
-        String fromAccountName = null;
-        String toAccountName = null;
-        for (Account account : accountsList) {
-            if (account.getId() == payment.getFromAccountId()) {
-                fromAccountName = account.getName();
-            }
-            if (account.getId() == payment.getToAccountId()) {
-                toAccountName = account.getName();
-            }
-        }
-
-        if (fromAccountName == null || toAccountName == null) {
-            Toast.makeText(requireContext(),
-                    "Could not resolve account names. Please re-assign accounts.",
-                    Toast.LENGTH_SHORT).show();
-            return;
-        }
+        String fromName = getAccountName(fromId);
+        String toName = getAccountName(toId);
 
         String message = String.format(Locale.getDefault(),
-                "Transfer ₹%.2f from %s to %s?",
-                payment.getAmount(), fromAccountName, toAccountName);
+                "Transfer ₹%.2f from '%s' to '%s' for '%s'?",
+                payment.getAmount(), fromName, toName, payment.getName());
 
         BaseDialogHelper dialogHelper = new BaseDialogHelper(
                 requireContext(),
@@ -414,36 +453,41 @@ public class RecurringPaymentsFragment extends Fragment {
         dialogHelper.create().show();
     }
 
-    private void performSelfTransfer(RecurringPayment payment) {
-        Date now = new Date();
-        String description = "Self Transfer: " + payment.getName();
+    private String getAccountName(Long accountId) {
+        for (Account account : accountsList) {
+            if (account.getId() == accountId) {
+                return account.getName();
+            }
+        }
+        return "Unknown Account";
+    }
 
-        // Create debit transaction (from account)
-        Transaction debitTransaction = new Transaction(
-            payment.getAmount(),
-            description,
-            now,
-            "DEBIT",
-            "",
-            "",
-            ""
-        );
+    private void performSelfTransfer(RecurringPayment payment) {
+        long fromId = payment.getFromAccountId();
+        long toId = payment.getToAccountId();
+        double amount = payment.getAmount();
+        Date now = new Date();
+
+        // 1. Create DEBIT transaction for From Account (linked to recurring payment)
+        Transaction debitTransaction = new Transaction();
+        debitTransaction.setAmount(amount);
+        debitTransaction.setTransactionType("DEBIT");
         debitTransaction.setCategory("Default");
-        debitTransaction.setAccountId(payment.getFromAccountId());
+        debitTransaction.setDate(now);
+        debitTransaction.setDescription("Self Transfer: " + payment.getName());
+        debitTransaction.setAccountId(fromId);
+        debitTransaction.setExcludedFromSummary(false);
         debitTransaction.setLinkedRecurringPaymentId(payment.getId());
 
-        // Create credit transaction (to account)
-        Transaction creditTransaction = new Transaction(
-            payment.getAmount(),
-            description,
-            now,
-            "CREDIT",
-            "",
-            "",
-            ""
-        );
+        // 2. Create CREDIT transaction for To Account
+        Transaction creditTransaction = new Transaction();
+        creditTransaction.setAmount(amount);
+        creditTransaction.setTransactionType("CREDIT");
         creditTransaction.setCategory("Default");
-        creditTransaction.setAccountId(payment.getToAccountId());
+        creditTransaction.setDate(now);
+        creditTransaction.setDescription("Self Transfer: " + payment.getName());
+        creditTransaction.setAccountId(toId);
+        creditTransaction.setExcludedFromSummary(false);
 
         // Insert both transactions
         transactionViewModel.insertTransaction(debitTransaction);
@@ -483,13 +527,13 @@ public class RecurringPaymentsFragment extends Fragment {
 
     private void toggleSelectAll() {
         isAllSelected = !isAllSelected;
-        adapter.setAllSelected(isAllSelected);
+        externalAdapter.setAllSelected(isAllSelected);
+        internalAdapter.setAllSelected(isAllSelected);
         selectAllTextView.setText(isAllSelected ? "Deselect All" : "Select All");
     }
 
-    private void updateUI() {
-        List<RecurringPayment> payments = viewModel.getRecurringPayments().getValue();
-        if (payments != null) {
+    private void updateSelectAllButtonState(List<RecurringPayment> payments) {
+        if (payments != null && !payments.isEmpty()) {
             boolean allCompleted = true;
             for (RecurringPayment payment : payments) {
                 if (!payment.isCompleted()) {
@@ -499,6 +543,9 @@ public class RecurringPaymentsFragment extends Fragment {
             }
             isAllSelected = allCompleted;
             selectAllTextView.setText(isAllSelected ? "Deselect All" : "Select All");
+        } else {
+            isAllSelected = false;
+            selectAllTextView.setText("Select All");
         }
     }
 }
