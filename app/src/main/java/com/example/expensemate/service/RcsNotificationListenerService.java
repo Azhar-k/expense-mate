@@ -34,8 +34,9 @@ import java.util.concurrent.Executors;
 public class RcsNotificationListenerService extends NotificationListenerService {
     private static final String TAG = "RcsNotifListener";
 
-    // Deduplication: track notification keys already processed this session
+    // Deduplication: track notification keys and content timestamps
     private final Set<String> processedKeys = new HashSet<>();
+    private final java.util.Map<String, Long> processedContentTimes = new java.util.HashMap<>();
 
     private TransactionViewModel transactionViewModel;
     private ExecutorService executorService;
@@ -88,6 +89,16 @@ public class RcsNotificationListenerService extends NotificationListenerService 
                 String title  = getExtra(extras, "android.title");  // e.g. "₹1"
                 String text   = getExtra(extras, "android.text");   // e.g. "•  SBI CARDS  •  Frontparking"
                 long postTime = sbn.getPostTime();
+
+                // Content-based time-window deduplication (ignore identical content within 10s)
+                String contentKey = packageName + "|" + sender + "|" + title + "|" + text;
+                long nowMs = System.currentTimeMillis();
+                Long lastTime = processedContentTimes.get(contentKey);
+                if (lastTime != null && (nowMs - lastTime < 10000)) {
+                    Log.d(TAG, "Already processed identical RCS notification within 10s, skipping: " + contentKey);
+                    return;
+                }
+                processedContentTimes.put(contentKey, nowMs);
 
                 Log.d(TAG, "Truecaller RCS business chat detected");
                 Log.d(TAG, "  Sender  : [" + sender + "]");
@@ -319,6 +330,12 @@ public class RcsNotificationListenerService extends NotificationListenerService 
         transaction.setSmsBody(text);
         transaction.setSmsSender(sender);
         
+        String smsHash = transaction.getSmsHash();
+        if (smsHash != null && transactionViewModel.countTransactionsBySmsHash(smsHash) > 0) {
+            Log.d(TAG, "Duplicate RCS transaction with smsHash=" + smsHash + " already exists in DB, skipping insertion.");
+            return;
+        }
+
         transactionViewModel.insertTransaction(transaction);
         Log.d(TAG, "✓ Transaction inserted directly | Amount=" + amount
                 + " | Merchant=[" + merchant + "] | Sender=[" + sender + "]");

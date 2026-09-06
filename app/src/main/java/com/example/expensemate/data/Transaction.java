@@ -48,7 +48,7 @@ public class Transaction {
         this.smsSender = smsSender;
         this.category = "Default"; // Default category
         this.linkedRecurringPaymentId = null;
-        this.smsHash = generateSmsHash(smsBody, smsSender);
+        this.smsHash = generateSmsHash(smsBody, smsSender, this.date);
         this.isExcludedFromSummary = false; // Default to included
     }
 
@@ -83,6 +83,9 @@ public class Transaction {
 
     public void setDate(Date date) {
         this.date = date != null ? date : new Date();
+        if (this.smsBody != null && this.smsSender != null) {
+            this.smsHash = generateSmsHash(this.smsBody, this.smsSender, this.date);
+        }
     }
 
     public String getTransactionType() {
@@ -107,6 +110,9 @@ public class Transaction {
 
     public void setSmsBody(String smsBody) {
         this.smsBody = smsBody;
+        if (this.smsBody != null && this.smsSender != null) {
+            this.smsHash = generateSmsHash(this.smsBody, this.smsSender, this.date);
+        }
     }
 
     public String getSmsSender() {
@@ -115,6 +121,9 @@ public class Transaction {
 
     public void setSmsSender(String smsSender) {
         this.smsSender = smsSender;
+        if (this.smsBody != null && this.smsSender != null) {
+            this.smsHash = generateSmsHash(this.smsBody, this.smsSender, this.date);
+        }
     }
 
     public String getCategory() {
@@ -157,7 +166,7 @@ public class Transaction {
         isExcludedFromSummary = excludedFromSummary;
     }
 
-    private String generateSmsHash(String smsBody, String smsSender) {
+    private String generateSmsHash(String smsBody, String smsSender, Date date) {
         if (smsBody == null || smsSender == null) {
             Log.d("Transaction", "SMS hash generation failed: null body or sender");
             return null;
@@ -165,12 +174,12 @@ public class Transaction {
         // Normalize the strings by trimming and converting to lowercase
         String normalizedBody = smsBody.trim().toLowerCase();
         String normalizedSender = smsSender.trim().toLowerCase();
-        String combined = normalizedBody + "|" + normalizedSender;
+        String dateStr = "";
+        if (date != null) {
+            dateStr = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm", java.util.Locale.US).format(date);
+        }
+        String combined = normalizedBody + "|" + normalizedSender + "|" + dateStr;
         String hash = String.valueOf(combined.hashCode());
-        Log.d("Transaction", "Generated SMS hash: " + hash);
-        Log.d("Transaction", "Original SMS body: [" + smsBody + "]");
-        Log.d("Transaction", "Original SMS sender: [" + smsSender + "]");
-        Log.d("Transaction", "Normalized combined: [" + combined + "]");
         return hash;
     }
 }
