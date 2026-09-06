@@ -204,6 +204,26 @@
                         android:textStyle="bold"
                         android:textColor="@color/primary"/>
 
+                    <TextView
+                        android:id="@+id/tv_transfer_all_internal"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="TRANSFER ALL"
+                        android:textColor="@color/primary"
+                        android:textSize="13sp"
+                        android:textStyle="bold"
+                        android:layout_marginEnd="4dp"/>
+
+                    <ImageButton
+                        android:id="@+id/btn_transfer_all_internal"
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:contentDescription="Transfer all pending internal payments"
+                        android:padding="8dp"
+                        android:src="@drawable/ic_transfer"
+                        app:tint="@color/primary"/>
+
                 </LinearLayout>
 
                 <LinearLayout

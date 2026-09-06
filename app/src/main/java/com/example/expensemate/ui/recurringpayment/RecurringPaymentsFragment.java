@@ -28,6 +28,7 @@ import com.example.expensemate.viewmodel.RecurringPaymentsViewModel;
 import com.example.expensemate.viewmodel.TransactionViewModel;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -58,6 +59,9 @@ public class RecurringPaymentsFragment extends Fragment {
     private TextView emptyExternalTextView;
     private TextView emptyInternalTextView;
     
+    private ImageButton transferAllInternalButton;
+    private TextView transferAllInternalTextView;
+
     private boolean isAllSelected = false;
     private List<Account> accountsList = new ArrayList<>();
 
@@ -90,6 +94,9 @@ public class RecurringPaymentsFragment extends Fragment {
         internalRemainingTextView = view.findViewById(R.id.tv_internal_remaining_amount);
         emptyInternalTextView = view.findViewById(R.id.tv_empty_internal);
         internalRecyclerView = view.findViewById(R.id.rv_internal_recurring_payments);
+        
+        transferAllInternalButton = view.findViewById(R.id.btn_transfer_all_internal);
+        transferAllInternalTextView = view.findViewById(R.id.tv_transfer_all_internal);
 
         // Setup common click listener
         RecurringPaymentsAdapter.OnPaymentClickListener paymentClickListener = new RecurringPaymentsAdapter.OnPaymentClickListener() {
@@ -128,6 +135,14 @@ public class RecurringPaymentsFragment extends Fragment {
         internalRecyclerView.setAdapter(internalAdapter);
 
         selectAllButton.setOnClickListener(v -> toggleSelectAll());
+
+        View.OnClickListener bulkTransferClickListener = v -> showBulkInternalTransferConfirmation();
+        if (transferAllInternalButton != null) {
+            transferAllInternalButton.setOnClickListener(bulkTransferClickListener);
+        }
+        if (transferAllInternalTextView != null) {
+            transferAllInternalTextView.setOnClickListener(bulkTransferClickListener);
+        }
 
         FloatingActionButton fab = view.findViewById(R.id.fab_add_recurring_payment);
         fab.setOnClickListener(v -> showAddDialog());
@@ -462,7 +477,7 @@ public class RecurringPaymentsFragment extends Fragment {
         return "Unknown Account";
     }
 
-    private void performSelfTransfer(RecurringPayment payment) {
+    private void executeSelfTransfer(RecurringPayment payment) {
         long fromId = payment.getFromAccountId();
         long toId = payment.getToAccountId();
         double amount = payment.getAmount();
@@ -495,8 +510,72 @@ public class RecurringPaymentsFragment extends Fragment {
 
         // Mark the recurring payment as completed
         viewModel.markAsCompleted(payment);
+    }
 
+    private void performSelfTransfer(RecurringPayment payment) {
+        executeSelfTransfer(payment);
         Toast.makeText(requireContext(), "Self transfer completed successfully", Toast.LENGTH_SHORT).show();
+    }
+
+    private void showBulkInternalTransferConfirmation() {
+        List<RecurringPayment> payments = viewModel.getRecurringPayments().getValue();
+        List<RecurringPayment> eligiblePayments = new ArrayList<>();
+        if (payments != null) {
+            Calendar calendar = Calendar.getInstance();
+            Date today = calendar.getTime();
+            for (RecurringPayment p : payments) {
+                boolean isInternal = p.getFromAccountId() != null && p.getToAccountId() != null;
+                boolean isExpired = p.getExpiryDate().before(today);
+                if (isInternal && !p.isCompleted() && !isExpired) {
+                    if (!p.getFromAccountId().equals(p.getToAccountId())) {
+                        eligiblePayments.add(p);
+                    }
+                }
+            }
+        }
+
+        if (eligiblePayments.isEmpty()) {
+            Toast.makeText(requireContext(), "No pending internal recurring payments to transfer", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("The following self transfers will be performed:\n\n");
+        double totalAmount = 0;
+        for (RecurringPayment p : eligiblePayments) {
+            String fromName = getAccountName(p.getFromAccountId());
+            String toName = getAccountName(p.getToAccountId());
+            sb.append(String.format(Locale.getDefault(), "• %s (₹%.2f): %s → %s\n",
+                    p.getName(), p.getAmount(), fromName, toName));
+            totalAmount += p.getAmount();
+        }
+        sb.append(String.format(Locale.getDefault(), "\nTotal Amount: ₹%.2f", totalAmount));
+
+        BaseDialogHelper dialogHelper = new BaseDialogHelper(
+                requireContext(),
+                "Confirm Bulk Self Transfer",
+                null,
+                "Transfer All",
+                "Cancel",
+                new BaseDialogHelper.OnDialogButtonClickListener() {
+                    @Override
+                    public void onPositiveButtonClick(AlertDialog dialog) {
+                        for (RecurringPayment p : eligiblePayments) {
+                            executeSelfTransfer(p);
+                        }
+                        Toast.makeText(requireContext(), eligiblePayments.size() + " self transfers completed successfully", Toast.LENGTH_SHORT).show();
+                        dialog.dismiss();
+                    }
+
+                    @Override
+                    public void onNegativeButtonClick(AlertDialog dialog) {
+                        dialog.dismiss();
+                    }
+                }
+        );
+
+        dialogHelper.setMessage(sb.toString());
+        dialogHelper.create().show();
     }
 
     public void showDeleteConfirmationDialog(RecurringPayment payment) {
