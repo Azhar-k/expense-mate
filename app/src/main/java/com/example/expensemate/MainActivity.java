@@ -29,7 +29,7 @@ import com.example.expensemate.ui.accounts.AccountDetailsFragment;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.navigation.NavigationView;
 import com.example.expensemate.service.SmsMonitorService;
-//import com.example.expensemate.serviceappr.RcsNotificationListenerService;
+import com.example.expensemate.service.RcsNotificationListenerService;
 import android.widget.Toast;
 
 public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
@@ -260,10 +260,9 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
      * Returns true if RcsNotificationListenerService has been granted Notification Access.
      */
     private boolean isNotificationListenerEnabled() {
-//        ComponentName cn = new ComponentName(this, RcsNotificationListenerService.class);
-//        String flat = Settings.Secure.getString(
-//                getContentResolver(), "enabled_notification_listeners");
-//        return flat != null && flat.contains(cn.flattenToString());
-        return true;
+        ComponentName cn = new ComponentName(this, RcsNotificationListenerService.class);
+        String flat = Settings.Secure.getString(
+                getContentResolver(), "enabled_notification_listeners");
+        return flat != null && flat.contains(cn.flattenToString());
     }
 }

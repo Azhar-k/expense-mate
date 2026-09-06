@@ -52,7 +52,6 @@
             </intent-filter>
         </receiver>
 
-<!--
         <service
             android:name=".service.RcsNotificationListenerService"
             android:label="RCS Transaction Listener"
@@ -62,7 +61,6 @@
                 <action android:name="android.service.notification.NotificationListenerService" />
             </intent-filter>
         </service>
--->
 
     </application>
 
