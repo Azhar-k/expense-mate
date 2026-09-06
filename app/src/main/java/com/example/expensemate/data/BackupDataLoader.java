@@ -259,12 +259,12 @@ public class BackupDataLoader {
                         }
                         break;
                     case "From Account ID":
-                        if (!value.equals("null")) {
+                        if (!value.equalsIgnoreCase("null") && !value.isEmpty()) {
                             payment.setFromAccountId(Long.parseLong(value));
                         }
                         break;
                     case "To Account ID":
-                        if (!value.equals("null")) {
+                        if (!value.equalsIgnoreCase("null") && !value.isEmpty()) {
                             payment.setToAccountId(Long.parseLong(value));
                         }
                         break;
