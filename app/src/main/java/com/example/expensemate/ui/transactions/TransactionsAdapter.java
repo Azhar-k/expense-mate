@@ -346,9 +346,9 @@ public class TransactionsAdapter extends ListAdapter<Transaction, TransactionsAd
                 binding.btnViewDescription.setVisibility(View.GONE);
             }
             
-            binding.tvTransactionType.setText(String.format("Type: %s", transaction.getTransactionType()));
-            String label = transaction.getTransactionType().equals("CREDIT") ? "Sender" : "Receiver";
-            binding.tvReceiver.setText(String.format("%s: %s", label, transaction.getReceiverName()));
+            binding.tvTransactionType.setText(String.format("Type: %s", transaction.getTransactionType() != null ? transaction.getTransactionType() : "DEBIT"));
+            String label = "CREDIT".equalsIgnoreCase(transaction.getTransactionType()) ? "Sender" : "Receiver";
+            binding.tvReceiver.setText(String.format("%s: %s", label, transaction.getReceiverName() != null ? transaction.getReceiverName() : ""));
 
             // Show account information
             if (transaction.getAccountId() != null) {
@@ -698,11 +698,14 @@ public class TransactionsAdapter extends ListAdapter<Transaction, TransactionsAd
         @Override
         public boolean areContentsTheSame(@NonNull Transaction oldItem, @NonNull Transaction newItem) {
             return oldItem.getAmount() == newItem.getAmount() &&
-                   oldItem.getDescription().equals(newItem.getDescription()) &&
-                   oldItem.getDate().equals(newItem.getDate()) &&
-                   oldItem.getReceiverName().equals(newItem.getReceiverName()) &&
-                   oldItem.getCategory().equals(newItem.getCategory()) &&
-                   oldItem.getTransactionType().equals(newItem.getTransactionType());
+                   java.util.Objects.equals(oldItem.getDescription(), newItem.getDescription()) &&
+                   java.util.Objects.equals(oldItem.getDate(), newItem.getDate()) &&
+                   java.util.Objects.equals(oldItem.getReceiverName(), newItem.getReceiverName()) &&
+                   java.util.Objects.equals(oldItem.getCategory(), newItem.getCategory()) &&
+                   java.util.Objects.equals(oldItem.getTransactionType(), newItem.getTransactionType()) &&
+                   java.util.Objects.equals(oldItem.getAccountId(), newItem.getAccountId()) &&
+                   java.util.Objects.equals(oldItem.getLinkedRecurringPaymentId(), newItem.getLinkedRecurringPaymentId()) &&
+                   oldItem.isExcludedFromSummary() == newItem.isExcludedFromSummary();
         }
     }
 } 

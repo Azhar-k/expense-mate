@@ -56,6 +56,16 @@
                 android:padding="12dp"
                 android:src="@drawable/ic_delete"
                 app:tint="@color/black" />
+
+            <ImageButton
+                android:id="@+id/btn_self_transfer"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="Self transfer"
+                android:padding="12dp"
+                android:src="@drawable/ic_transfer"
+                app:tint="@color/black" />
         </LinearLayout>
 
         <TextView
@@ -65,6 +75,15 @@
             android:layout_marginTop="8dp"
             android:textSize="16sp"
             android:textColor="@color/debit_color"/>
+
+        <TextView
+            android:id="@+id/payment_accounts"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:textSize="13sp"
+            android:textColor="@color/secondary_text"
+            android:visibility="gone"/>
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -119,4 +138,5 @@
             android:visibility="gone"/>
 
     </LinearLayout>
-</com.google.android.material.card.MaterialCardView> 
+</com.google.android.material.card.MaterialCardView>
+ 
