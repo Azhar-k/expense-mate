@@ -24,6 +24,8 @@ import androidx.core.app.NotificationCompat;
 
 import com.example.expensemate.MainActivity;
 import com.example.expensemate.R;
+import com.example.expensemate.data.TransactionKeys;
+import com.example.expensemate.util.MmsReader;
 import com.example.expensemate.util.SmsTransactionHandler;
 import com.example.expensemate.viewmodel.TransactionViewModel;
 
@@ -37,6 +39,7 @@ public class SmsMonitorService extends Service {
     private static final String CHANNEL_ID = "SmsMonitorChannel";
     private static final String PREFS_NAME = "SmsMonitorPrefs";
     private static final String PREF_LAST_MMS_ID = "lastMmsId";
+    private static final String PREF_LAST_SMS_TIME = "lastSmsTime";
 
     private SmsReceiver smsReceiver;
     private MmsContentObserver mmsObserver;
@@ -44,6 +47,7 @@ public class SmsMonitorService extends Service {
     private ExecutorService executorService;
     private boolean isReceiverRegistered = false;
     private boolean isObserverRegistered = false;
+    private boolean hasCaughtUp = false;
     private SharedPreferences prefs;
 
     @Override
@@ -80,6 +84,15 @@ public class SmsMonitorService extends Service {
             registerReceiver(smsReceiver, filter);
             isReceiverRegistered = true;
             Log.d(TAG, "SMS receiver registered");
+        }
+
+        // Pick up whatever arrived while the service was not running
+        if (!hasCaughtUp) {
+            hasCaughtUp = true;
+            executorService.execute(() -> {
+                catchUpOnSms();
+                processNewMmsRows();
+            });
         }
 
         return START_STICKY;
@@ -153,8 +166,41 @@ public class SmsMonitorService extends Service {
     private void processSms(String smsBody, String sender) {
         executorService.execute(() -> {
             Log.d(TAG, "Processing SMS automatically: " + smsBody);
-            SmsTransactionHandler.handleSms(smsBody, sender, transactionViewModel, null);
+            SmsTransactionHandler.handleSms(smsBody, sender, transactionViewModel, null,
+                    TransactionKeys.SOURCE_SMS_BROADCAST);
+            prefs.edit().putLong(PREF_LAST_SMS_TIME, System.currentTimeMillis()).apply();
         });
+    }
+
+    /**
+     * Processes inbox SMS newer than the last one seen. The first run only records the
+     * current time, so older messages stay with the manual scan.
+     */
+    private void catchUpOnSms() {
+        long now = System.currentTimeMillis();
+        long lastSmsTime = prefs.getLong(PREF_LAST_SMS_TIME, -1);
+        if (lastSmsTime < 0) {
+            prefs.edit().putLong(PREF_LAST_SMS_TIME, now).apply();
+            return;
+        }
+
+        try (Cursor cursor = getContentResolver().query(
+                Telephony.Sms.CONTENT_URI,
+                new String[] { Telephony.Sms.ADDRESS, Telephony.Sms.BODY, Telephony.Sms.DATE },
+                Telephony.Sms.TYPE + " = ? AND " + Telephony.Sms.DATE + " > ?",
+                new String[] { String.valueOf(Telephony.Sms.MESSAGE_TYPE_INBOX), String.valueOf(lastSmsTime) },
+                Telephony.Sms.DATE + " ASC")) {
+            if (cursor != null) {
+                Log.d(TAG, "SMS to catch up on: " + cursor.getCount());
+                while (cursor.moveToNext()) {
+                    SmsTransactionHandler.handleSms(cursor.getString(1), cursor.getString(0), transactionViewModel,
+                            new Date(cursor.getLong(2)), TransactionKeys.SOURCE_SMS_SCAN);
+                }
+            }
+            prefs.edit().putLong(PREF_LAST_SMS_TIME, now).apply();
+        } catch (Exception e) {
+            Log.e(TAG, "Error catching up on SMS: " + e.getMessage(), e);
+        }
     }
 
     /**
@@ -169,128 +215,49 @@ public class SmsMonitorService extends Service {
         public void onChange(boolean selfChange, Uri uri) {
             super.onChange(selfChange, uri);
             Log.d(TAG, "MMS content changed: " + uri);
-
-            executorService.execute(() -> {
-                try {
-                    // Get the last processed MMS ID
-                    long lastMmsId = prefs.getLong(PREF_LAST_MMS_ID, -1);
-
-                    // Query for the latest RCS message
-                    ContentResolver resolver = getContentResolver();
-                    Uri mmsUri = Uri.parse("content://mms");
-
-                    Cursor cursor = resolver.query(
-                            mmsUri,
-                            new String[] { "_id", "date", "thread_id", "m_type" },
-                            "m_type = ? AND msg_box = ?",
-                            new String[] { "132", "1" }, // RCS inbox messages
-                            "_id DESC LIMIT 1");
-
-                    if (cursor != null) {
-                        try {
-                            if (cursor.moveToFirst()) {
-                                long mmsId = cursor.getLong(cursor.getColumnIndexOrThrow("_id"));
-
-                                // Only process if this is a new message
-                                if (mmsId > lastMmsId) {
-                                    long mmsDate = cursor.getLong(cursor.getColumnIndexOrThrow("date"));
-                                    long threadId = cursor.getLong(cursor.getColumnIndexOrThrow("thread_id"));
-
-                                    Log.d(TAG, "New RCS message detected: ID=" + mmsId);
-
-                                    // Get message content and sender
-                                    String messageBody = getMmsText(resolver, mmsId);
-                                    String sender = getThreadAddress(resolver, threadId);
-
-                                    if (messageBody != null && !messageBody.isEmpty()) {
-                                        processRcsMessage(messageBody, sender, new Date(mmsDate * 1000));
-
-                                        // Update last processed ID
-                                        prefs.edit().putLong(PREF_LAST_MMS_ID, mmsId).apply();
-                                    }
-                                }
-                            }
-                        } finally {
-                            cursor.close();
-                        }
-                    }
-                } catch (Exception e) {
-                    Log.e(TAG, "Error processing MMS change: " + e.getMessage(), e);
-                }
-            });
+            executorService.execute(SmsMonitorService.this::processNewMmsRows);
         }
     }
 
     /**
-     * Extract text content from an MMS message
+     * Processes every RCS inbox row newer than the last one handled. The first run only
+     * records the newest ID, so older messages stay with the manual scan.
      */
-    private String getMmsText(ContentResolver resolver, long mmsId) {
-        Uri partUri = Uri.parse("content://mms/part");
-        Cursor cursor = null;
-        StringBuilder body = new StringBuilder();
+    private void processNewMmsRows() {
+        ContentResolver resolver = getContentResolver();
+        long lastMmsId = prefs.getLong(PREF_LAST_MMS_ID, -1);
 
-        try {
-            cursor = resolver.query(
-                    partUri,
-                    new String[] { "text", "ct" },
-                    "mid = ?",
-                    new String[] { String.valueOf(mmsId) },
-                    null);
-
-            if (cursor != null) {
-                while (cursor.moveToNext()) {
-                    String contentType = cursor.getString(cursor.getColumnIndexOrThrow("ct"));
-                    if ("text/plain".equals(contentType)) {
-                        String text = cursor.getString(cursor.getColumnIndexOrThrow("text"));
-                        if (text != null) {
-                            if (body.length() > 0)
-                                body.append(" ");
-                            body.append(text);
-                        }
-                    }
+        try (Cursor cursor = resolver.query(
+                Uri.parse("content://mms"),
+                new String[] { "_id", "date" },
+                "m_type = ? AND msg_box = ? AND _id > ?",
+                new String[] { "132", "1", String.valueOf(lastMmsId) }, // RCS inbox messages
+                "_id ASC")) {
+            if (cursor == null) {
+                return;
+            }
+            if (lastMmsId < 0) {
+                if (cursor.moveToLast()) {
+                    prefs.edit().putLong(PREF_LAST_MMS_ID, cursor.getLong(0)).apply();
                 }
+                return;
+            }
+            while (cursor.moveToNext()) {
+                long mmsId = cursor.getLong(0);
+                // The parts are written after the row; the next change event retries from here.
+                if (!MmsReader.hasParts(resolver, mmsId)) {
+                    return;
+                }
+                String messageBody = MmsReader.getText(resolver, mmsId);
+                if (!messageBody.isEmpty()) {
+                    processRcsMessage(messageBody, MmsReader.getSender(resolver, mmsId),
+                            new Date(cursor.getLong(1) * 1000));
+                }
+                prefs.edit().putLong(PREF_LAST_MMS_ID, mmsId).apply();
             }
         } catch (Exception e) {
-            Log.e(TAG, "Error getting MMS text: " + e.getMessage());
-        } finally {
-            if (cursor != null)
-                cursor.close();
+            Log.e(TAG, "Error processing MMS change: " + e.getMessage(), e);
         }
-
-        return body.toString();
-    }
-
-    /**
-     * Get sender address from thread ID
-     */
-    private String getThreadAddress(ContentResolver resolver, long threadId) {
-        String address = "";
-        Cursor cursor = null;
-
-        try {
-            // Try SMS table first
-            Uri smsUri = Uri.parse("content://sms");
-            cursor = resolver.query(
-                    smsUri,
-                    new String[] { "address" },
-                    "thread_id = ?",
-                    new String[] { String.valueOf(threadId) },
-                    "_id DESC LIMIT 1");
-
-            if (cursor != null && cursor.moveToFirst()) {
-                int addressIndex = cursor.getColumnIndex("address");
-                if (addressIndex >= 0) {
-                    address = cursor.getString(addressIndex);
-                }
-            }
-        } catch (Exception e) {
-            Log.d(TAG, "Could not get address: " + e.getMessage());
-        } finally {
-            if (cursor != null)
-                cursor.close();
-        }
-
-        return address != null ? address : "";
     }
 
     /**
@@ -299,7 +266,7 @@ public class SmsMonitorService extends Service {
     private void processRcsMessage(String messageBody, String sender, Date date) {
         Log.d(TAG, "Processing RCS message automatically from: " + sender);
         SmsTransactionHandler.TransactionResult result = SmsTransactionHandler.handleSms(messageBody, sender,
-                transactionViewModel, date);
+                transactionViewModel, date, TransactionKeys.SOURCE_MMS_OBSERVER);
 
         if (result.success) {
             Log.d(TAG, "RCS transaction created successfully");

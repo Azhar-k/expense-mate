@@ -1,6 +1,7 @@
 package com.example.expensemate.data;
 
 import android.content.Context;
+import android.database.Cursor;
 import android.util.Log;
 
 import androidx.room.Database;
@@ -17,7 +18,7 @@ import java.util.List;
 
 import androidx.annotation.NonNull;
 
-@Database(entities = {Transaction.class, Category.class, RecurringPayment.class, Account.class}, version = 6, exportSchema = false)
+@Database(entities = {Transaction.class, Category.class, RecurringPayment.class, Account.class}, version = 7, exportSchema = false)
 @TypeConverters(Converters.class)
 public abstract class AppDatabase extends RoomDatabase {
     private static volatile AppDatabase INSTANCE;
@@ -159,6 +160,43 @@ public abstract class AppDatabase extends RoomDatabase {
         }
     };
 
+    static final Migration MIGRATION_6_7 = new Migration(6, 7) {
+        @Override
+        public void migrate(SupportSQLiteDatabase database) {
+            // Add the columns used to recognise one payment across entry paths
+            database.execSQL("ALTER TABLE transactions ADD COLUMN dedupKey TEXT");
+            database.execSQL("ALTER TABLE transactions ADD COLUMN matchKey TEXT");
+            database.execSQL("ALTER TABLE transactions ADD COLUMN messageTime INTEGER");
+            database.execSQL("ALTER TABLE transactions ADD COLUMN source TEXT");
+
+            try (Cursor cursor = database.query("SELECT id, amount, date, description, transactionType, "
+                    + "receiverName, smsBody FROM transactions")) {
+                while (cursor.moveToNext()) {
+                    Transaction row = new Transaction();
+                    row.setAmount(cursor.getDouble(1));
+                    row.setDate(cursor.isNull(2) ? null : new Date(cursor.getLong(2)));
+                    row.setDescription(cursor.getString(3));
+                    row.setTransactionType(cursor.getString(4));
+                    row.setReceiverName(cursor.getString(5));
+                    row.setSmsBody(cursor.getString(6));
+                    if (row.getSmsBody() == null) {
+                        continue;
+                    }
+                    TransactionKeys.fillLegacyKeys(row);
+                    database.execSQL(
+                            "UPDATE transactions SET dedupKey = ?, matchKey = ?, messageTime = ?, source = ? WHERE id = ?",
+                            new Object[] { row.getDedupKey(), row.getMatchKey(), row.getMessageTime(),
+                                    row.getSource(), cursor.getLong(0) });
+                }
+            }
+
+            database.execSQL("CREATE INDEX IF NOT EXISTS `index_transactions_dedupKey_messageTime` "
+                    + "ON `transactions` (`dedupKey`, `messageTime`)");
+            database.execSQL("CREATE INDEX IF NOT EXISTS `index_transactions_matchKey_messageTime` "
+                    + "ON `transactions` (`matchKey`, `messageTime`)");
+        }
+    };
+
     public abstract TransactionDao transactionDao();
     public abstract CategoryDao categoryDao();
     public abstract RecurringPaymentDao recurringPaymentDao();
@@ -196,7 +234,7 @@ public abstract class AppDatabase extends RoomDatabase {
                 if (INSTANCE == null) {
                     INSTANCE = Room.databaseBuilder(context.getApplicationContext(),
                             AppDatabase.class, "expense_mate_database")
-                            .addMigrations(INITIAL_MIGRATION, MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
+                            .addMigrations(INITIAL_MIGRATION, MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
                             .fallbackToDestructiveMigration()
                             .addCallback(new RoomDatabase.Callback() {
                                 @Override

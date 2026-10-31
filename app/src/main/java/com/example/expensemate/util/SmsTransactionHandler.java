@@ -2,8 +2,10 @@ package com.example.expensemate.util;
 
 import android.util.Log;
 import com.example.expensemate.data.Transaction;
+import com.example.expensemate.data.TransactionKeys;
 import com.example.expensemate.viewmodel.TransactionViewModel;
 import java.util.Date;
+import java.util.Locale;
 import java.util.regex.Pattern;
 
 public class SmsTransactionHandler {
@@ -80,7 +82,7 @@ public class SmsTransactionHandler {
 
     // Pattern for Pluxee (Meal Card) credit format
     private static final Pattern PLUXEE_CREDIT_PATTERN = Pattern.compile(
-            "Your Pluxee Card (?:xx\\d+)? has been (?:successfully )?credited with (?:Rs\\.?|INR) (\\d+(?:\\.\\d{2})?) (?:towards\\s+Meal Wallet|as a reversal against a previous transaction) on (?:[A-Za-z]{3} )?(\\d{2} [A-Za-z]{3} \\d{4} \\d{2}:\\d{2}:\\d{2})(?:as a reversal against a previous transaction on [A-Za-z]{3} \\d{2},\\d{4} \\d{2}:\\d{2}:\\d{2})?\\.(?: Your current Meal Wallet balance is Rs\\.(\\d+(?:\\.\\d{2})?)\\.)?");
+            "Your Pluxee Card(?: xx\\d+)? has been (?:successfully )?credited with (?:Rs\\.?|INR) ?(\\d+(?:\\.\\d{2})?) (?:towards\\s+Meal Wallet|as a reversal against a previous transaction) on (?:[A-Za-z]{3} )?((?:\\d{2} [A-Za-z]{3}|[A-Za-z]{3} \\d{2}) \\d{4} \\d{2}:\\d{2}:\\d{2})(?:as a reversal against a previous transaction on [A-Za-z]{3} \\d{2},\\d{4} \\d{2}:\\d{2}:\\d{2})?\\.(?: Your current Meal Wallet balance is Rs\\.(\\d+(?:\\.\\d{2})?)\\.)?");
 
     private static final Pattern UPI_DEBIT_PATTERN = Pattern.compile(
             "(?i)(?:debited\\s+(?:for|Rs\\.?|INR)?\\s*)([\\d,]+\\.\\d{2}).*?;\\s*([A-Z][A-Za-z\\s\\.\\-]+)\\s+credited");
@@ -92,26 +94,39 @@ public class SmsTransactionHandler {
             "(?i)Account\\s+\\w+\\s+credited:Rs\\.\\s*([\\d,]+\\.\\d{2}).*?NEFT[-]?([A-Z0-9]+)");
 
     private static final Pattern CREDIT_CARD_SPEND_PATTERN = Pattern.compile(
-            "(?i)Rs\\.?\\s*(\\d{1,3}(?:,\\d{3})*(?:\\.\\d{2})?)\\s+spent\\s+on\\s+(?:your\\s+)?(?:[A-Z]+\\s+)?(?:Credit\\s+)?Card(?:\\s+ending\\s+with\\s+\\d{4}|\\s+XX\\d{4})?.*?at\\s+([A-Z0-9@&\\-\\s\\.]+?)\\s+(?:on\\s+\\d{2}-\\d{2}-\\d{2}|via|Ref|\\.|$)");
+            "(?i)Rs\\.?\\s*(\\d+(?:,\\d+)*(?:\\.\\d{2})?)\\s+spent\\s+on\\s+(?:your\\s+)?(?:[A-Z]+\\s+)?(?:Credit\\s+)?Card(?:\\s+ending\\s+with\\s+\\d{4}|\\s+XX\\d{4})?.*?at\\s+([A-Z0-9@&\\-\\s\\.]+?)\\s+(?:on\\s+\\d{2}-\\d{2}-\\d{2}|via|Ref|\\.|$)");
 
     private static final Pattern ICICI_CARD_SPEND_PATTERN = Pattern.compile(
-            "Rs\\.?\\s*(\\d{1,3}(?:,\\d{3})*(?:\\.\\d{2})?)\\s+spent on ICICI Bank Card XX\\d{4} on (\\d{2}-[A-Za-z]{3}-\\d{2}) at ([A-Z0-9\\s\\.\\-&]+)");
+            "Rs\\.?\\s*(\\d+(?:,\\d+)*(?:\\.\\d{2})?)\\s+spent on ICICI Bank Card XX\\d{4} on (\\d{2}-[A-Za-z]{3}-\\d{2}) at ([^.]+)");
 
     private static final Pattern ICICI_CARD_SPEND_NEW_PATTERN = Pattern.compile(
             "(?:Rs\\.?|INR)\\s*" +
-                    "(\\d{1,3}(?:,\\d{3})*(?:\\.\\d{2})?)\\s+" +
+                    "(\\d+(?:,\\d+)*(?:\\.\\d{2})?)\\s+" +
                     "spent\\s+using\\s+ICICI\\s+Bank\\s+Card\\s+XX(\\d{4})\\s+" +
                     "on\\s+(\\d{2}-[A-Za-z]{3}-\\d{2})\\s+" +
                     "on\\s+([^\\.]+)",
             Pattern.CASE_INSENSITIVE);
     private static final Pattern ICICI_ALT_DEBIT_PATTERN = Pattern.compile(
-            "Rs\\.?\\s*(\\d{1,3}(?:,\\d{3})*(?:\\.\\d{2}))\\s+debited from ICICI Bank Acc XX\\d+ on (\\d{2}-[A-Za-z]{3}-\\d{2})\\s+([A-Z0-9\\*\\s\\.]+)\\s+Bal");
+            "Rs\\.?\\s*(\\d+(?:,\\d+)*(?:\\.\\d{2}))\\s+debited from ICICI Bank Acc XX\\d+ on (\\d{2}-[A-Za-z]{3}-\\d{2})\\s+([A-Z0-9\\*\\s\\.]+)\\s+Bal");
 
     private static final Pattern NEFT_CREDIT_BY_PATTERN = Pattern.compile(
-            "(?:INR|Rs\\.?)[ ]?(\\d{1,3}(?:,\\d{3})*(?:\\.\\d{2}))\\s+credited to your A/c No XX\\d+ on \\d{2}/\\d{2}/\\d{4}.*?by ([A-Z][A-Za-z\\s\\.]+)");
+            "(?:INR|Rs\\.?)[ ]?(\\d+(?:,\\d+)*(?:\\.\\d{2}))\\s+credited to your A/c No XX\\d+ on \\d{2}/\\d{2}/\\d{4}.*?by ([A-Z][A-Za-z\\s\\.]+)");
 
     private static final Pattern ICICI_INFOBIL_NEFT_DEBIT_PATTERN = Pattern.compile(
-            "ICICI Bank Acc XX\\d+ debited Rs\\.?\\s*(\\d{1,3}(?:,\\d{3})*(?:\\.\\d{2})) on (\\d{2}-[A-Za-z]{3}-\\d{2}) InfoBIL\\*NEFT\\*([A-Z0-9\\.]+)");
+            "ICICI Bank Acc XX\\d+ debited Rs\\.?\\s*(\\d+(?:,\\d+)*(?:\\.\\d{2})) on (\\d{2}-[A-Za-z]{3}-\\d{2}) InfoBIL\\*(?:NEFT|INFT)\\*([A-Z0-9]+)");
+
+    private static final Pattern HDFC_CARD_SPEND_PATTERN = Pattern.compile(
+            "(?i)Spent\\s+(?:Rs\\.?|INR)\\s*(\\d+(?:,\\d+)*(?:\\.\\d{1,2})?)\\s+On\\s+HDFC Bank Card\\s+\\d+\\s+At\\s+(.+?)\\s+On\\s+\\d{4}-\\d{2}-\\d{2}");
+
+    private static final Pattern SBI_ACCOUNT_DEBIT_PATTERN = Pattern.compile(
+            "(?i)Your A/C X+\\d+ Debited INR (\\d+(?:,\\d+)*(?:\\.\\d{1,2})?) on \\d{2}/\\d{2}/\\d{2}\\s*-?\\s*(?:Transferred to\\s+)?(.+?)\\.\\s*Avl");
+
+    private static final Pattern CANARA_CREDIT_PATTERN = Pattern.compile(
+            "(?i)Your a/c X+\\d+ CREDITED with (?:INR|Rs\\.?)\\s*(\\d+(?:,\\d+)*(?:\\.\\d{1,2})?) on \\d{2}/\\d{2}/\\d{4}.*Canara Bank");
+
+    // Banks send a second message for the same card payment, which stays unparsed on purpose.
+    private static final Pattern CARD_PAYMENT_RECEIVED_PATTERN = Pattern.compile(
+            "(?i)Payment of\\s+(?:Rs\\.?|INR)\\s*(\\d+(?:,\\d+)*(?:\\.\\d{1,2})?)\\s+(?:RECEIVED TOWARDS YOUR CREDIT CARD ENDING WITH \\d+|has been received on your ICICI Bank Credit Card)");
 
     /**
      * Extracts transaction details from SMS
@@ -120,7 +135,7 @@ public class SmsTransactionHandler {
      * @param sender  The SMS sender
      * @return Transaction object if extraction was successful, null otherwise
      */
-    private static Transaction extractTransactionDetails(String smsBody, String sender) {
+    static Transaction extractTransactionDetails(String smsBody, String sender) {
         try {
             Log.d(TAG, "Extracting transaction details from SMS");
 
@@ -219,6 +234,71 @@ public class SmsTransactionHandler {
                         merchantName,
                         smsBody,
                         sender);
+            }
+
+            var hdfcCardMatcher = HDFC_CARD_SPEND_PATTERN.matcher(smsBody);
+            if (hdfcCardMatcher.find()) {
+                double amount = Double.parseDouble(hdfcCardMatcher.group(1).replace(",", ""));
+                String merchant = hdfcCardMatcher.group(2).trim();
+                Log.d(TAG, "Found HDFC card spend: " + amount + " at " + merchant);
+
+                return new Transaction(
+                        amount,
+                        smsBody,
+                        new Date(),
+                        "DEBIT",
+                        merchant,
+                        smsBody,
+                        sender);
+            }
+
+            var sbiAccountMatcher = SBI_ACCOUNT_DEBIT_PATTERN.matcher(smsBody);
+            if (sbiAccountMatcher.find()) {
+                double amount = Double.parseDouble(sbiAccountMatcher.group(1).replace(",", ""));
+                String receiverName = sbiAccountMatcher.group(2).trim();
+                Log.d(TAG, "Found SBI account debit: " + amount + " to " + receiverName);
+
+                return new Transaction(
+                        amount,
+                        smsBody,
+                        new Date(),
+                        "DEBIT",
+                        receiverName,
+                        smsBody,
+                        sender);
+            }
+
+            var canaraCreditMatcher = CANARA_CREDIT_PATTERN.matcher(smsBody);
+            if (canaraCreditMatcher.find()) {
+                double amount = Double.parseDouble(canaraCreditMatcher.group(1).replace(",", ""));
+                Log.d(TAG, "Found Canara Bank credit: " + amount);
+
+                return new Transaction(
+                        amount,
+                        smsBody,
+                        new Date(),
+                        "CREDIT",
+                        "Canara Bank",
+                        smsBody,
+                        sender);
+            }
+
+            var cardPaymentMatcher = CARD_PAYMENT_RECEIVED_PATTERN.matcher(smsBody);
+            if (cardPaymentMatcher.find()) {
+                double amount = Double.parseDouble(cardPaymentMatcher.group(1).replace(",", ""));
+                Log.d(TAG, "Found credit card payment received: " + amount);
+
+                Transaction transaction = new Transaction(
+                        amount,
+                        smsBody,
+                        new Date(),
+                        "CREDIT",
+                        "Credit card payment",
+                        smsBody,
+                        sender);
+                // The bank account debit already records this money, so it is not income.
+                transaction.setExcludedFromSummary(true);
+                return transaction;
             }
 
             // Try general patterns as fallback
@@ -478,18 +558,19 @@ public class SmsTransactionHandler {
     }
 
     /**
-     * Extracts transaction details from SMS and processes it if valid
-     * 
+     * Extracts transaction details from a message and saves them unless already recorded
+     *
      * @param smsBody   The SMS message body
      * @param sender    The SMS sender
      * @param viewModel The TransactionViewModel to use for database operations
      * @param date      Optional date to set for the transaction (null for current
      *                  date)
+     * @param source    The entry path, one of the TransactionKeys.SOURCE_ values
      * @return TransactionResult containing the result of processing
      */
     public static TransactionResult handleSms(String smsBody, String sender, TransactionViewModel viewModel,
-            Date date) {
-        Log.d(TAG, "Processing SMS from: " + sender);
+            Date date, String source) {
+        Log.d(TAG, "Processing SMS from: " + sender + " via " + source);
         Log.d(TAG, "SMS body length: " + (smsBody != null ? smsBody.length() : 0));
         Log.d(TAG, "Full SMS body: [" + smsBody + "]");
 
@@ -505,9 +586,13 @@ public class SmsTransactionHandler {
                         + (transaction.getSmsBody() != null ? transaction.getSmsBody().length() : 0));
                 Log.d(TAG, "Transaction SMS body: [" + transaction.getSmsBody() + "]");
 
-                if (processTransaction(transaction, viewModel)) {
+                applyKeys(transaction, source);
+                transaction.setDedupKey(TransactionKeys.bodyKey(smsBody));
+
+                if (viewModel.insertIfNew(transaction)) {
                     return TransactionResult.success(transaction);
                 } else {
+                    Log.d(TAG, "Duplicate transaction detected, skipping insertion");
                     return TransactionResult.duplicateTransaction();
                 }
             } else {
@@ -521,36 +606,38 @@ public class SmsTransactionHandler {
     }
 
     /**
-     * Processes a transaction by checking for duplicates and inserting into
-     * database
-     * 
-     * @param transaction The transaction to process
-     * @param viewModel   The TransactionViewModel to use for database operations
-     * @return true if transaction was successfully processed, false otherwise
+     * Saves a Truecaller business chat alert, which only gives the amount and merchant.
+     * The alert does not say whether money came in or went out, so it is recorded as a
+     * debit. That is right for SBI card spends; anything else is labelled for review.
      */
-    private static boolean processTransaction(Transaction transaction, TransactionViewModel viewModel) {
-        if (transaction == null) {
-            Log.d(TAG, "No transaction to process");
-            return false;
-        }
+    public static TransactionResult handleTruecallerAlert(double amount, String merchant, String alertText,
+            String sender, TransactionViewModel viewModel, Date date) {
+        try {
+            boolean sbiCard = sender.toUpperCase(Locale.ROOT).contains("SBI");
+            Transaction transaction = new Transaction(
+                    amount,
+                    (sbiCard ? "RCS: " : "RCS (check type): ") + merchant,
+                    date,
+                    "DEBIT",
+                    merchant,
+                    alertText,
+                    sender);
+            applyKeys(transaction, TransactionKeys.SOURCE_TRUECALLER);
 
-        String smsHash = transaction.getSmsHash();
-        Log.d(TAG, "Checking for duplicate transaction with hash: " + smsHash);
-
-        if (smsHash != null) {
-            int existingCount = viewModel.countTransactionsBySmsHash(smsHash);
-            Log.d(TAG, "Found " + existingCount + " existing transactions with same hash");
-
-            if (existingCount > 0) {
-                Log.d(TAG, "Duplicate transaction detected, skipping insertion");
-                return false;
+            if (viewModel.insertIfNew(transaction)) {
+                return TransactionResult.success(transaction);
             }
-        } else {
-            Log.d(TAG, "No SMS hash generated for transaction");
+            return TransactionResult.duplicateTransaction();
+        } catch (Exception e) {
+            Log.e(TAG, "Error processing Truecaller alert: " + e.getMessage(), e);
+            return TransactionResult.error("Error processing Truecaller alert: " + e.getMessage());
         }
+    }
 
-        viewModel.insertTransaction(transaction);
-        Log.d(TAG, "Transaction inserted via ViewModel");
-        return true;
+    private static void applyKeys(Transaction transaction, String source) {
+        transaction.setSource(source);
+        transaction.setMessageTime(transaction.getDate().getTime());
+        transaction.setMatchKey(TransactionKeys.matchKey(transaction.getAmount(),
+                transaction.getTransactionType(), transaction.getReceiverName()));
     }
 }

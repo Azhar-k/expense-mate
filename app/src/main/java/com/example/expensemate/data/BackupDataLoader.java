@@ -177,6 +177,7 @@ public class BackupDataLoader {
                 if (transaction.getDescription() == null) {
                     transaction.setDescription("");
                 }
+                TransactionKeys.fillLegacyKeys(transaction);
                 database.transactionDao().insertTransaction(transaction);
             }
         } catch (ParseException e) {

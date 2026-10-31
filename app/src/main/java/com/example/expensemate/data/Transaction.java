@@ -1,13 +1,17 @@
 package com.example.expensemate.data;
 
 import androidx.room.Entity;
+import androidx.room.Index;
 import androidx.room.PrimaryKey;
 import androidx.room.TypeConverters;
 import androidx.room.Ignore;
 import java.util.Date;
 import android.util.Log;
 
-@Entity(tableName = "transactions")
+@Entity(tableName = "transactions", indices = {
+        @Index(value = {"dedupKey", "messageTime"}),
+        @Index(value = {"matchKey", "messageTime"})
+})
 public class Transaction {
     @PrimaryKey(autoGenerate = true)
     private long id;
@@ -25,6 +29,10 @@ public class Transaction {
     private String smsHash; // Hash of SMS body and sender for duplicate detection
     private Long accountId; // ID of the linked account
     private boolean isExcludedFromSummary; // Whether this transaction should be excluded from summary calculations
+    private String dedupKey; // Hash of the normalized message text, null for manual entries
+    private String matchKey; // Amount, type and merchant, for alerts that have no full text
+    private Long messageTime; // When the message arrived; date can be edited, this cannot
+    private String source; // Entry path that created the row, see TransactionKeys
 
     public Transaction() {
         this.category = "Default"; // Default category
@@ -164,6 +172,38 @@ public class Transaction {
 
     public void setExcludedFromSummary(boolean excludedFromSummary) {
         isExcludedFromSummary = excludedFromSummary;
+    }
+
+    public String getDedupKey() {
+        return dedupKey;
+    }
+
+    public void setDedupKey(String dedupKey) {
+        this.dedupKey = dedupKey;
+    }
+
+    public String getMatchKey() {
+        return matchKey;
+    }
+
+    public void setMatchKey(String matchKey) {
+        this.matchKey = matchKey;
+    }
+
+    public Long getMessageTime() {
+        return messageTime;
+    }
+
+    public void setMessageTime(Long messageTime) {
+        this.messageTime = messageTime;
+    }
+
+    public String getSource() {
+        return source;
+    }
+
+    public void setSource(String source) {
+        this.source = source;
     }
 
     private String generateSmsHash(String smsBody, String smsSender, Date date) {

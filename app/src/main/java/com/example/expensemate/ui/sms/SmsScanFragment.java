@@ -17,7 +17,9 @@ import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import com.example.expensemate.R;
+import com.example.expensemate.data.TransactionKeys;
 import com.example.expensemate.databinding.FragmentSmsScanBinding;
+import com.example.expensemate.util.MmsReader;
 import com.example.expensemate.util.SmsTransactionHandler;
 import com.example.expensemate.viewmodel.TransactionViewModel;
 import java.text.SimpleDateFormat;
@@ -235,7 +237,7 @@ public class SmsScanFragment extends Fragment {
                 try {
                     mmsCursor = contentResolver.query(
                             mmsUri,
-                            new String[] { "_id", "date", "thread_id" },
+                            new String[] { "_id", "date" },
                             mmsSelection,
                             mmsSelectionArgs,
                             "date DESC");
@@ -249,16 +251,14 @@ public class SmsScanFragment extends Fragment {
                         while (mmsCursor.moveToNext()) {
                             long mmsId = mmsCursor.getLong(mmsCursor.getColumnIndexOrThrow("_id"));
                             long mmsDate = mmsCursor.getLong(mmsCursor.getColumnIndexOrThrow("date"));
-                            long threadId = mmsCursor.getLong(mmsCursor.getColumnIndexOrThrow("thread_id"));
 
                             Log.d("SmsScanFragment",
                                     "Processing RCS message ID: " + mmsId + ", Date: " + new Date(mmsDate * 1000));
 
                             // Get the message body from MMS parts table
-                            String messageBody = getMmsText(contentResolver, mmsId);
+                            String messageBody = MmsReader.getText(contentResolver, mmsId);
 
-                            // Get sender from thread (RCS messages don't have direct address)
-                            String sender = getThreadAddress(contentResolver, threadId);
+                            String sender = MmsReader.getSender(contentResolver, mmsId);
 
                             if (messageBody != null && !messageBody.isEmpty()) {
                                 processedCount++;
@@ -272,7 +272,8 @@ public class SmsScanFragment extends Fragment {
                                 allSms.add(messageBody);
 
                                 SmsTransactionHandler.TransactionResult result = SmsTransactionHandler.handleSms(
-                                        messageBody, sender, viewModel, new Date(mmsDate * 1000));
+                                        messageBody, sender, viewModel, new Date(mmsDate * 1000),
+                                        TransactionKeys.SOURCE_MMS_SCAN);
 
                                 if (result.success) {
                                     success.add(messageBody);
@@ -329,7 +330,7 @@ public class SmsScanFragment extends Fragment {
                             allSms.add(body);
 
                             SmsTransactionHandler.TransactionResult result = SmsTransactionHandler.handleSms(body,
-                                    sender, viewModel, new Date(date));
+                                    sender, viewModel, new Date(date), TransactionKeys.SOURCE_SMS_SCAN);
                             if (result.success) {
                                 success.add(body);
                                 createdCount++;
@@ -477,7 +478,8 @@ public class SmsScanFragment extends Fragment {
         executorService.execute(() -> {
             Date date = new Date();
             // Use empty sender as per requirements
-            SmsTransactionHandler.TransactionResult result = SmsTransactionHandler.handleSms(body, "", viewModel, date);
+            SmsTransactionHandler.TransactionResult result = SmsTransactionHandler.handleSms(body, "", viewModel, date,
+                    TransactionKeys.SOURCE_PASTE);
 
             requireActivity().runOnUiThread(() -> {
                 if (result.success) {
@@ -490,133 +492,6 @@ public class SmsScanFragment extends Fragment {
                 }
             });
         });
-    }
-
-    /**
-     * Extract text content from an MMS message by querying the parts table
-     */
-    private String getMmsText(ContentResolver contentResolver, long mmsId) {
-        Uri partUri = Uri.parse("content://mms/part");
-        String selection = "mid = ?";
-        String[] selectionArgs = { String.valueOf(mmsId) };
-
-        Cursor partCursor = null;
-        StringBuilder body = new StringBuilder();
-
-        try {
-            partCursor = contentResolver.query(
-                    partUri,
-                    new String[] { "_id", "ct", "text" },
-                    selection,
-                    selectionArgs,
-                    null);
-
-            if (partCursor != null) {
-                while (partCursor.moveToNext()) {
-                    String contentType = partCursor.getString(partCursor.getColumnIndexOrThrow("ct"));
-
-                    // Only process text parts
-                    if ("text/plain".equals(contentType)) {
-                        String partText = partCursor.getString(partCursor.getColumnIndexOrThrow("text"));
-                        if (partText != null) {
-                            if (body.length() > 0) {
-                                body.append(" ");
-                            }
-                            body.append(partText);
-                        }
-                    }
-                }
-            }
-        } catch (Exception e) {
-            Log.e("SmsScanFragment", "Error getting MMS text: " + e.getMessage(), e);
-        } finally {
-            if (partCursor != null) {
-                partCursor.close();
-            }
-        }
-
-        return body.toString();
-    }
-
-    /**
-     * Get the address (sender) from a thread ID
-     * Uses a simpler approach to avoid SQL ORDER BY errors
-     */
-    private String getThreadAddress(ContentResolver contentResolver, long threadId) {
-        String address = "";
-
-        // Try to get address from SMS table first
-        Uri smsUri = Uri.parse("content://sms");
-        Cursor smsCursor = null;
-        try {
-            smsCursor = contentResolver.query(
-                    smsUri,
-                    new String[] { "address" },
-                    "thread_id = ?",
-                    new String[] { String.valueOf(threadId) },
-                    "_id DESC LIMIT 1");
-
-            if (smsCursor != null && smsCursor.moveToFirst()) {
-                int addressIndex = smsCursor.getColumnIndex("address");
-                if (addressIndex >= 0) {
-                    address = smsCursor.getString(addressIndex);
-                }
-            }
-        } catch (Exception e) {
-            Log.d("SmsScanFragment", "Could not get address from SMS table: " + e.getMessage());
-        } finally {
-            if (smsCursor != null) {
-                smsCursor.close();
-            }
-        }
-
-        // If still empty, try canonical addresses table
-        if (address == null || address.isEmpty()) {
-            Uri canonicalUri = Uri.parse("content://mms-sms/canonical-addresses");
-            Cursor canonicalCursor = null;
-            try {
-                // Get the recipient_ids from threads table first
-                Uri threadsUri = Uri.parse("content://mms-sms/conversations");
-                Cursor threadsCursor = contentResolver.query(
-                        threadsUri,
-                        new String[] { "recipient_ids" },
-                        "_id = ?",
-                        new String[] { String.valueOf(threadId) },
-                        null);
-
-                if (threadsCursor != null && threadsCursor.moveToFirst()) {
-                    int recipientIdsIndex = threadsCursor.getColumnIndex("recipient_ids");
-                    if (recipientIdsIndex >= 0) {
-                        String recipientIds = threadsCursor.getString(recipientIdsIndex);
-                        if (recipientIds != null && !recipientIds.isEmpty()) {
-                            // Query canonical addresses with the recipient ID
-                            canonicalCursor = contentResolver.query(
-                                    canonicalUri,
-                                    new String[] { "address" },
-                                    "_id = ?",
-                                    new String[] { recipientIds },
-                                    null);
-
-                            if (canonicalCursor != null && canonicalCursor.moveToFirst()) {
-                                int addressIndex = canonicalCursor.getColumnIndex("address");
-                                if (addressIndex >= 0) {
-                                    address = canonicalCursor.getString(addressIndex);
-                                }
-                            }
-                        }
-                    }
-                    threadsCursor.close();
-                }
-            } catch (Exception e) {
-                Log.d("SmsScanFragment", "Could not get address from canonical table: " + e.getMessage());
-            } finally {
-                if (canonicalCursor != null) {
-                    canonicalCursor.close();
-                }
-            }
-        }
-
-        return address != null ? address : "";
     }
 
     @Override

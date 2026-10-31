@@ -340,8 +340,25 @@ public class TransactionViewModel extends AndroidViewModel {
         });
     }
 
-    public int countTransactionsBySmsHash(String smsHash) {
-        return transactionDao.countTransactionsBySmsHash(smsHash);
+    /**
+     * Saves a message-derived transaction unless it is already recorded.
+     * Runs on the calling thread so the result is known on return; do not call from the main thread.
+     *
+     * @return true if a row was inserted
+     */
+    public boolean insertIfNew(Transaction transaction) {
+        if (transaction.getAccountId() == null) {
+            Account defaultAccount = accountViewModel.getDefaultAccountSync();
+            if (defaultAccount != null) {
+                transaction.setAccountId(defaultAccount.getId());
+            }
+        }
+        boolean inserted = transactionDao.insertIfNew(transaction);
+        if (inserted) {
+            updatePeriodLiveData();
+            applyFilters();
+        }
+        return inserted;
     }
 
     @Override

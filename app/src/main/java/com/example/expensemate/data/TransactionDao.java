@@ -133,6 +133,58 @@ public interface TransactionDao {
         @Query("SELECT COUNT(*) FROM transactions WHERE smsHash = :smsHash")
         int countTransactionsBySmsHash(String smsHash);
 
+        @Query("SELECT COUNT(*) FROM transactions WHERE dedupKey = :dedupKey " +
+                        "AND messageTime BETWEEN :fromTime AND :toTime")
+        int countByDedupKey(String dedupKey, long fromTime, long toTime);
+
+        @Query("SELECT COUNT(*) FROM transactions WHERE matchKey = :matchKey " +
+                        "AND messageTime BETWEEN :fromTime AND :toTime")
+        int countByMatchKey(String matchKey, long fromTime, long toTime);
+
+        @Query("SELECT COUNT(*) FROM transactions WHERE matchKey = :matchKey AND source = :source " +
+                        "AND messageTime BETWEEN :fromTime AND :toTime")
+        int countByMatchKeyAndSource(String matchKey, String source, long fromTime, long toTime);
+
+        /**
+         * Inserts a message-derived transaction unless it is already recorded. The check and
+         * the insert share one database transaction, so two entry paths cannot both pass.
+         *
+         * @return true if a row was inserted
+         */
+        @androidx.room.Transaction
+        default boolean insertIfNew(Transaction transaction) {
+                if (isDuplicate(transaction)) {
+                        return false;
+                }
+                insertTransaction(transaction);
+                return true;
+        }
+
+        default boolean isDuplicate(Transaction transaction) {
+                long fromTime = transaction.getMessageTime() - TransactionKeys.DUPLICATE_WINDOW_MS;
+                long toTime = transaction.getMessageTime() + TransactionKeys.DUPLICATE_WINDOW_MS;
+                String matchKey = transaction.getMatchKey();
+
+                // A Truecaller alert has no text to compare, so amount and merchant decide.
+                if (TransactionKeys.SOURCE_TRUECALLER.equals(transaction.getSource())) {
+                        return matchKey != null && countByMatchKey(matchKey, fromTime, toTime) > 0;
+                }
+
+                String dedupKey = transaction.getDedupKey();
+                if (dedupKey != null && countByDedupKey(dedupKey, fromTime, toTime) > 0) {
+                        return true;
+                }
+                // Keeps recognising older rows whose date was edited after they were saved.
+                String smsHash = transaction.getSmsHash();
+                if (smsHash != null && countTransactionsBySmsHash(smsHash) > 0) {
+                        return true;
+                }
+                // Different full-text messages can be genuine repeats, so only a Truecaller
+                // alert for the same payment counts here.
+                return matchKey != null && countByMatchKeyAndSource(matchKey,
+                                TransactionKeys.SOURCE_TRUECALLER, fromTime, toTime) > 0;
+        }
+
         @Query("SELECT * FROM transactions ORDER BY date DESC")
         List<Transaction> getAllTransactionsSyncOrderByDateAsc();
 }
