@@ -47,11 +47,20 @@ public final class TransactionKeys {
         if (merchant == null || transactionType == null) {
             return null;
         }
-        String normalizedMerchant = normalize(merchant).replaceAll("[^\\p{L}\\p{N}]", "");
+        String normalizedMerchant = normalizeName(merchant);
         if (normalizedMerchant.isEmpty()) {
             return null;
         }
         return Math.round(amount * 100) + "|" + transactionType + "|" + normalizedMerchant;
+    }
+
+    /** One sender or receiver however a message writes the name, or null when there is no name. */
+    public static String counterpartyKey(String name) {
+        if (!hasMessageText(name)) {
+            return null;
+        }
+        String normalizedName = normalizeName(name);
+        return normalizedName.isEmpty() ? null : normalizedName;
     }
 
     /** True for notification titles that mean the message already came in as an SMS. */
@@ -79,6 +88,10 @@ public final class TransactionKeys {
         transaction.setMatchKey(matchKey(transaction.getAmount(), transaction.getTransactionType(),
                 transaction.getReceiverName()));
         transaction.setMessageTime(transaction.getDate() != null ? transaction.getDate().getTime() : null);
+    }
+
+    private static String normalizeName(String name) {
+        return normalize(name).replaceAll("[^\\p{L}\\p{N}]", "");
     }
 
     private static String normalize(String text) {

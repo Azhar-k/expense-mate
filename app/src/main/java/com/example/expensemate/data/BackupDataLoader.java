@@ -218,11 +218,7 @@ public class BackupDataLoader {
             }
 
             if (!name.isEmpty() && !type.isEmpty()) {
-                Category category = new Category(name, type);
-                List<Category> categoriesByName = database.categoryDao().getCategoriesByName(name);
-                if (categoriesByName == null || categoriesByName.isEmpty()) {
-                    database.categoryDao().insertCategory(category);
-                }
+                database.categoryDao().insertIfMissing(new Category(name, type));
             }
         } catch (Exception e) {
             Log.e(TAG, "Error processing category", e);
@@ -626,8 +622,11 @@ public class BackupDataLoader {
                                             "TRANSACTIONS", loader);
 
                                     AppDatabase restored = AppDatabase.getDatabase(context);
-                                    restored.runInTransaction(() -> Transfers.linkLegacyPairs(
-                                            restored.getOpenHelper().getWritableDatabase()));
+                                    restored.runInTransaction(() -> {
+                                        Transfers.linkLegacyPairs(restored.getOpenHelper().getWritableDatabase());
+                                        CounterpartyCategory.rebuildFromTransactions(
+                                                restored.getOpenHelper().getWritableDatabase());
+                                    });
                                     Log.i(TAG, "Restore process completed.");
                                     callback.onSuccess("Restore completed successfully");
                                 } catch (Exception e) {

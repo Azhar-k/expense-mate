@@ -241,25 +241,25 @@ public class TransactionViewModel extends AndroidViewModel {
                         transaction.setAccountId(defaultAccount.getId());
                     }
                 }
-                transactionDao.insertTransaction(transaction);
+                transactionDao.insertWithChosenCategory(transaction);
             } catch (Exception e) {
                 Log.e(TAG, "Error inserting transaction", e);
             }
         });
     }
 
-    public void updateTransaction(Transaction transaction) {
+    public void updateTransaction(Transaction before, Transaction after) {
         executorService.execute(() -> {
             try {
-                transactionDao.updateRow(transaction);
+                transactionDao.updateWithChosenCategory(before, after);
             } catch (Exception e) {
                 Log.e(TAG, "Error updating transaction", e);
             }
         });
     }
 
-    public void setCategory(long id, String category) {
-        executorService.execute(() -> transactionDao.setCategory(id, category));
+    public void setCategory(Transaction transaction, String category) {
+        executorService.execute(() -> transactionDao.chooseCategory(transaction, category));
     }
 
     public void setExcludedFromSummary(long id, boolean excluded) {

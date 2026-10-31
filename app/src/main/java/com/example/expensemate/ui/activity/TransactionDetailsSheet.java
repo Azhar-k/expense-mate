@@ -217,7 +217,7 @@ public class TransactionDetailsSheet extends ExpandedSheet {
             chip.setCheckable(true);
             chip.setCheckedIconVisible(false);
             chip.setChecked(!transaction.isNeedsReview() && name.equals(transaction.getCategory()));
-            chip.setOnClickListener(v -> viewModel.setCategory(transaction.getId(), name));
+            chip.setOnClickListener(v -> viewModel.setCategory(transaction, name));
             binding.chipsCategory.addView(chip);
         }
     }

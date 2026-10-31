@@ -8,6 +8,7 @@ import androidx.room.OnConflictStrategy;
 import androidx.room.Query;
 import java.util.Date;
 import java.util.List;
+import java.util.Objects;
 
 @Dao
 public interface TransactionDao {
@@ -73,6 +74,75 @@ public interface TransactionDao {
 
         @Query("DELETE FROM transactions WHERE transferGroupId = :groupId")
         void deleteTransfer(String groupId);
+
+        /****************************************************************************************************/
+        // Counterparty categories: the last category chosen for a sender or receiver goes on their next captured payment
+
+        // Going through categories leaves out a mapping whose category was deleted or moved to the other type.
+        @Query("SELECT c.name FROM counterparty_categories m JOIN categories c ON c.id = m.categoryId " +
+                        "AND c.type = CASE m.transactionType WHEN 'CREDIT' THEN 'INCOME' ELSE 'EXPENSE' END " +
+                        "WHERE m.counterparty = :counterparty AND m.transactionType = :transactionType LIMIT 1")
+        String getCounterpartyCategory(String counterparty, String transactionType);
+
+        @Query("DELETE FROM counterparty_categories WHERE counterparty = :counterparty " +
+                        "AND transactionType = :transactionType")
+        void deleteCounterpartyCategory(String counterparty, String transactionType);
+
+        // Default means no choice was made, so it stays out and those payments keep asking for a category.
+        @Query("INSERT OR REPLACE INTO counterparty_categories (counterparty, transactionType, categoryId) " +
+                        "SELECT :counterparty, :transactionType, id FROM categories WHERE name = :category " +
+                        "AND name <> 'Default' " +
+                        "AND type = CASE :transactionType WHEN 'CREDIT' THEN 'INCOME' ELSE 'EXPENSE' END LIMIT 1")
+        void saveCounterpartyCategory(String counterparty, String transactionType, String category);
+
+        default void applyRememberedCategory(Transaction transaction) {
+                String counterparty = TransactionKeys.counterpartyKey(transaction.getReceiverName());
+                if (counterparty == null || transaction.getTransactionType() == null) {
+                        return;
+                }
+                String category = getCounterpartyCategory(counterparty, transaction.getTransactionType());
+                if (category != null) {
+                        transaction.setCategory(category);
+                        transaction.setNeedsReview(false);
+                }
+        }
+
+        @androidx.room.Transaction
+        default void rememberCategory(Transaction row) {
+                String counterparty = TransactionKeys.counterpartyKey(row.getReceiverName());
+                if (counterparty == null || row.getTransactionType() == null || row.isTransfer()) {
+                        return;
+                }
+                deleteCounterpartyCategory(counterparty, row.getTransactionType());
+                saveCounterpartyCategory(counterparty, row.getTransactionType(), row.getCategory());
+        }
+
+        @androidx.room.Transaction
+        default void insertWithChosenCategory(Transaction row) {
+                insertTransaction(row);
+                rememberCategory(row);
+        }
+
+        // Editing an old row's note is not a new choice, and must not undo a newer one.
+        @androidx.room.Transaction
+        default void updateWithChosenCategory(Transaction before, Transaction after) {
+                updateRow(after);
+                boolean sameChoice = !before.isNeedsReview()
+                                && Objects.equals(before.getCategory(), after.getCategory())
+                                && Objects.equals(before.getReceiverName(), after.getReceiverName())
+                                && Objects.equals(before.getTransactionType(), after.getTransactionType());
+                if (!sameChoice) {
+                        rememberCategory(after);
+                }
+        }
+
+        @androidx.room.Transaction
+        default void chooseCategory(Transaction row, String category) {
+                setCategory(row.getId(), category);
+                Transaction chosen = row.copy();
+                chosen.setCategory(category);
+                rememberCategory(chosen);
+        }
 
         /****************************************************************************************************/
         // Home screen: months are local-time ranges, so a payment just after midnight lands in the right month
@@ -182,6 +252,7 @@ public interface TransactionDao {
                 if (isDuplicate(transaction)) {
                         return false;
                 }
+                applyRememberedCategory(transaction);
                 insertTransaction(transaction);
                 return true;
         }

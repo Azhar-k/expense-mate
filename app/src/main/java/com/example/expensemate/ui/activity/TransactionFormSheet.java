@@ -431,7 +431,7 @@ public class TransactionFormSheet extends ExpandedSheet {
         }
 
         if (editing != null) {
-            viewModel.updateTransaction(row);
+            viewModel.updateTransaction(editing, row);
         } else {
             Bundle args = getArguments();
             if (args != null && args.getString(ARG_MESSAGE) != null) {
