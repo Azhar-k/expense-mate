@@ -51,6 +51,7 @@ public class HomeFragment extends Fragment {
     private List<CategorySum> expenses = new ArrayList<>();
     private List<CategorySum> income = new ArrayList<>();
     private List<RecurringPayment> bills = new ArrayList<>();
+    private List<Account> accounts = new ArrayList<>();
     private final SimpleDateFormat monthFormat = new SimpleDateFormat("MMMM yyyy", Locale.getDefault());
     private Menu menu;
 
@@ -107,7 +108,17 @@ public class HomeFragment extends Fragment {
             renderBreakdown();
         });
 
-        provider.get(AccountViewModel.class).getAllAccounts().observe(getViewLifecycleOwner(), this::buildAccountChips);
+        AccountViewModel accountViewModel = provider.get(AccountViewModel.class);
+        accountViewModel.getAllAccounts().observe(getViewLifecycleOwner(), list -> {
+            accounts = list;
+            buildAccountChips();
+        });
+        accountViewModel.getDefaultAccount().observe(getViewLifecycleOwner(), account -> {
+            if (account != null) {
+                viewModel.applyDefaultHomeAccount(account.getId());
+                buildAccountChips();
+            }
+        });
         viewModel.getHomeTotals().observe(getViewLifecycleOwner(), this::renderTotals);
         viewModel.getHomeExpenses().observe(getViewLifecycleOwner(), list -> {
             expenses = list;
@@ -161,7 +172,7 @@ public class HomeFragment extends Fragment {
         }
     }
 
-    private void buildAccountChips(List<Account> accounts) {
+    private void buildAccountChips() {
         binding.chipsAccount.removeAllViews();
         addAccountChip("All accounts", null);
         for (Account account : accounts) {
@@ -176,6 +187,14 @@ public class HomeFragment extends Fragment {
         chip.setCheckedIconVisible(false);
         Long selected = viewModel.getHomeAccountId();
         chip.setChecked(accountId == null ? selected == null : accountId.equals(selected));
+        if (chip.isChecked()) {
+            // The selected account can be far along the row, so bring it into view
+            chip.post(() -> {
+                if (binding != null) {
+                    binding.scrollAccounts.smoothScrollTo(chip.getLeft(), 0);
+                }
+            });
+        }
         chip.setOnClickListener(v -> {
             chip.setChecked(true);
             viewModel.setHomeAccount(accountId);

@@ -257,6 +257,14 @@ public class ScreensTest {
         }
     }
 
+    private void assertAccountChipChecked(String name) {
+        android.view.ViewGroup chips = activity.findViewById(R.id.chipsAccount);
+        for (int i = 0; i < chips.getChildCount(); i++) {
+            com.google.android.material.chip.Chip chip = (com.google.android.material.chip.Chip) chips.getChildAt(i);
+            assertEquals(chip.getText().toString(), name.contentEquals(chip.getText()), chip.isChecked());
+        }
+    }
+
     private String title() {
         return activity.getSupportActionBar().getTitle().toString();
     }
@@ -267,7 +275,8 @@ public class ScreensTest {
     }
 
     private void runAllScreens() throws Exception {
-        // Home: this month's money leaves transfers out
+        // Home opens on the default account, and this month's money leaves transfers out
+        assertAccountChipChecked("Salary");
         assertShows("Spent ₹51,010".replace("51,010", spentThisMonth()));
         assertShows("Income ₹85,000");
         assertShows("1 transaction needs a category");
@@ -357,6 +366,7 @@ public class ScreensTest {
                 Calendar when = Calendar.getInstance();
                 when.setTime(row.getDate());
                 if ("DEBIT".equals(row.getTransactionType()) && row.getTransferGroupId() == null
+                        && Long.valueOf(salaryId).equals(row.getAccountId())
                         && when.get(Calendar.MONTH) == now.get(Calendar.MONTH)
                         && when.get(Calendar.YEAR) == now.get(Calendar.YEAR)) {
                     total[0] += row.getAmount();

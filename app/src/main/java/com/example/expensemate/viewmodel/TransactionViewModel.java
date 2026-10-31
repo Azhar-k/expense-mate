@@ -38,6 +38,7 @@ public class TransactionViewModel extends AndroidViewModel {
     private final LiveData<List<CategorySum>> homeExpenses;
     private final LiveData<List<CategorySum>> homeIncome;
     private boolean homeShowingExpenses = true;
+    private boolean homeAccountChosen = false;
 
     /** The month and account the Home screen is showing; a null account means all accounts. */
     private static final class HomePeriod {
@@ -129,6 +130,18 @@ public class TransactionViewModel extends AndroidViewModel {
     }
 
     public void setHomeAccount(Long accountId) {
+        homeAccountChosen = true;
+        showHomeAccount(accountId);
+    }
+
+    /** Home opens on the default account, until the person picks one themselves. */
+    public void applyDefaultHomeAccount(long accountId) {
+        if (!homeAccountChosen) {
+            showHomeAccount(accountId);
+        }
+    }
+
+    private void showHomeAccount(Long accountId) {
         HomePeriod current = homePeriod.getValue();
         homePeriod.setValue(new HomePeriod(current.from, current.to, accountId));
     }
