@@ -66,6 +66,62 @@ public class SmsTransactionHandlerParserTest {
     }
 
     @Test
+    public void pluxeeSpend_usesTheMerchantNotTheWallet() {
+        assertParsed("Rs. 855.00 spent from Pluxee  Meal Card wallet, card no. on 29-10-2026 19:28:23 at "
+                + "TEST STORE  ERNAKULAM. Avl bal Rs.5567.69. Not you call 18002106919",
+                855.00, "DEBIT", "TEST STORE ERNAKULAM");
+    }
+
+    @Test
+    public void pluxeeSpend_withCardNumberGroupedAmountsAndDottedMerchant() {
+        assertParsed("Rs. 1,250.00 spent from Pluxee Meal Card wallet, card no.xx1234 on 9-10-2026 08:05:00 at "
+                + "ST. TEST CAFE. Avl bal Rs.12,567.69. Not you call 18002106919",
+                1250.00, "DEBIT", "ST. TEST CAFE");
+    }
+
+    @Test
+    public void federalDebit_usesTheVpaNotTheFallback() {
+        assertParsed("Rs 100.00 debited via UPI on 29-10-2026 19:28:23 to VPA test@okbank.Ref No 123456789012."
+                + "Small txns?Use UPI Lite!-Federal Bank",
+                100.00, "DEBIT", "test@okbank");
+    }
+
+    @Test
+    public void iciciCardSpend_withoutGrouping_usesTheMerchant() {
+        assertParsed("Rs 250.00 spent on ICICI Bank Card XX3333 on 03-Oct-26 at TEST HOSPITAL. Avl Lmt: Rs 2,00,000.00.",
+                250.00, "DEBIT", "TEST HOSPITAL");
+    }
+
+    @Test
+    public void iciciCardSpendNewFormat_withoutGrouping_usesTheMerchant() {
+        assertParsed("INR 300.00 spent using ICICI Bank Card XX3333 on 20-May-26 on TEST STORE. Avl Limit: INR 1,00,000.00.",
+                300.00, "DEBIT", "TEST STORE");
+    }
+
+    @Test
+    public void otherCardSpend_withoutGrouping_usesTheMerchant() {
+        assertParsed("Rs.500.00 spent on your AXIS Credit Card ending with 1234 at TEST SHOP on 09-10-26.",
+                500.00, "DEBIT", "TEST SHOP");
+    }
+
+    @Test
+    public void iciciAltDebit_withoutGrouping_usesTheReceiver() {
+        assertParsed("Rs. 500.00 debited from ICICI Bank Acc XX444 on 20-Oct-26 TEST SHOP Bal Rs. 1,000.00.",
+                500.00, "DEBIT", "TEST SHOP");
+    }
+
+    @Test
+    public void unknownFormats_stillFallBackToTheGeneralPatterns() {
+        Transaction debit = SmsTransactionHandler.extractTransactionDetails("Rs 40.00 paid to TEST VENDOR", "AX-TESTBK-S");
+        assertEquals(40.00, debit.getAmount(), 0.001);
+        assertEquals("DEBIT", debit.getTransactionType());
+
+        Transaction credit = SmsTransactionHandler.extractTransactionDetails("Received Rs 75.00 from TEST FRIEND.", "AX-TESTBK-S");
+        assertEquals(75.00, credit.getAmount(), 0.001);
+        assertEquals("CREDIT", credit.getTransactionType());
+    }
+
+    @Test
     public void hdfcCardPaymentReceived_isExcludedFromSummary() {
         String body = "DEAR HDFCBANK CARDMEMBER, PAYMENT OF Rs. 4000.00 RECEIVED TOWARDS YOUR CREDIT CARD "
                 + "ENDING WITH 1111 ON 1-10-2026.YOUR AVAILABLE LIMIT IS RS. 50000.00";

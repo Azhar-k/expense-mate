@@ -78,7 +78,7 @@ public class SmsTransactionHandler {
 
     // Pattern for Pluxee (Meal Card) debit format
     private static final Pattern PLUXEE_DEBIT_PATTERN = Pattern.compile(
-            "Rs\\.? (\\d+(?:\\.\\d{2})?) spent from Pluxee\\s+Meal Card wallet, card no\\.(?:xx\\d+)? on (\\d{1,2}-\\d{2}-\\d{4} \\d{2}:\\d{2}:\\d{2}) at ([^.]+)\\. Avl bal Rs\\.(\\d+(?:\\.\\d{2})?)\\. Not you call 18002106919");
+            "Rs\\.? (\\d+(?:,\\d+)*(?:\\.\\d{2})?) spent from Pluxee\\s+Meal Card wallet, card no\\.(?:xx\\d+)? on (\\d{1,2}-\\d{2}-\\d{4} \\d{2}:\\d{2}:\\d{2}) at (.+?)\\.\\s*Avl bal");
 
     // Pattern for Pluxee (Meal Card) credit format
     private static final Pattern PLUXEE_CREDIT_PATTERN = Pattern.compile(
@@ -301,28 +301,28 @@ public class SmsTransactionHandler {
                 return transaction;
             }
 
-            // Try general patterns as fallback
-            var generalDebitMatcher = GENERAL_DEBIT_PATTERN.matcher(smsBody);
-            if (generalDebitMatcher.find()) {
-                double amount = Double.parseDouble(generalDebitMatcher.group(1));
-                String receiverName = generalDebitMatcher.group(2).trim();
-                Log.d(TAG, "Found general debit transaction");
+            // Try Pluxee patterns
+            var pluxeeDebitMatcher = PLUXEE_DEBIT_PATTERN.matcher(smsBody);
+            if (pluxeeDebitMatcher.find()) {
+                double amount = Double.parseDouble(pluxeeDebitMatcher.group(1).replace(",", ""));
+                String merchantName = pluxeeDebitMatcher.group(3).trim().replaceAll("\\s+", " ");
+                Log.d(TAG, "Found Pluxee debit transaction");
 
                 return new Transaction(
                         amount,
                         smsBody,
                         new Date(),
                         "DEBIT",
-                        receiverName,
+                        merchantName,
                         smsBody,
                         sender);
             }
 
-            var generalCreditMatcher = GENERAL_CREDIT_PATTERN.matcher(smsBody);
-            if (generalCreditMatcher.find()) {
-                double amount = Double.parseDouble(generalCreditMatcher.group(1));
-                String senderName = generalCreditMatcher.group(2).trim();
-                Log.d(TAG, "Found general credit transaction");
+            var pluxeeCreditMatcher = PLUXEE_CREDIT_PATTERN.matcher(smsBody);
+            if (pluxeeCreditMatcher.find()) {
+                double amount = Double.parseDouble(pluxeeCreditMatcher.group(1));
+                String senderName = "Pluxee";
+                Log.d(TAG, "Found Pluxee credit transaction");
 
                 return new Transaction(
                         amount,
@@ -356,39 +356,6 @@ public class SmsTransactionHandler {
                 double amount = Double.parseDouble(federalCreditMatcher.group(1));
                 String senderName = "Federal Bank";
                 Log.d(TAG, "Found Federal Bank credit transaction");
-
-                return new Transaction(
-                        amount,
-                        smsBody,
-                        new Date(),
-                        "CREDIT",
-                        senderName,
-                        smsBody,
-                        sender);
-            }
-
-            // Try Pluxee patterns
-            var pluxeeDebitMatcher = PLUXEE_DEBIT_PATTERN.matcher(smsBody);
-            if (pluxeeDebitMatcher.find()) {
-                double amount = Double.parseDouble(pluxeeDebitMatcher.group(1));
-                String merchantName = pluxeeDebitMatcher.group(3).trim();
-                Log.d(TAG, "Found Pluxee debit transaction");
-
-                return new Transaction(
-                        amount,
-                        smsBody,
-                        new Date(),
-                        "DEBIT",
-                        merchantName,
-                        smsBody,
-                        sender);
-            }
-
-            var pluxeeCreditMatcher = PLUXEE_CREDIT_PATTERN.matcher(smsBody);
-            if (pluxeeCreditMatcher.find()) {
-                double amount = Double.parseDouble(pluxeeCreditMatcher.group(1));
-                String senderName = "Pluxee";
-                Log.d(TAG, "Found Pluxee credit transaction");
 
                 return new Transaction(
                         amount,
@@ -546,6 +513,40 @@ public class SmsTransactionHandler {
                         new Date(),
                         "DEBIT",
                         receiver,
+                        smsBody,
+                        sender);
+            }
+
+            // Try general patterns as fallback. These stay last: they also match most bank
+            // formats above, and would take the words after the amount as the merchant.
+            var generalDebitMatcher = GENERAL_DEBIT_PATTERN.matcher(smsBody);
+            if (generalDebitMatcher.find()) {
+                double amount = Double.parseDouble(generalDebitMatcher.group(1));
+                String receiverName = generalDebitMatcher.group(2).trim();
+                Log.d(TAG, "Found general debit transaction");
+
+                return new Transaction(
+                        amount,
+                        smsBody,
+                        new Date(),
+                        "DEBIT",
+                        receiverName,
+                        smsBody,
+                        sender);
+            }
+
+            var generalCreditMatcher = GENERAL_CREDIT_PATTERN.matcher(smsBody);
+            if (generalCreditMatcher.find()) {
+                double amount = Double.parseDouble(generalCreditMatcher.group(1));
+                String senderName = generalCreditMatcher.group(2).trim();
+                Log.d(TAG, "Found general credit transaction");
+
+                return new Transaction(
+                        amount,
+                        smsBody,
+                        new Date(),
+                        "CREDIT",
+                        senderName,
                         smsBody,
                         sender);
             }
