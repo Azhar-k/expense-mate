@@ -46,7 +46,6 @@ public class SmsReceiver extends BroadcastReceiver {
                 String completeBody = fullMessage.toString();
                 Log.d(TAG, "Received SMS from: " + sender);
                 Log.d(TAG, "Full SMS body length: " + (completeBody != null ? completeBody.length() : 0));
-                Log.d(TAG, "Full SMS body: [" + completeBody + "]");
                 
                 if (sender != null) {
                     callback.onSmsReceived(completeBody, sender);

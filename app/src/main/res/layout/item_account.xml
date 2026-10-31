@@ -1,112 +1,76 @@
 <?xml version="1.0" encoding="utf-8"?>
-<com.google.android.material.card.MaterialCardView
-    xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_margin="8dp"
-    app:cardElevation="4dp"
-    app:cardCornerRadius="8dp"
-    app:cardBackgroundColor="@color/white">
+    android:clickable="true"
+    android:focusable="true"
+    android:foreground="?attr/selectableItemBackground">
 
     <LinearLayout
-        android:id="@+id/account_container"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:padding="16dp">
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:padding="12dp">
+
+        <TextView
+            android:id="@+id/tvInitials"
+            style="@style/Text.ExpenseMate.Amount"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="@drawable/bg_icon_tile"
+            android:gravity="center"
+            android:textSize="13sp" />
 
         <LinearLayout
-            android:layout_width="match_parent"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical">
+            android:layout_marginStart="12dp"
+            android:layout_marginEnd="8dp"
+            android:layout_weight="1"
+            android:orientation="vertical">
 
             <LinearLayout
-                android:layout_width="0dp"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:orientation="vertical">
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
 
                 <TextView
-                    android:id="@+id/account_name"
+                    android:id="@+id/tvName"
+                    style="@style/Text.ExpenseMate.Row"
                     android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:textSize="18sp"
-                    android:textStyle="bold"
-                    android:textColor="@color/black"/>
+                    android:layout_height="wrap_content" />
 
                 <TextView
-                    android:id="@+id/default_account_indicator"
+                    android:id="@+id/tvDefault"
+                    style="@style/Text.ExpenseMate.Tag"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Default Account"
-                    android:textColor="@color/primary"
-                    android:textSize="14sp"
-                    android:visibility="gone"/>
+                    android:layout_marginStart="6dp"
+                    android:visibility="gone" />
             </LinearLayout>
 
-            <ImageButton
-                android:id="@+id/btn_set_default"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:contentDescription="Set as default account"
-                android:padding="12dp"
-                android:src="@drawable/ic_star_border"
-                app:tint="@color/black" />
-
-            <ImageButton
-                android:id="@+id/btn_edit"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:contentDescription="Edit account"
-                android:padding="12dp"
-                android:src="@drawable/ic_edit"
-                app:tint="@color/black" />
-
-            <ImageButton
-                android:id="@+id/btn_delete"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:contentDescription="Delete account"
-                android:padding="12dp"
-                android:src="@drawable/ic_delete"
-                app:tint="@color/black" />
+            <TextView
+                android:id="@+id/tvDetail"
+                style="@style/Text.ExpenseMate.SubLine"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp" />
         </LinearLayout>
 
         <TextView
-            android:id="@+id/account_number"
+            android:id="@+id/tvBalance"
+            style="@style/Text.ExpenseMate.Amount"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:textSize="16sp"
-            android:textColor="@color/black"/>
-
-        <TextView
-            android:id="@+id/account_bank"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:textSize="16sp"
-            android:textColor="@color/black"/>
-
-        <TextView
-            android:id="@+id/account_expiry"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:textSize="16sp"
-            android:textColor="@color/black"/>
-
-        <TextView
-            android:id="@+id/account_description"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:textSize="16sp"
-            android:textColor="@color/secondary_text"/>
+            android:layout_height="wrap_content" />
     </LinearLayout>
-</com.google.android.material.card.MaterialCardView> 
+
+    <View
+        android:id="@+id/divider"
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_gravity="bottom"
+        android:layout_marginStart="64dp"
+        android:background="@color/outline" />
+</FrameLayout>

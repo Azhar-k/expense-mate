@@ -1,65 +1,50 @@
 <?xml version="1.0" encoding="utf-8"?>
 <navigation xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/mobile_navigation"
-    app:startDestination="@+id/navigation_summary">
+    app:startDestination="@+id/navigation_home">
 
     <fragment
-        android:id="@+id/navigation_transactions"
-        android:name="com.example.expensemate.ui.transactions.TransactionsFragment"
-        android:label="Transactions"
-        tools:layout="@layout/fragment_transactions" />
+        android:id="@+id/navigation_home"
+        android:name="com.example.expensemate.ui.home.HomeFragment"
+        android:label="Home" />
+
+    <fragment
+        android:id="@+id/navigation_activity"
+        android:name="com.example.expensemate.ui.activity.ActivityFragment"
+        android:label="Activity" />
+
+    <fragment
+        android:id="@+id/navigation_bills"
+        android:name="com.example.expensemate.ui.bills.BillsFragment"
+        android:label="Bills" />
 
     <fragment
         android:id="@+id/navigation_accounts"
         android:name="com.example.expensemate.ui.accounts.AccountsFragment"
-        android:label="Accounts"
-        tools:layout="@layout/fragment_accounts" />
-
-    <fragment
-        android:id="@+id/navigation_summary"
-        android:name="com.example.expensemate.ui.summary.SummaryFragment"
-        android:label="Summary"
-        tools:layout="@layout/fragment_summary" />
-
-    <fragment
-        android:id="@+id/navigation_categories"
-        android:name="com.example.expensemate.ui.categories.CategoriesFragment"
-        android:label="Categories"
-        tools:layout="@layout/fragment_categories" />
-
-    <fragment
-        android:id="@+id/navigation_self_transfer"
-        android:name="com.example.expensemate.ui.self_transfer.SelfTransferFragment"
-        android:label="Self Transfer"
-        tools:layout="@layout/fragment_self_transfer" />
-
-    <fragment
-        android:id="@+id/navigation_sms_scan"
-        android:name="com.example.expensemate.ui.sms.SmsScanFragment"
-        android:label="Scan SMS"
-        tools:layout="@layout/fragment_sms_scan" />
-
-    <fragment
-        android:id="@+id/navigation_recurring_payments"
-        android:name="com.example.expensemate.ui.recurringpayment.RecurringPaymentsFragment"
-        android:label="@string/recurring_payments"
-        tools:layout="@layout/fragment_recurring_payments" />
-    <fragment
-        android:id="@+id/navigation_settings"
-        android:name="com.example.expensemate.ui.settings.SettingsFragment"
-        android:label="Settings"
-        tools:layout="@layout/fragment_settings" />
+        android:label="Accounts" />
 
     <fragment
         android:id="@+id/account_details_fragment"
         android:name="com.example.expensemate.ui.accounts.AccountDetailsFragment"
-        android:label="Account Details"
-        tools:layout="@layout/fragment_account_details">
+        android:label="Account">
         <argument
             android:name="accountId"
             app:argType="long" />
     </fragment>
 
+    <fragment
+        android:id="@+id/navigation_settings"
+        android:name="com.example.expensemate.ui.settings.SettingsFragment"
+        android:label="Settings" />
+
+    <fragment
+        android:id="@+id/navigation_sms_scan"
+        android:name="com.example.expensemate.ui.sms.SmsScanFragment"
+        android:label="Scan messages" />
+
+    <fragment
+        android:id="@+id/navigation_categories"
+        android:name="com.example.expensemate.ui.categories.CategoriesFragment"
+        android:label="Categories" />
 </navigation>

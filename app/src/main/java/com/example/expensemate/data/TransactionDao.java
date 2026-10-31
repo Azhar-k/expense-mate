@@ -17,90 +17,105 @@ public interface TransactionDao {
         @Delete
         void deleteTransaction(Transaction transaction);
 
-        // Global Balance Queries
-        @Query("SELECT COALESCE(SUM(amount), 0) FROM transactions WHERE transactionType = 'CREDIT' AND isExcludedFromSummary = 0")
-        double getTotalIncomeForAllAccounts();
-
-        @Query("SELECT COALESCE(SUM(amount), 0) FROM transactions WHERE transactionType = 'DEBIT' AND isExcludedFromSummary = 0")
-        double getTotalExpenseForAllAccounts();
-
+        // Updates the fields a person can edit. Message keys and the transfer link stay as they are.
         @Query("UPDATE transactions SET amount = :amount, description = :description, date = :date, " +
                         "transactionType = :transactionType, " +
                         "receiverName = :receiverName, smsBody = :smsBody, smsSender = :smsSender, category = :category, "
                         +
-                        "linkedRecurringPaymentId = :linkedRecurringPaymentId, isExcludedFromSummary = :isExcludedFromSummary, accountId = :accountId WHERE id = :id")
+                        "linkedRecurringPaymentId = :linkedRecurringPaymentId, isExcludedFromSummary = :isExcludedFromSummary, "
+                        +
+                        "accountId = :accountId, needsReview = :needsReview WHERE id = :id")
         void updateTransaction(long id, double amount, String description, Date date, String transactionType,
                         String receiverName,
                         String smsBody, String smsSender, String category, Long linkedRecurringPaymentId,
-                        Long accountId, boolean isExcludedFromSummary);
+                        Long accountId, boolean isExcludedFromSummary, boolean needsReview);
+
+        @Query("UPDATE transactions SET category = :category, needsReview = 0 WHERE id = :id")
+        void setCategory(long id, String category);
+
+        @Query("UPDATE transactions SET isExcludedFromSummary = :excluded WHERE id = :id")
+        void setExcludedFromSummary(long id, boolean excluded);
+
+        @Query("SELECT * FROM transactions WHERE id = :id")
+        LiveData<Transaction> getTransaction(long id);
 
         /****************************************************************************************************/
-        // Summary screen
+        // Transfers: two rows that move money between accounts and are never income or spending
 
-        // Summary screen expense
-        @Query("SELECT COALESCE(SUM(amount), 0) FROM transactions " +
-                        "WHERE transactionType = 'DEBIT' AND isExcludedFromSummary = 0 " +
-                        "AND strftime('%m', datetime(date/1000, 'unixepoch')) = :month " +
-                        "AND strftime('%Y', datetime(date/1000, 'unixepoch')) = :year " +
+        @Query("SELECT * FROM transactions WHERE transferGroupId = :groupId")
+        LiveData<List<Transaction>> getTransferLegs(String groupId);
+
+        @Query("SELECT * FROM transactions WHERE transferGroupId = :groupId")
+        List<Transaction> getTransferLegsSync(String groupId);
+
+        // Both sides of a transfer share one date, so a date range finds both.
+        @Query("SELECT * FROM transactions WHERE transferGroupId IS NOT NULL AND date BETWEEN :fromDate AND :toDate")
+        LiveData<List<Transaction>> getTransferLegsBetween(Date fromDate, Date toDate);
+
+        @androidx.room.Transaction
+        default void insertTransfer(Transaction debit, Transaction credit) {
+                insertTransaction(debit);
+                insertTransaction(credit);
+        }
+
+        @androidx.room.Transaction
+        default void updateTransfer(Transaction debit, Transaction credit) {
+                updateRow(debit);
+                updateRow(credit);
+        }
+
+        default void updateRow(Transaction row) {
+                updateTransaction(row.getId(), row.getAmount(), row.getDescription(), row.getDate(),
+                                row.getTransactionType(), row.getReceiverName(), row.getSmsBody(), row.getSmsSender(),
+                                row.getCategory(), row.getLinkedRecurringPaymentId(), row.getAccountId(),
+                                row.isExcludedFromSummary(), row.isNeedsReview());
+        }
+
+        @Query("DELETE FROM transactions WHERE transferGroupId = :groupId")
+        void deleteTransfer(String groupId);
+
+        /****************************************************************************************************/
+        // Home screen: months are local-time ranges, so a payment just after midnight lands in the right month
+
+        @Query("SELECT " +
+                        "COALESCE(SUM(CASE WHEN transactionType = 'DEBIT' AND transferGroupId IS NULL AND isExcludedFromSummary = 0 THEN amount END), 0) AS expense, "
+                        +
+                        "COALESCE(SUM(CASE WHEN transactionType = 'CREDIT' AND transferGroupId IS NULL AND isExcludedFromSummary = 0 THEN amount END), 0) AS income, "
+                        +
+                        "COALESCE(SUM(CASE WHEN transactionType = 'DEBIT' AND transferGroupId IS NOT NULL AND isExcludedFromSummary = 0 THEN amount END), 0) AS movedOut, "
+                        +
+                        "COALESCE(SUM(CASE WHEN transactionType = 'CREDIT' AND transferGroupId IS NOT NULL AND isExcludedFromSummary = 0 THEN amount END), 0) AS movedIn "
+                        +
+                        "FROM transactions WHERE date >= :fromDate AND date < :toDate " +
                         "AND (:accountId IS NULL OR accountId = :accountId)")
-        Double getExpenseForExpenseScreen(String month, String year, Long accountId);
+        LiveData<SummaryTotals> getSummaryTotals(Date fromDate, Date toDate, Long accountId);
 
-        // Summary screen income
-        @Query("SELECT COALESCE(SUM(amount), 0) FROM transactions " +
-                        "WHERE transactionType = 'CREDIT' AND isExcludedFromSummary = 0 " +
-                        "AND strftime('%m', datetime(date/1000, 'unixepoch')) = :month " +
-                        "AND strftime('%Y', datetime(date/1000, 'unixepoch')) = :year " +
-                        "AND (:accountId IS NULL OR accountId = :accountId)")
-        Double getIncomeForExpenseScreen(String month, String year, Long accountId);
-
-        // Category sum for expense section of summary screen
         @Query("SELECT category, SUM(amount) as total FROM transactions " +
-                        "WHERE transactionType = 'DEBIT' AND isExcludedFromSummary = 0 " +
-                        "AND strftime('%m', datetime(date/1000, 'unixepoch')) = :month " +
-                        "AND strftime('%Y', datetime(date/1000, 'unixepoch')) = :year " +
+                        "WHERE transactionType = :transactionType AND isExcludedFromSummary = 0 " +
+                        "AND transferGroupId IS NULL " +
+                        "AND date >= :fromDate AND date < :toDate " +
                         "AND (:accountId IS NULL OR accountId = :accountId) " +
                         "GROUP BY category ORDER BY total DESC")
-        LiveData<List<CategorySum>> getExpenseCategorySumForSummaryScreen(String month, String year, Long accountId);
+        LiveData<List<CategorySum>> getCategorySums(String transactionType, Date fromDate, Date toDate, Long accountId);
 
-        // Category sum for income section of summary screen
-        @Query("SELECT category, SUM(amount) as total FROM transactions " +
-                        "WHERE transactionType = 'CREDIT' AND isExcludedFromSummary = 0 " +
-                        "AND strftime('%m', datetime(date/1000, 'unixepoch')) = :month " +
-                        "AND strftime('%Y', datetime(date/1000, 'unixepoch')) = :year " +
-                        "AND (:accountId IS NULL OR accountId = :accountId) " +
-                        "GROUP BY category ORDER BY total DESC")
-        LiveData<List<CategorySum>> getIncomeCategorySumForSummaryScreen(String month, String year, Long accountId);
+        @Query("SELECT COUNT(*) FROM transactions WHERE needsReview = 1 AND isExcludedFromSummary = 0 " +
+                        "AND transferGroupId IS NULL")
+        LiveData<Integer> getNeedsReviewCount();
 
-        // Transactions shown for each category wise breakup in the summary screen
-        @Query("SELECT * FROM transactions " +
-                        "WHERE category = :category " +
-                        "AND transactionType = :transactionType " +
-                        "AND isExcludedFromSummary = 0 " +
-                        "AND strftime('%m', datetime(date/1000, 'unixepoch')) = :month " +
-                        "AND strftime('%Y', datetime(date/1000, 'unixepoch')) = :year " +
-                        "AND (:accountId IS NULL OR accountId = :accountId) " +
-                        "ORDER BY date DESC")
-        LiveData<List<Transaction>> getTransactionsByCategoryForSummaryScreen(String category, String month,
-                        String year, Long accountId, String transactionType);
+        /****************************************************************************************************/
+        // Balances: transfers count here, because they really do move money between accounts
+
+        @Query("SELECT COALESCE(SUM(CASE WHEN transactionType = 'CREDIT' THEN amount WHEN transactionType = 'DEBIT' THEN -amount END), 0) "
+                        + "FROM transactions WHERE isExcludedFromSummary = 0")
+        LiveData<Double> getNetBalance();
+
+        @Query("SELECT accountId, COALESCE(SUM(CASE WHEN transactionType = 'CREDIT' THEN amount WHEN transactionType = 'DEBIT' THEN -amount END), 0) AS balance "
+                        + "FROM transactions WHERE isExcludedFromSummary = 0 AND accountId IS NOT NULL GROUP BY accountId")
+        LiveData<List<AccountBalance>> getAccountBalances();
 
         /****************************************************************************************************/
         // Account details screen
 
-        // Account details screen income
-        @Query("SELECT COALESCE(SUM(amount), 0) FROM transactions " +
-                        "WHERE transactionType = 'CREDIT' " +
-                        "AND isExcludedFromSummary = 0 " +
-                        "AND accountId = :accountId")
-        double getTotalIncomeForAccountDetailsScreen(long accountId);
-
-        // Account details screen expense
-        @Query("SELECT COALESCE(SUM(amount), 0) FROM transactions " +
-                        "WHERE transactionType = 'DEBIT' " +
-                        "AND isExcludedFromSummary = 0 " +
-                        "AND accountId = :accountId")
-        double getTotalExpenseForAccountDetailsScreen(long accountId);
-
-        // Transactions for account details screen
         @Query("SELECT * FROM transactions " +
                         "WHERE date BETWEEN :startDate AND :endDate " +
                         "AND accountId = :accountId " +
@@ -109,11 +124,14 @@ public interface TransactionDao {
                         long accountId);
 
         /****************************************************************************************************/
-        // Transactions screen
+        // Activity screen
 
         @Query("SELECT * FROM transactions " +
                         "WHERE date BETWEEN :fromDate AND :toDate " +
                         "AND (:accountId IS NULL OR accountId = :accountId) " +
+                        "AND (:search IS NULL OR description LIKE '%' || :search || '%' " +
+                        "OR receiverName LIKE '%' || :search || '%' " +
+                        "OR CAST(amount AS TEXT) LIKE :search || '%') " +
                         "AND (:description IS NULL OR description LIKE '%' || :description || '%') " +
                         "AND (:receiverName IS NULL OR receiverName LIKE '%' || :receiverName || '%') " +
                         "AND (:category IS NULL OR category = :category) " +
@@ -122,10 +140,18 @@ public interface TransactionDao {
                         "AND (:isExcludedFromSummary IS NULL OR isExcludedFromSummary = :isExcludedFromSummary) " +
                         "AND (:linkedRecurringPaymentId IS NULL OR linkedRecurringPaymentId = :linkedRecurringPaymentId) "
                         +
+                        "AND (:transfers IS NULL OR (:transfers = 1 AND transferGroupId IS NOT NULL) " +
+                        "OR (:transfers = 0 AND transferGroupId IS NULL)) " +
+                        "AND (:needsReview IS NULL OR (needsReview = :needsReview AND isExcludedFromSummary = 0 " +
+                        "AND transferGroupId IS NULL)) " +
                         "ORDER BY date DESC")
-        List<Transaction> getFilteredTransactions(Date fromDate, Date toDate, Long accountId,
+        LiveData<List<Transaction>> getFilteredTransactions(Date fromDate, Date toDate, Long accountId, String search,
                         String description, String receiverName, String category, Double amount,
-                        String transactionType, Boolean isExcludedFromSummary, Long linkedRecurringPaymentId);
+                        String transactionType, Boolean isExcludedFromSummary, Long linkedRecurringPaymentId,
+                        Boolean transfers, Boolean needsReview);
+
+        @Query("SELECT * FROM transactions WHERE date BETWEEN :fromDate AND :toDate ORDER BY date DESC")
+        List<Transaction> getTransactionsBetweenSync(Date fromDate, Date toDate);
 
         /****************************************************************************************************/
         // Queries for purposes other than screen

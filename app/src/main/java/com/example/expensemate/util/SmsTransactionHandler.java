@@ -146,7 +146,7 @@ public class SmsTransactionHandler {
                 String amountStr = iciciDebitMatcher.group(2).replace(",", "");
                 double amount = Double.parseDouble(amountStr);
                 String receiverName = iciciDebitMatcher.group(4).trim();
-                Log.d(TAG, "Found ICICI debit transaction: " + amount + " to " + receiverName);
+                Log.d(TAG, "Found ICICI debit transaction");
 
                 return new Transaction(
                         amount,
@@ -173,7 +173,7 @@ public class SmsTransactionHandler {
                     senderName = "NEFT-" + iciciCreditMatcher.group(8).trim();
                 }
                 double amount = Double.parseDouble(amountStr);
-                Log.d(TAG, "Found ICICI credit transaction: " + amount + " from " + senderName);
+                Log.d(TAG, "Found ICICI credit transaction");
 
                 return new Transaction(
                         amount,
@@ -190,7 +190,7 @@ public class SmsTransactionHandler {
             if (kotakDebitMatcher.find()) {
                 double amount = Double.parseDouble(kotakDebitMatcher.group(1));
                 String receiverName = kotakDebitMatcher.group(3).trim();
-                Log.d(TAG, "Found Kotak debit transaction: " + amount + " to " + receiverName);
+                Log.d(TAG, "Found Kotak debit transaction");
 
                 return new Transaction(
                         amount,
@@ -206,7 +206,7 @@ public class SmsTransactionHandler {
             if (kotakCreditMatcher.find()) {
                 double amount = Double.parseDouble(kotakCreditMatcher.group(1));
                 String senderName = kotakCreditMatcher.group(3).trim();
-                Log.d(TAG, "Found Kotak credit transaction: " + amount + " from " + senderName);
+                Log.d(TAG, "Found Kotak credit transaction");
 
                 return new Transaction(
                         amount,
@@ -224,7 +224,7 @@ public class SmsTransactionHandler {
                 String amountStr = sbiDebitMatcher.group(1).replace(",", "");
                 double amount = Double.parseDouble(amountStr);
                 String merchantName = sbiDebitMatcher.group(3).trim();
-                Log.d(TAG, "Found SBI Credit Card debit transaction: " + amount + " at " + merchantName);
+                Log.d(TAG, "Found SBI Credit Card debit transaction");
 
                 return new Transaction(
                         amount,
@@ -240,7 +240,7 @@ public class SmsTransactionHandler {
             if (hdfcCardMatcher.find()) {
                 double amount = Double.parseDouble(hdfcCardMatcher.group(1).replace(",", ""));
                 String merchant = hdfcCardMatcher.group(2).trim();
-                Log.d(TAG, "Found HDFC card spend: " + amount + " at " + merchant);
+                Log.d(TAG, "Found HDFC card spend");
 
                 return new Transaction(
                         amount,
@@ -256,7 +256,7 @@ public class SmsTransactionHandler {
             if (sbiAccountMatcher.find()) {
                 double amount = Double.parseDouble(sbiAccountMatcher.group(1).replace(",", ""));
                 String receiverName = sbiAccountMatcher.group(2).trim();
-                Log.d(TAG, "Found SBI account debit: " + amount + " to " + receiverName);
+                Log.d(TAG, "Found SBI account debit");
 
                 return new Transaction(
                         amount,
@@ -271,7 +271,7 @@ public class SmsTransactionHandler {
             var canaraCreditMatcher = CANARA_CREDIT_PATTERN.matcher(smsBody);
             if (canaraCreditMatcher.find()) {
                 double amount = Double.parseDouble(canaraCreditMatcher.group(1).replace(",", ""));
-                Log.d(TAG, "Found Canara Bank credit: " + amount);
+                Log.d(TAG, "Found Canara Bank credit");
 
                 return new Transaction(
                         amount,
@@ -286,7 +286,7 @@ public class SmsTransactionHandler {
             var cardPaymentMatcher = CARD_PAYMENT_RECEIVED_PATTERN.matcher(smsBody);
             if (cardPaymentMatcher.find()) {
                 double amount = Double.parseDouble(cardPaymentMatcher.group(1).replace(",", ""));
-                Log.d(TAG, "Found credit card payment received: " + amount);
+                Log.d(TAG, "Found credit card payment received");
 
                 Transaction transaction = new Transaction(
                         amount,
@@ -306,7 +306,7 @@ public class SmsTransactionHandler {
             if (generalDebitMatcher.find()) {
                 double amount = Double.parseDouble(generalDebitMatcher.group(1));
                 String receiverName = generalDebitMatcher.group(2).trim();
-                Log.d(TAG, "Found general debit transaction: " + amount + " to " + receiverName);
+                Log.d(TAG, "Found general debit transaction");
 
                 return new Transaction(
                         amount,
@@ -322,7 +322,7 @@ public class SmsTransactionHandler {
             if (generalCreditMatcher.find()) {
                 double amount = Double.parseDouble(generalCreditMatcher.group(1));
                 String senderName = generalCreditMatcher.group(2).trim();
-                Log.d(TAG, "Found general credit transaction: " + amount + " from " + senderName);
+                Log.d(TAG, "Found general credit transaction");
 
                 return new Transaction(
                         amount,
@@ -339,7 +339,7 @@ public class SmsTransactionHandler {
             if (federalDebitMatcher.find()) {
                 double amount = Double.parseDouble(federalDebitMatcher.group(1));
                 String receiverName = federalDebitMatcher.group(3).trim();
-                Log.d(TAG, "Found Federal Bank debit transaction: " + amount + " to " + receiverName);
+                Log.d(TAG, "Found Federal Bank debit transaction");
 
                 return new Transaction(
                         amount,
@@ -355,7 +355,7 @@ public class SmsTransactionHandler {
             if (federalCreditMatcher.find()) {
                 double amount = Double.parseDouble(federalCreditMatcher.group(1));
                 String senderName = "Federal Bank";
-                Log.d(TAG, "Found Federal Bank credit transaction: " + amount + " from " + senderName);
+                Log.d(TAG, "Found Federal Bank credit transaction");
 
                 return new Transaction(
                         amount,
@@ -372,7 +372,7 @@ public class SmsTransactionHandler {
             if (pluxeeDebitMatcher.find()) {
                 double amount = Double.parseDouble(pluxeeDebitMatcher.group(1));
                 String merchantName = pluxeeDebitMatcher.group(3).trim();
-                Log.d(TAG, "Found Pluxee debit transaction: " + amount + " at " + merchantName);
+                Log.d(TAG, "Found Pluxee debit transaction");
 
                 return new Transaction(
                         amount,
@@ -388,7 +388,7 @@ public class SmsTransactionHandler {
             if (pluxeeCreditMatcher.find()) {
                 double amount = Double.parseDouble(pluxeeCreditMatcher.group(1));
                 String senderName = "Pluxee";
-                Log.d(TAG, "Found Pluxee credit transaction: " + amount + " from " + senderName);
+                Log.d(TAG, "Found Pluxee credit transaction");
 
                 return new Transaction(
                         amount,
@@ -405,7 +405,7 @@ public class SmsTransactionHandler {
             if (upiDebitMatcher.find()) {
                 double amount = Double.parseDouble(upiDebitMatcher.group(1).replace(",", ""));
                 String receiverName = upiDebitMatcher.group(2).trim();
-                Log.d(TAG, "Found UPI debit transaction: " + amount + " to " + receiverName);
+                Log.d(TAG, "Found UPI debit transaction");
 
                 return new Transaction(
                         amount,
@@ -422,7 +422,7 @@ public class SmsTransactionHandler {
             if (upiCreditMatcher.find()) {
                 double amount = Double.parseDouble(upiCreditMatcher.group(1).replace(",", ""));
                 String senderName = upiCreditMatcher.group(2).trim();
-                Log.d(TAG, "Found UPI credit transaction: " + amount + " from " + senderName);
+                Log.d(TAG, "Found UPI credit transaction");
 
                 return new Transaction(
                         amount,
@@ -439,7 +439,7 @@ public class SmsTransactionHandler {
             if (neftCreditMatcher.find()) {
                 double amount = Double.parseDouble(neftCreditMatcher.group(1).replace(",", ""));
                 String senderName = "NEFT-" + neftCreditMatcher.group(2).trim();
-                Log.d(TAG, "Found NEFT credit transaction: " + amount + " from " + senderName);
+                Log.d(TAG, "Found NEFT credit transaction");
 
                 return new Transaction(
                         amount,
@@ -455,7 +455,7 @@ public class SmsTransactionHandler {
             if (iciciCardSpendMatcher.find()) {
                 double amount = Double.parseDouble(iciciCardSpendMatcher.group(1).replace(",", ""));
                 String merchant = iciciCardSpendMatcher.group(3).trim();
-                Log.d(TAG, "Found ICICI Credit Card spend: " + amount + " at " + merchant);
+                Log.d(TAG, "Found ICICI Credit Card spend");
 
                 return new Transaction(
                         amount,
@@ -473,7 +473,7 @@ public class SmsTransactionHandler {
                         iciciCardSpendNewMatcher.group(1).replace(",", ""));
                 String merchant = iciciCardSpendNewMatcher.group(4).trim();
 
-                Log.d(TAG, "Found ICICI Credit Card spend (new format): " + amount + " at " + merchant);
+                Log.d(TAG, "Found ICICI Credit Card spend (new format)");
 
                 return new Transaction(
                         amount,
@@ -489,7 +489,7 @@ public class SmsTransactionHandler {
             if (ccSpendMatcher.find()) {
                 double amount = Double.parseDouble(ccSpendMatcher.group(1).replace(",", ""));
                 String merchant = ccSpendMatcher.group(2).trim();
-                Log.d(TAG, "Found Credit Card spend: " + amount + " at " + merchant);
+                Log.d(TAG, "Found Credit Card spend");
 
                 return new Transaction(
                         amount,
@@ -505,7 +505,7 @@ public class SmsTransactionHandler {
             if (iciciAltDebitMatcher.find()) {
                 double amount = Double.parseDouble(iciciAltDebitMatcher.group(1).replace(",", ""));
                 String receiver = iciciAltDebitMatcher.group(3).trim();
-                Log.d(TAG, "Found ICICI alt debit: " + amount + " to " + receiver);
+                Log.d(TAG, "Found ICICI alt debit");
 
                 return new Transaction(
                         amount,
@@ -521,7 +521,7 @@ public class SmsTransactionHandler {
             if (neftCreditByMatcher.find()) {
                 double amount = Double.parseDouble(neftCreditByMatcher.group(1).replace(",", ""));
                 String senderName = neftCreditByMatcher.group(2).trim();
-                Log.d(TAG, "Found NEFT credit by sender: " + amount + " from " + senderName);
+                Log.d(TAG, "Found NEFT credit by sender");
 
                 return new Transaction(
                         amount,
@@ -538,7 +538,7 @@ public class SmsTransactionHandler {
                 double amount = Double.parseDouble(iciciNeftDebitMatcher.group(1).replace(",", ""));
                 String ref = iciciNeftDebitMatcher.group(3).trim();
                 String receiver = "NEFT-" + ref;
-                Log.d(TAG, "Found ICICI NEFT debit: " + amount + " to " + receiver);
+                Log.d(TAG, "Found ICICI NEFT debit");
 
                 return new Transaction(
                         amount,
@@ -550,7 +550,7 @@ public class SmsTransactionHandler {
                         sender);
             }
 
-            Log.d(TAG, "No transaction pattern matched in SMS:" + smsBody);
+            Log.d(TAG, "No transaction pattern matched in SMS");
         } catch (Exception e) {
             Log.e(TAG, "Error processing SMS: " + e.getMessage(), e);
         }
@@ -572,7 +572,6 @@ public class SmsTransactionHandler {
             Date date, String source) {
         Log.d(TAG, "Processing SMS from: " + sender + " via " + source);
         Log.d(TAG, "SMS body length: " + (smsBody != null ? smsBody.length() : 0));
-        Log.d(TAG, "Full SMS body: [" + smsBody + "]");
 
         try {
             Transaction transaction = extractTransactionDetails(smsBody, sender);
@@ -580,11 +579,9 @@ public class SmsTransactionHandler {
                 if (date != null) {
                     transaction.setDate(date);
                 }
-                Log.d(TAG, "Transaction extracted: " + transaction.getAmount() + " " +
-                        transaction.getTransactionType() + " to/from " + transaction.getReceiverName());
+                Log.d(TAG, "Transaction extracted: " + transaction.getTransactionType());
                 Log.d(TAG, "Transaction SMS body length: "
                         + (transaction.getSmsBody() != null ? transaction.getSmsBody().length() : 0));
-                Log.d(TAG, "Transaction SMS body: [" + transaction.getSmsBody() + "]");
 
                 applyKeys(transaction, source);
                 transaction.setDedupKey(TransactionKeys.bodyKey(smsBody));
@@ -636,6 +633,7 @@ public class SmsTransactionHandler {
 
     private static void applyKeys(Transaction transaction, String source) {
         transaction.setSource(source);
+        transaction.setNeedsReview(!transaction.isExcludedFromSummary());
         transaction.setMessageTime(transaction.getDate().getTime());
         transaction.setMatchKey(TransactionKeys.matchKey(transaction.getAmount(),
                 transaction.getTransactionType(), transaction.getReceiverName()));

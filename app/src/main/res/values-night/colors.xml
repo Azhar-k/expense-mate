@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="background">#0F1513</color>
+    <color name="surface">#18211D</color>
+    <color name="surface_variant">#222D28</color>
+    <color name="on_surface">#E6EEE9</color>
+    <color name="on_surface_variant">#9BABA3</color>
+    <color name="outline">#2C3833</color>
+    <color name="primary">#6FD6BC</color>
+    <color name="on_primary">#00382D</color>
+    <color name="primary_container">#12463A</color>
+    <color name="on_primary_container">#CFEDE3</color>
+    <color name="credit">#6FD79B</color>
+    <color name="alert">#F2A195</color>
+    <color name="alert_container">#4A211B</color>
+    <color name="warning">#E9C274</color>
+    <color name="warning_container">#3D2F10</color>
+    <color name="transfer">#A9BEF2</color>
+    <color name="transfer_container">#1F2C4A</color>
+    <color name="chart_1">#6FD6BC</color>
+    <color name="chart_2">#7EC0E8</color>
+    <color name="chart_3">#E8B468</color>
+    <color name="chart_4">#E39DBF</color>
+    <color name="chart_other">#67756F</color>
+</resources>

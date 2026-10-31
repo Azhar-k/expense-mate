@@ -158,14 +158,14 @@ public class SmsMonitorService extends Service {
         return new NotificationCompat.Builder(this, CHANNEL_ID)
                 .setContentTitle("Expense Mate")
                 .setContentText("Monitoring SMS for transactions")
-                .setSmallIcon(R.drawable.ic_menu_transactions)
+                .setSmallIcon(R.drawable.ic_activity)
                 .setContentIntent(pendingIntent)
                 .build();
     }
 
     private void processSms(String smsBody, String sender) {
         executorService.execute(() -> {
-            Log.d(TAG, "Processing SMS automatically: " + smsBody);
+            Log.d(TAG, "Processing SMS automatically");
             SmsTransactionHandler.handleSms(smsBody, sender, transactionViewModel, null,
                     TransactionKeys.SOURCE_SMS_BROADCAST);
             prefs.edit().putLong(PREF_LAST_SMS_TIME, System.currentTimeMillis()).apply();

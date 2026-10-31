@@ -2,151 +2,136 @@ package com.example.expensemate;
 
 import android.Manifest;
 import android.content.ComponentName;
+import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.provider.Settings;
 import android.util.Log;
-import android.view.MenuItem;
 import android.view.View;
 import androidx.annotation.NonNull;
-import androidx.appcompat.app.ActionBarDrawerToggle;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.appcompat.app.AlertDialog;
-import androidx.appcompat.widget.Toolbar;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
-import androidx.core.view.GravityCompat;
-import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.navigation.NavController;
-import androidx.navigation.NavDestination;
 import androidx.navigation.fragment.NavHostFragment;
+import androidx.navigation.ui.AppBarConfiguration;
 import androidx.navigation.ui.NavigationUI;
-import androidx.fragment.app.Fragment;
 
-import com.example.expensemate.ui.accounts.AccountDetailsFragment;
-import com.google.android.material.bottomnavigation.BottomNavigationView;
-import com.google.android.material.navigation.NavigationView;
-import com.example.expensemate.service.SmsMonitorService;
 import com.example.expensemate.service.RcsNotificationListenerService;
-import android.widget.Toast;
+import com.example.expensemate.service.SmsMonitorService;
+import com.google.android.material.appbar.MaterialToolbar;
+import com.google.android.material.bottomnavigation.BottomNavigationView;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
-public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
+public class MainActivity extends AppCompatActivity {
     private static final String TAG = "MainActivity";
     private static final int SMS_PERMISSION_REQUEST_CODE = 123;
     private static final int FOREGROUND_SERVICE_PERMISSION_REQUEST_CODE = 124;
-    private DrawerLayout drawerLayout;
-    private ActionBarDrawerToggle drawerToggle;
+    private static final String PREFS = "main_activity";
+    private static final String PREF_NOTIFICATION_ACCESS_ASKED = "notification_access_asked";
+    private static final String PREF_SMS_EXPLAINED = "sms_explained";
+
     private BottomNavigationView bottomNavView;
-    private NavigationView navigationView;
-    private boolean notificationDialogShown = false;
+    private NavController navController;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        // Set up toolbar
-        Toolbar toolbar = findViewById(R.id.toolbar);
+        MaterialToolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
-        getSupportActionBar().setTitle("Expense Mate");
 
-        // Set up drawer
-        drawerLayout = findViewById(R.id.drawer_layout);
-        navigationView = findViewById(R.id.nav_view_drawer);
-        navigationView.setNavigationItemSelectedListener(this);
-
-        // Set up drawer toggle
-        drawerToggle = new ActionBarDrawerToggle(
-                this,
-                drawerLayout,
-                toolbar,
-                R.string.navigation_drawer_open,
-                R.string.navigation_drawer_close);
-        drawerLayout.addDrawerListener(drawerToggle);
-        drawerToggle.syncState();
-
-        // Set up navigation
         NavHostFragment navHostFragment = (NavHostFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.nav_host_fragment);
-        if (navHostFragment != null) {
-            NavController navController = navHostFragment.getNavController();
-            bottomNavView = findViewById(R.id.nav_view);
-            NavigationUI.setupWithNavController(bottomNavView, navController);
+        navController = navHostFragment.getNavController();
+        bottomNavView = findViewById(R.id.nav_view);
+        NavigationUI.setupWithNavController(bottomNavView, navController);
 
-            // Add navigation listener to handle bottom nav visibility and drawer selection
-            navController.addOnDestinationChangedListener((controller, destination, arguments) -> {
-                if (destination.getId() == R.id.navigation_categories ||
-                        destination.getId() == R.id.navigation_recurring_payments ||
-                        destination.getId() == R.id.navigation_sms_scan ||
-                        destination.getId() == R.id.navigation_self_transfer ||
-                        destination.getId() == R.id.navigation_settings) {
-                    bottomNavView.setVisibility(View.GONE);
-                    if (destination.getId() == R.id.navigation_categories) {
-                        navigationView.setCheckedItem(R.id.nav_categories);
-                    } else if (destination.getId() == R.id.navigation_sms_scan) {
-                        navigationView.setCheckedItem(R.id.nav_sms_scan);
-                    } else if (destination.getId() == R.id.navigation_self_transfer) {
-                        navigationView.setCheckedItem(R.id.nav_self_transfer);
-                    } else if (destination.getId() == R.id.navigation_settings) {
-                        navigationView.setCheckedItem(R.id.nav_settings);
-                    } else {
-                        navigationView.setCheckedItem(R.id.nav_recurring_payments);
-                    }
-                } else {
-                    bottomNavView.setVisibility(View.VISIBLE);
-                    if (destination.getId() == R.id.navigation_summary) {
-                        navigationView.setCheckedItem(R.id.nav_home);
-                    } else if (destination.getId() == R.id.navigation_transactions) {
-                        navigationView.setCheckedItem(R.id.nav_home);
-                    } else if (destination.getId() == R.id.navigation_accounts) {
-                        navigationView.setCheckedItem(R.id.nav_home);
-                    }
-                }
-            });
-        }
+        AppBarConfiguration appBarConfiguration = new AppBarConfiguration.Builder(
+                R.id.navigation_home, R.id.navigation_activity, R.id.navigation_bills, R.id.navigation_accounts)
+                .build();
+        NavigationUI.setupActionBarWithNavController(this, navController, appBarConfiguration);
 
-        // Check and request permissions
-        checkAndRequestPermissions();
-        // Check Notification Access permission for RCS listening
-        checkNotificationListenerPermission();
+        // Tabs are for the four main screens; anything deeper gets a back arrow instead
+        navController.addOnDestinationChangedListener((controller, destination, arguments) -> {
+            int id = destination.getId();
+            boolean topLevel = id == R.id.navigation_home || id == R.id.navigation_activity
+                    || id == R.id.navigation_bills || id == R.id.navigation_accounts;
+            bottomNavView.setVisibility(topLevel ? View.VISIBLE : View.GONE);
+        });
+
+        startCaptureSetup();
     }
 
     @Override
-    protected void onResume() {
-        super.onResume();
-        // Re-check notification listener permission in case user just came back from Settings
-        checkNotificationListenerPermission();
+    public boolean onSupportNavigateUp() {
+        return navController.navigateUp() || super.onSupportNavigateUp();
+    }
+
+    public void openTab(int tabId) {
+        bottomNavView.setSelectedItemId(tabId);
+    }
+
+    /** Anchors snackbars above the tabs when they are showing. */
+    public View snackbarAnchor() {
+        return bottomNavView.getVisibility() == View.VISIBLE ? bottomNavView : null;
+    }
+
+    public static boolean hasSmsPermission(Context context) {
+        return ContextCompat.checkSelfPermission(context, Manifest.permission.RECEIVE_SMS)
+                == PackageManager.PERMISSION_GRANTED
+                && ContextCompat.checkSelfPermission(context, Manifest.permission.READ_SMS)
+                        == PackageManager.PERMISSION_GRANTED;
+    }
+
+    public static boolean isNotificationListenerEnabled(Context context) {
+        ComponentName cn = new ComponentName(context, RcsNotificationListenerService.class);
+        String flat = Settings.Secure.getString(context.getContentResolver(), "enabled_notification_listeners");
+        return flat != null && flat.contains(cn.flattenToString());
+    }
+
+    private SharedPreferences prefs() {
+        return getSharedPreferences(PREFS, MODE_PRIVATE);
+    }
+
+    // On first launch, explain why before the system asks. After that the app does not
+    // nag: Settings shows what is off and how to turn it on.
+    private void startCaptureSetup() {
+        if (hasSmsPermission(this)) {
+            checkAndRequestPermissions();
+            askForNotificationAccessOnce();
+        } else if (!prefs().getBoolean(PREF_SMS_EXPLAINED, false)) {
+            prefs().edit().putBoolean(PREF_SMS_EXPLAINED, true).apply();
+            new MaterialAlertDialogBuilder(this)
+                    .setTitle("Track payments automatically")
+                    .setMessage("Expense Mate reads bank messages on your phone to record transactions. "
+                            + "Messages stay on this device unless you back them up to your own Google Drive.")
+                    .setPositiveButton("Continue", (dialog, which) -> requestSmsPermission())
+                    .setNegativeButton("Not now", (dialog, which) -> askForNotificationAccessOnce())
+                    .show();
+        }
+    }
+
+    public void requestSmsPermission() {
+        ActivityCompat.requestPermissions(this,
+                new String[] { Manifest.permission.RECEIVE_SMS, Manifest.permission.READ_SMS },
+                SMS_PERMISSION_REQUEST_CODE);
     }
 
     private void checkAndRequestPermissions() {
-        // Check SMS permissions
-        if (ContextCompat.checkSelfPermission(this,
-                Manifest.permission.RECEIVE_SMS) != PackageManager.PERMISSION_GRANTED ||
-                ContextCompat.checkSelfPermission(this,
-                        Manifest.permission.READ_SMS) != PackageManager.PERMISSION_GRANTED) {
+        // Check foreground service data sync permission for Android 14+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE
+                && ContextCompat.checkSelfPermission(this, Manifest.permission.FOREGROUND_SERVICE_DATA_SYNC)
+                        != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this,
-                    new String[] {
-                            Manifest.permission.RECEIVE_SMS,
-                            Manifest.permission.READ_SMS
-                    },
-                    SMS_PERMISSION_REQUEST_CODE);
+                    new String[] { Manifest.permission.FOREGROUND_SERVICE_DATA_SYNC },
+                    FOREGROUND_SERVICE_PERMISSION_REQUEST_CODE);
             return;
         }
-
-        // Check foreground service data sync permission for Android 14+
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            if (ContextCompat.checkSelfPermission(this,
-                    Manifest.permission.FOREGROUND_SERVICE_DATA_SYNC) != PackageManager.PERMISSION_GRANTED) {
-                ActivityCompat.requestPermissions(this,
-                        new String[] { Manifest.permission.FOREGROUND_SERVICE_DATA_SYNC },
-                        FOREGROUND_SERVICE_PERMISSION_REQUEST_CODE);
-                return;
-            }
-        }
-
-        // If all permissions are granted, start the service
         startSmsMonitorService();
     }
 
@@ -156,68 +141,14 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
 
         if (requestCode == SMS_PERMISSION_REQUEST_CODE) {
-            boolean allGranted = true;
-            for (int result : grantResults) {
-                if (result != PackageManager.PERMISSION_GRANTED) {
-                    allGranted = false;
-                    break;
-                }
-            }
-            if (allGranted) {
-                // All SMS permissions granted, check for foreground service permission
+            if (hasSmsPermission(this)) {
                 checkAndRequestPermissions();
-            } else {
-                Toast.makeText(this, "SMS permissions are required for the app to function properly",
-                        Toast.LENGTH_LONG).show();
             }
+            askForNotificationAccessOnce();
         } else if (requestCode == FOREGROUND_SERVICE_PERMISSION_REQUEST_CODE) {
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                // Foreground service permission granted, start the service
                 startSmsMonitorService();
             }
-        }
-    }
-
-    @Override
-    public boolean onNavigationItemSelected(@NonNull MenuItem item) {
-        int id = item.getItemId();
-
-        // Get the current fragment
-        NavHostFragment navHostFragment = (NavHostFragment) getSupportFragmentManager()
-                .findFragmentById(R.id.nav_host_fragment);
-        if (navHostFragment != null) {
-            NavController navController = navHostFragment.getNavController();
-            navigateToDestination(id, navController);
-        }
-
-        drawerLayout.closeDrawer(GravityCompat.START);
-        return true;
-    }
-
-    private void navigateToDestination(int id, NavController navController) {
-        if (id == R.id.nav_home) {
-            navController.navigate(R.id.navigation_summary);
-        } else if (id == R.id.nav_categories) {
-            navController.navigate(R.id.navigation_categories);
-        } else if (id == R.id.nav_self_transfer) {
-            navController.navigate(R.id.navigation_self_transfer);
-        } else if (id == R.id.nav_sms_scan) {
-            navController.navigate(R.id.navigation_sms_scan);
-        } else if (id == R.id.nav_recurring_payments) {
-            navController.navigate(R.id.navigation_recurring_payments);
-        } else if (id == R.id.nav_settings) {
-            navController.navigate(R.id.navigation_settings);
-        } else if (id == R.id.nav_about) {
-            // TODO: Handle about
-        }
-    }
-
-    @Override
-    public void onBackPressed() {
-        if (drawerLayout.isDrawerOpen(GravityCompat.START)) {
-            drawerLayout.closeDrawer(GravityCompat.START);
-        } else {
-            super.onBackPressed();
         }
     }
 
@@ -227,42 +158,18 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         Log.d(TAG, "SMS Monitor Service started");
     }
 
-    /**
-     * Checks whether Notification Access is granted for RcsNotificationListenerService.
-     * If not, shows a one-time dialog prompting the user to enable it.
-     */
-    private void checkNotificationListenerPermission() {
-        if (!isNotificationListenerEnabled()) {
-            Log.w(TAG, "Notification Access NOT granted. RCS auto-read will not work.");
-            if (!notificationDialogShown) {
-                notificationDialogShown = true;
-                new AlertDialog.Builder(this)
-                        .setTitle("Enable Notification Access")
-                        .setMessage(
-                                "Expense Mate needs Notification Access to automatically detect " +
-                                "RCS Business transactions from your bank messages.\n\n" +
-                                "Tap \"Open Settings\", find \"Expense Mate\" in the list and enable it.")
-                        .setPositiveButton("Open Settings", (dialog, which) -> {
-                            notificationDialogShown = false; // allow re-prompt if denied again
-                            Intent intent = new Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS);
-                            startActivity(intent);
-                        })
-                        .setNegativeButton("Not Now", null)
-                        .show();
-            }
-        } else {
-            notificationDialogShown = false; // reset so prompt shows if permission is later revoked
-            Log.d(TAG, "Notification Access is granted. RcsNotificationListenerService is active.");
+    private void askForNotificationAccessOnce() {
+        if (isNotificationListenerEnabled(this) || prefs().getBoolean(PREF_NOTIFICATION_ACCESS_ASKED, false)) {
+            return;
         }
-    }
-
-    /**
-     * Returns true if RcsNotificationListenerService has been granted Notification Access.
-     */
-    private boolean isNotificationListenerEnabled() {
-        ComponentName cn = new ComponentName(this, RcsNotificationListenerService.class);
-        String flat = Settings.Secure.getString(
-                getContentResolver(), "enabled_notification_listeners");
-        return flat != null && flat.contains(cn.flattenToString());
+        prefs().edit().putBoolean(PREF_NOTIFICATION_ACCESS_ASKED, true).apply();
+        new MaterialAlertDialogBuilder(this)
+                .setTitle("Catch RCS bank messages too")
+                .setMessage("Some banks send RCS chats instead of SMS. Notification access lets Expense Mate "
+                        + "see those. You can change this any time in Settings.")
+                .setPositiveButton("Open settings",
+                        (dialog, which) -> startActivity(new Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)))
+                .setNegativeButton("Not now", null)
+                .show();
     }
 }

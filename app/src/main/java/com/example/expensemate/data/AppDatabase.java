@@ -18,7 +18,7 @@ import java.util.List;
 
 import androidx.annotation.NonNull;
 
-@Database(entities = {Transaction.class, Category.class, RecurringPayment.class, Account.class}, version = 7, exportSchema = false)
+@Database(entities = {Transaction.class, Category.class, RecurringPayment.class, Account.class}, version = 8, exportSchema = false)
 @TypeConverters(Converters.class)
 public abstract class AppDatabase extends RoomDatabase {
     private static volatile AppDatabase INSTANCE;
@@ -197,6 +197,29 @@ public abstract class AppDatabase extends RoomDatabase {
         }
     };
 
+    static final Migration MIGRATION_7_8 = new Migration(7, 8) {
+        @Override
+        public void migrate(SupportSQLiteDatabase database) {
+            database.execSQL("ALTER TABLE transactions ADD COLUMN transferGroupId TEXT");
+            database.execSQL("ALTER TABLE transactions ADD COLUMN needsReview INTEGER NOT NULL DEFAULT 0");
+            database.execSQL("CREATE INDEX IF NOT EXISTS `index_transactions_transferGroupId` "
+                    + "ON `transactions` (`transferGroupId`)");
+
+            int linked = Transfers.linkLegacyPairs(database);
+            Log.i("AppDatabase", "Linked " + linked + " existing transfers");
+
+            // Recent captured rows that never got a category start in the review list. Older
+            // ones stay out of it, so the first launch does not open with years of chores.
+            long reviewFrom = System.currentTimeMillis() - REVIEW_BACKFILL_MS;
+            database.execSQL("UPDATE transactions SET needsReview = 1 WHERE category = 'Default' "
+                            + "AND source IS NOT NULL AND isExcludedFromSummary = 0 AND transferGroupId IS NULL "
+                            + "AND date >= ?",
+                    new Object[] { reviewFrom });
+        }
+    };
+
+    private static final long REVIEW_BACKFILL_MS = 30L * 24 * 60 * 60 * 1000;
+
     public abstract TransactionDao transactionDao();
     public abstract CategoryDao categoryDao();
     public abstract RecurringPaymentDao recurringPaymentDao();
@@ -234,8 +257,7 @@ public abstract class AppDatabase extends RoomDatabase {
                 if (INSTANCE == null) {
                     INSTANCE = Room.databaseBuilder(context.getApplicationContext(),
                             AppDatabase.class, "expense_mate_database")
-                            .addMigrations(INITIAL_MIGRATION, MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
-                            .fallbackToDestructiveMigration()
+                            .addMigrations(INITIAL_MIGRATION, MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
                             .addCallback(new RoomDatabase.Callback() {
                                 @Override
                                 public void onCreate(@NonNull SupportSQLiteDatabase db) {

@@ -1,268 +1,158 @@
 package com.example.expensemate.ui.accounts;
 
-import android.app.DatePickerDialog;
-import android.app.AlertDialog;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Toast;
+import android.widget.PopupMenu;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
-import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
+import androidx.navigation.fragment.NavHostFragment;
 
 import com.example.expensemate.R;
 import com.example.expensemate.data.Account;
-import com.example.expensemate.databinding.DialogEditAccountBinding;
-import com.example.expensemate.ui.common.BaseDialogHelper;
+import com.example.expensemate.data.AccountBalance;
+import com.example.expensemate.databinding.FragmentAccountsBinding;
+import com.example.expensemate.databinding.ItemAccountBinding;
+import com.example.expensemate.ui.common.Ui;
+import com.example.expensemate.util.Money;
 import com.example.expensemate.viewmodel.AccountViewModel;
-import com.google.android.material.floatingactionbutton.FloatingActionButton;
-import com.google.android.material.textfield.TextInputEditText;
+import com.example.expensemate.viewmodel.TransactionViewModel;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
-import java.text.SimpleDateFormat;
-import java.util.Calendar;
-import java.util.Date;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
-public class AccountsFragment extends Fragment implements AccountsAdapter.OnAccountClickListener {
+public class AccountsFragment extends Fragment {
+    private FragmentAccountsBinding binding;
     private AccountViewModel accountViewModel;
-    private AccountsAdapter adapter;
-    private SimpleDateFormat dateFormat;
-    private Calendar calendar;
-
-    private com.example.expensemate.viewmodel.TransactionViewModel transactionViewModel;
-    private android.widget.TextView tvNetBalance;
-
-    @Override
-    public void onCreate(@Nullable Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        dateFormat = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
-        calendar = Calendar.getInstance();
-    }
+    private List<Account> accounts = new ArrayList<>();
+    private Map<Long, Double> balances = new HashMap<>();
 
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
             @Nullable Bundle savedInstanceState) {
-        View view = inflater.inflate(R.layout.fragment_accounts, container, false);
+        binding = FragmentAccountsBinding.inflate(inflater, container, false);
+        return binding.getRoot();
+    }
 
-        tvNetBalance = view.findViewById(R.id.tvNetBalance);
-        view.findViewById(R.id.btnNetBalanceInfo).setOnClickListener(v -> showNetBalanceInfoDialog());
+    @Override
+    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+        ViewModelProvider provider = new ViewModelProvider(requireActivity());
+        accountViewModel = provider.get(AccountViewModel.class);
+        TransactionViewModel transactionViewModel = provider.get(TransactionViewModel.class);
 
-        RecyclerView recyclerView = view.findViewById(R.id.rvAccounts);
-        recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
-        adapter = new AccountsAdapter(this);
-        recyclerView.setAdapter(adapter);
+        binding.fabAdd.setOnClickListener(v -> AccountForm.show(requireActivity(), null));
+        binding.btnInfo.setOnClickListener(v -> new MaterialAlertDialogBuilder(requireContext())
+                .setTitle("Net balance")
+                .setMessage("Total income minus total expenses across all your accounts. "
+                        + "Transactions you've left out of the summary don't count, and transfers between "
+                        + "your own accounts cancel out.")
+                .setPositiveButton("OK", null)
+                .show());
 
-        FloatingActionButton fabAddAccount = view.findViewById(R.id.fabAddAccount);
-        fabAddAccount.setOnClickListener(v -> showAddAccountDialog());
-
-        accountViewModel = new ViewModelProvider(this).get(AccountViewModel.class);
-        transactionViewModel = new ViewModelProvider(requireActivity())
-                .get(com.example.expensemate.viewmodel.TransactionViewModel.class);
-
-        accountViewModel.getAllAccounts().observe(getViewLifecycleOwner(), accounts -> {
-            adapter.submitList(accounts);
+        accountViewModel.getAllAccounts().observe(getViewLifecycleOwner(), list -> {
+            accounts = list;
+            render();
         });
-
-        accountViewModel.getDefaultAccount().observe(getViewLifecycleOwner(), defaultAccount -> {
-            adapter.setDefaultAccount(defaultAccount);
-        });
-
-        transactionViewModel.getNetBalance().observe(getViewLifecycleOwner(), balance -> {
-            if (balance != null) {
-                tvNetBalance.setText(String.format("₹%.2f", balance));
-                tvNetBalance.setTextColor(requireContext().getColor(
-                        balance >= 0 ? R.color.credit_color : R.color.debit_color));
+        transactionViewModel.getAccountBalances().observe(getViewLifecycleOwner(), list -> {
+            Map<Long, Double> updated = new HashMap<>();
+            for (AccountBalance balance : list) {
+                updated.put(balance.accountId, balance.balance);
             }
+            balances = updated;
+            render();
         });
-
-        return view;
+        transactionViewModel.getNetBalance().observe(getViewLifecycleOwner(), balance -> {
+            double value = balance != null ? balance : 0;
+            binding.tvNetBalance.setText(Money.format(value));
+            binding.tvNetBalance.setTextColor(requireContext().getColor(value < 0 ? R.color.alert : R.color.on_surface));
+        });
     }
 
-    private void showAddAccountDialog() {
-        DialogEditAccountBinding dialogBinding = DialogEditAccountBinding.inflate(getLayoutInflater());
-
-        dialogBinding.etExpiryDate.setOnClickListener(v -> showDatePicker(dialogBinding.etExpiryDate));
-
-        BaseDialogHelper dialogHelper = new BaseDialogHelper(
-                requireContext(),
-                "Add Account",
-                dialogBinding.getRoot(),
-                "Save",
-                "Cancel",
-                new BaseDialogHelper.OnDialogButtonClickListener() {
-                    @Override
-                    public void onPositiveButtonClick(AlertDialog dialog) {
-                        String name = dialogBinding.etAccountName.getText().toString().trim();
-                        if (name.isEmpty()) {
-                            dialogBinding.tilAccountName.setError("Name is required");
-                            return;
-                        }
-
-                        String number = dialogBinding.etAccountNumber.getText().toString().trim();
-                        String bank = dialogBinding.etBank.getText().toString().trim();
-                        String description = dialogBinding.etDescription.getText().toString().trim();
-                        Date expiryDate = null;
-                        try {
-                            String expiryStr = dialogBinding.etExpiryDate.getText().toString().trim();
-                            if (!expiryStr.isEmpty()) {
-                                expiryDate = dateFormat.parse(expiryStr);
-                            }
-                        } catch (Exception e) {
-                            dialogBinding.tilExpiryDate.setError("Invalid date format");
-                            return;
-                        }
-
-                        Account account = new Account(name, number, bank, expiryDate, description);
-                        accountViewModel.insert(account);
-                        Toast.makeText(getContext(), "Account added", Toast.LENGTH_SHORT).show();
-                        dialog.dismiss();
-                    }
-
-                    @Override
-                    public void onNegativeButtonClick(AlertDialog dialog) {
-                        dialog.dismiss();
-                    }
-                });
-
-        dialogHelper.create().show();
-    }
-
-    private void showEditAccountDialog(Account account) {
-        DialogEditAccountBinding dialogBinding = DialogEditAccountBinding.inflate(getLayoutInflater());
-
-        dialogBinding.etAccountName.setText(account.getName());
-        dialogBinding.etAccountNumber.setText(account.getAccountNumber());
-        dialogBinding.etBank.setText(account.getBank());
-        if (account.getExpiryDate() != null) {
-            dialogBinding.etExpiryDate.setText(dateFormat.format(account.getExpiryDate()));
+    private void render() {
+        binding.listAccounts.removeAllViews();
+        for (int i = 0; i < accounts.size(); i++) {
+            binding.listAccounts.addView(buildRow(accounts.get(i), i == 0, i == accounts.size() - 1));
         }
-        dialogBinding.etDescription.setText(account.getDescription());
-
-        dialogBinding.etExpiryDate.setOnClickListener(v -> showDatePicker(dialogBinding.etExpiryDate));
-
-        BaseDialogHelper dialogHelper = new BaseDialogHelper(
-                requireContext(),
-                "Edit Account",
-                dialogBinding.getRoot(),
-                "Save",
-                "Cancel",
-                new BaseDialogHelper.OnDialogButtonClickListener() {
-                    @Override
-                    public void onPositiveButtonClick(AlertDialog dialog) {
-                        String name = dialogBinding.etAccountName.getText().toString().trim();
-                        if (name.isEmpty()) {
-                            dialogBinding.tilAccountName.setError("Name is required");
-                            return;
-                        }
-
-                        String number = dialogBinding.etAccountNumber.getText().toString().trim();
-                        String bank = dialogBinding.etBank.getText().toString().trim();
-                        String description = dialogBinding.etDescription.getText().toString().trim();
-                        Date expiryDate = null;
-                        try {
-                            String expiryStr = dialogBinding.etExpiryDate.getText().toString().trim();
-                            if (!expiryStr.isEmpty()) {
-                                expiryDate = dateFormat.parse(expiryStr);
-                            }
-                        } catch (Exception e) {
-                            dialogBinding.tilExpiryDate.setError("Invalid date format");
-                            return;
-                        }
-
-                        account.setName(name);
-                        account.setAccountNumber(number);
-                        account.setBank(bank);
-                        account.setExpiryDate(expiryDate);
-                        account.setDescription(description);
-                        accountViewModel.update(account);
-                        Toast.makeText(getContext(), "Account updated", Toast.LENGTH_SHORT).show();
-                        dialog.dismiss();
-                    }
-
-                    @Override
-                    public void onNegativeButtonClick(AlertDialog dialog) {
-                        dialog.dismiss();
-                    }
-                });
-
-        dialogHelper.create().show();
     }
 
-    private void showDatePicker(TextInputEditText expiryInput) {
-        DatePickerDialog datePickerDialog = new DatePickerDialog(
-                requireContext(),
-                (view, year, month, dayOfMonth) -> {
-                    calendar.set(year, month, dayOfMonth);
-                    expiryInput.setText(dateFormat.format(calendar.getTime()));
-                },
-                calendar.get(Calendar.YEAR),
-                calendar.get(Calendar.MONTH),
-                calendar.get(Calendar.DAY_OF_MONTH));
-        datePickerDialog.show();
-    }
+    private View buildRow(Account account, boolean first, boolean last) {
+        ItemAccountBinding row = ItemAccountBinding.inflate(getLayoutInflater(), binding.listAccounts, false);
+        row.getRoot().setBackgroundResource(first && last ? R.drawable.bg_row_single
+                : first ? R.drawable.bg_row_top : last ? R.drawable.bg_row_bottom : R.drawable.bg_row_middle);
+        row.divider.setVisibility(last ? View.GONE : View.VISIBLE);
 
-    @Override
-    public void onEditClick(Account account) {
-        showEditAccountDialog(account);
-    }
-
-    @Override
-    public void onDeleteClick(Account account) {
+        row.tvName.setText(account.getName());
+        row.tvInitials.setText(initials(account.getName()));
+        String detail = AccountForm.detailLine(account);
+        row.tvDetail.setText(detail);
+        row.tvDetail.setVisibility(detail.isEmpty() ? View.GONE : View.VISIBLE);
         if (account.isDefault()) {
-            Toast.makeText(getContext(), "Cannot delete default account", Toast.LENGTH_SHORT).show();
-            return;
+            Ui.styleTag(row.tvDefault, "Default", R.color.primary_container, R.color.on_primary_container);
         }
 
-        BaseDialogHelper dialogHelper = new BaseDialogHelper(
-                requireContext(),
-                "Delete Account",
-                null,
-                "Delete",
-                "Cancel",
-                new BaseDialogHelper.OnDialogButtonClickListener() {
-                    @Override
-                    public void onPositiveButtonClick(AlertDialog dialog) {
-                        accountViewModel.delete(account);
-                        Toast.makeText(getContext(), "Account deleted", Toast.LENGTH_SHORT).show();
-                        dialog.dismiss();
-                    }
+        Double balance = balances.get(account.getId());
+        double value = balance != null ? balance : 0;
+        row.tvBalance.setText(Money.format(value));
+        row.tvBalance.setTextColor(requireContext().getColor(value < 0 ? R.color.alert : R.color.on_surface));
 
-                    @Override
-                    public void onNegativeButtonClick(AlertDialog dialog) {
-                        dialog.dismiss();
-                    }
-                });
+        row.getRoot().setOnClickListener(v -> {
+            Bundle args = new Bundle();
+            args.putLong("accountId", account.getId());
+            NavHostFragment.findNavController(this).navigate(R.id.account_details_fragment, args);
+        });
+        row.getRoot().setOnLongClickListener(v -> {
+            showMenu(v, account);
+            return true;
+        });
+        return row.getRoot();
+    }
 
-        dialogHelper.setMessage("Are you sure you want to delete this account?");
-        dialogHelper.create().show();
+    private void showMenu(View anchor, Account account) {
+        PopupMenu menu = new PopupMenu(requireContext(), anchor);
+        menu.getMenu().add(Menu.EDIT, Menu.EDIT, 0, "Edit");
+        if (!account.isDefault()) {
+            menu.getMenu().add(Menu.SET_DEFAULT, Menu.SET_DEFAULT, 1, "Set as default");
+        }
+        menu.getMenu().add(Menu.DELETE, Menu.DELETE, 2, "Delete");
+        menu.setOnMenuItemClickListener(item -> {
+            if (item.getItemId() == Menu.EDIT) {
+                AccountForm.show(requireActivity(), account);
+            } else if (item.getItemId() == Menu.SET_DEFAULT) {
+                accountViewModel.setDefaultAccount(account.getId());
+            } else {
+                AccountForm.confirmDelete(requireActivity(), account, null);
+            }
+            return true;
+        });
+        menu.show();
+    }
+
+    private static String initials(String name) {
+        String[] words = name.trim().split("\\s+");
+        String letters = words.length > 1
+                ? words[0].substring(0, 1) + words[1].substring(0, 1)
+                : name.trim().substring(0, Math.min(2, name.trim().length()));
+        return letters.toUpperCase(Locale.getDefault());
     }
 
     @Override
-    public void onSetDefaultClick(Account account) {
-        accountViewModel.setDefaultAccount(account.getId());
-        Toast.makeText(getContext(), "Default account updated", Toast.LENGTH_SHORT).show();
+    public void onDestroyView() {
+        super.onDestroyView();
+        binding = null;
     }
 
-    @Override
-    public void onAccountClick(Account account) {
-        Bundle args = new Bundle();
-        args.putLong("accountId", account.getId());
-        androidx.navigation.Navigation.findNavController(requireView())
-                .navigate(R.id.account_details_fragment, args);
-    }
-
-    private void showNetBalanceInfoDialog() {
-        new AlertDialog.Builder(requireContext())
-                .setTitle("Net Balance")
-                .setMessage(
-                        "Net Balance is calculated as:\n\nTotal Income (All Accounts)\n- Total Expense (All Accounts)\n\nTransactions excluded from summary have not been considered for balance calculation.\n\nThis gives you a complete picture of your financial standing across all your accounts.")
-                .setPositiveButton("OK", (dialog, which) -> dialog.dismiss())
-                .show();
+    private static final class Menu {
+        static final int EDIT = 1;
+        static final int SET_DEFAULT = 2;
+        static final int DELETE = 3;
     }
 }

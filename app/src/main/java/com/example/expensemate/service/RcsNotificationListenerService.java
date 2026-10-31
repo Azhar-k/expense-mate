@@ -110,7 +110,7 @@ public class RcsNotificationListenerService extends NotificationListenerService 
         try {
             amount = Double.parseDouble(amountStr);
         } catch (NumberFormatException e) {
-            Log.w(TAG, "Truecaller RCS: could not parse amount from title=[" + title + "]");
+            Log.w(TAG, "Truecaller RCS: could not parse amount");
             return;
         }
 
@@ -125,14 +125,11 @@ public class RcsNotificationListenerService extends NotificationListenerService 
 
         SmsTransactionHandler.TransactionResult result = SmsTransactionHandler.handleTruecallerAlert(
                 amount, merchant, text, sender, transactionViewModel, new Date(messageTime));
-        Log.d(TAG, "Truecaller RCS | Amount=" + amount + " | Sender=[" + sender + "] | Merchant=[" + merchant
-                + "] | " + result.reason);
+        Log.d(TAG, "Truecaller RCS: " + result.reason);
     }
 
     private void processBody(String body, String sender, Date date) {
         if (body == null || body.trim().isEmpty()) return;
-        Log.d(TAG, "Passing to SmsTransactionHandler | Sender=[" + sender
-                + "] | Body=[" + (body.length() > 60 ? body.substring(0, 60) + "..." : body) + "]");
         SmsTransactionHandler.TransactionResult result = SmsTransactionHandler.handleSms(
                 body, sender, transactionViewModel, date, TransactionKeys.SOURCE_NOTIFICATION);
         if (result.success) {

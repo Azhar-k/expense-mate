@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:clickable="true"
+    android:focusable="true"
+    android:foreground="?attr/selectableItemBackground"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:paddingTop="8dp"
+    android:paddingBottom="8dp">
+
+    <View
+        android:id="@+id/dot"
+        android:layout_width="10dp"
+        android:layout_height="10dp"
+        android:background="@drawable/bg_circle_done" />
+
+    <TextView
+        android:id="@+id/tvName"
+        style="@style/Text.ExpenseMate.Body"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="10dp"
+        android:layout_weight="1"
+        android:ellipsize="end"
+        android:maxLines="1" />
+
+    <TextView
+        android:id="@+id/tvPercent"
+        style="@style/Text.ExpenseMate.Sub"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="12dp"
+        android:fontFeatureSettings="tnum" />
+
+    <TextView
+        android:id="@+id/tvAmount"
+        style="@style/Text.ExpenseMate.Amount"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textSize="14sp" />
+</LinearLayout>

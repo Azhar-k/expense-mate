@@ -1,45 +1,121 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="CustomTextInputLayout" parent="Widget.MaterialComponents.TextInputLayout.OutlinedBox">
-        <item name="hintEnabled">true</item>
-        <item name="hintAnimationEnabled">false</item>
-        <item name="boxStrokeColor">@color/primary</item>
-        <item name="hintTextColor">@color/secondary_text</item>
-        <item name="boxBackgroundColor">@color/white</item>
-        <item name="android:textColorHint">@color/secondary_text</item>
-        <item name="boxCornerRadiusBottomEnd">8dp</item>
-        <item name="boxCornerRadiusBottomStart">8dp</item>
-        <item name="boxCornerRadiusTopEnd">8dp</item>
-        <item name="boxCornerRadiusTopStart">8dp</item>
+    <style name="Widget.ExpenseMate.Toolbar" parent="Widget.Material3.Toolbar">
+        <item name="android:background">@color/background</item>
+        <item name="titleTextAppearance">@style/Text.ExpenseMate.ScreenTitle</item>
     </style>
 
-    <style name="CustomTextInputEditText" parent="Widget.MaterialComponents.TextInputEditText.OutlinedBox">
-        <item name="android:textColor">@color/black</item>
-        <item name="android:textSize">18sp</item>
-        <item name="android:padding">16dp</item>
+    <style name="Widget.ExpenseMate.Card" parent="Widget.Material3.CardView.Filled">
+        <item name="cardBackgroundColor">@color/surface</item>
+        <item name="cardCornerRadius">16dp</item>
+        <item name="cardElevation">0dp</item>
+        <item name="strokeWidth">0dp</item>
     </style>
 
-    <style name="CustomAutoCompleteTextView" parent="Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu">
-        <item name="android:textColor">@color/black</item>
-        <item name="android:textSize">18sp</item>
-        <item name="android:padding">16dp</item>
-        <item name="android:focusable">false</item>
-        <item name="android:clickable">true</item>
+    <style name="Widget.ExpenseMate.BottomSheet" parent="Widget.Material3.BottomSheet.Modal">
+        <item name="backgroundTint">@color/surface</item>
+        <item name="shapeAppearance">@style/Shape.ExpenseMate.Sheet</item>
     </style>
 
-    <style name="AccountDropdownStyle" parent="Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu">
-        <item name="hintTextColor">@color/black</item>
-        <item name="boxStrokeColor">@color/black</item>
-        <item name="boxStrokeWidth">1dp</item>
-        <item name="android:textColorHint">@color/black</item>
-        <item name="hintEnabled">true</item>
-        <item name="hintAnimationEnabled">false</item>
-        <item name="boxCornerRadiusTopStart">8dp</item>
-        <item name="boxCornerRadiusTopEnd">8dp</item>
-        <item name="boxCornerRadiusBottomStart">8dp</item>
-        <item name="boxCornerRadiusBottomEnd">8dp</item>
-        <item name="boxBackgroundColor">@color/white</item>
-        <item name="endIconTint">@color/black</item>
-        <item name="startIconTint">@color/black</item>
+    <style name="Shape.ExpenseMate.Sheet" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSizeTopLeft">22dp</item>
+        <item name="cornerSizeTopRight">22dp</item>
+        <item name="cornerSizeBottomLeft">0dp</item>
+        <item name="cornerSizeBottomRight">0dp</item>
     </style>
-</resources> 
+
+    <style name="Widget.ExpenseMate.Field" parent="Widget.Material3.TextInputLayout.OutlinedBox">
+        <item name="boxCornerRadiusTopStart">12dp</item>
+        <item name="boxCornerRadiusTopEnd">12dp</item>
+        <item name="boxCornerRadiusBottomStart">12dp</item>
+        <item name="boxCornerRadiusBottomEnd">12dp</item>
+    </style>
+
+    <style name="Widget.ExpenseMate.Dropdown" parent="Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu">
+        <item name="boxCornerRadiusTopStart">12dp</item>
+        <item name="boxCornerRadiusTopEnd">12dp</item>
+        <item name="boxCornerRadiusBottomStart">12dp</item>
+        <item name="boxCornerRadiusBottomEnd">12dp</item>
+    </style>
+
+    <style name="Widget.ExpenseMate.Primary" parent="Widget.Material3.Button">
+        <item name="cornerRadius">12dp</item>
+        <item name="android:paddingTop">12dp</item>
+        <item name="android:paddingBottom">12dp</item>
+    </style>
+
+    <style name="Widget.ExpenseMate.Outlined" parent="Widget.Material3.Button.OutlinedButton">
+        <item name="cornerRadius">12dp</item>
+        <item name="android:paddingTop">12dp</item>
+        <item name="android:paddingBottom">12dp</item>
+    </style>
+
+    <style name="Text.ExpenseMate.ScreenTitle" parent="TextAppearance.Material3.TitleLarge">
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="android:textColor">@color/on_surface</item>
+    </style>
+
+    <style name="Text.ExpenseMate.Hero" parent="">
+        <item name="android:textSize">32sp</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="android:textColor">@color/on_surface</item>
+        <item name="android:fontFeatureSettings">tnum</item>
+        <item name="android:letterSpacing">-0.02</item>
+    </style>
+
+    <style name="Text.ExpenseMate.CardTitle" parent="">
+        <item name="android:textSize">15sp</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="android:textColor">@color/on_surface</item>
+    </style>
+
+    <style name="Text.ExpenseMate.Row" parent="">
+        <item name="android:textSize">15sp</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="android:textColor">@color/on_surface</item>
+        <item name="android:maxLines">1</item>
+        <item name="android:ellipsize">end</item>
+    </style>
+
+    <style name="Text.ExpenseMate.Body" parent="">
+        <item name="android:textSize">14sp</item>
+        <item name="android:textColor">@color/on_surface</item>
+    </style>
+
+    <style name="Text.ExpenseMate.Sub" parent="">
+        <item name="android:textSize">12.5sp</item>
+        <item name="android:textColor">@color/on_surface_variant</item>
+    </style>
+
+    <style name="Text.ExpenseMate.SubLine" parent="Text.ExpenseMate.Sub">
+        <item name="android:maxLines">1</item>
+        <item name="android:ellipsize">end</item>
+    </style>
+
+    <style name="Text.ExpenseMate.Amount" parent="">
+        <item name="android:textSize">15sp</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="android:textColor">@color/on_surface</item>
+        <item name="android:fontFeatureSettings">tnum</item>
+        <item name="android:maxLines">1</item>
+    </style>
+
+    <style name="Text.ExpenseMate.Section" parent="">
+        <item name="android:textSize">12sp</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="android:textColor">@color/on_surface_variant</item>
+        <item name="android:textAllCaps">true</item>
+        <item name="android:letterSpacing">0.06</item>
+    </style>
+
+    <style name="Text.ExpenseMate.Tag" parent="">
+        <item name="android:textSize">11sp</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="android:paddingStart">7dp</item>
+        <item name="android:paddingEnd">7dp</item>
+        <item name="android:paddingTop">2dp</item>
+        <item name="android:paddingBottom">2dp</item>
+        <item name="android:background">@drawable/bg_tag</item>
+    </style>
+</resources>

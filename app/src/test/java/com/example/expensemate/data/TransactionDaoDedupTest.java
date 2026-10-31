@@ -105,7 +105,7 @@ public class TransactionDaoDedupTest {
         dao.updateTransaction(saved.getId(), saved.getAmount(), saved.getDescription(), new Date(T0 + 3 * 24 * 60 * MINUTE),
                 saved.getTransactionType(), saved.getReceiverName(), saved.getSmsBody(), saved.getSmsSender(),
                 saved.getCategory(), saved.getLinkedRecurringPaymentId(), saved.getAccountId(),
-                saved.isExcludedFromSummary());
+                saved.isExcludedFromSummary(), saved.isNeedsReview());
 
         assertFalse(dao.insertIfNew(message(BODY, "AX-ICICIT-S", T0 + 30_000, TransactionKeys.SOURCE_SMS_SCAN)));
         assertEquals(1, rows());

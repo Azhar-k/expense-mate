@@ -1,15 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
-    <item
-        android:id="@+id/navigation_summary"
-        android:icon="@drawable/ic_menu_summary"
-        android:title="Summary" />
-    <item
-        android:id="@+id/navigation_accounts"
-        android:icon="@drawable/ic_account"
-        android:title="Accounts" />
-    <item
-        android:id="@+id/navigation_transactions"
-        android:icon="@drawable/ic_transactions"
-        android:title="Transactions" />
-</menu> 
+    <item android:id="@+id/navigation_home" android:icon="@drawable/ic_home" android:title="Home" />
+    <item android:id="@+id/navigation_activity" android:icon="@drawable/ic_activity" android:title="Activity" />
+    <item android:id="@+id/navigation_bills" android:icon="@drawable/ic_bill" android:title="Bills" />
+    <item android:id="@+id/navigation_accounts" android:icon="@drawable/ic_wallet" android:title="Accounts" />
+</menu>

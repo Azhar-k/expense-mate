@@ -155,6 +155,14 @@ public class BackupDataLoader {
                     case "SMS Sender":
                         transaction.setSmsSender(value);
                         break;
+                    case "Transfer Group":
+                        if (!value.equals("null")) {
+                            transaction.setTransferGroupId(value);
+                        }
+                        break;
+                    case "Needs Review":
+                        transaction.setNeedsReview(Boolean.parseBoolean(value));
+                        break;
                     case "SMS Hash":
                         transaction.setSmsHash(value);
                         break;
@@ -414,8 +422,8 @@ public class BackupDataLoader {
             // Export transactions (last two months only)
             data.append("=== TRANSACTIONS ===\n");
             Date twoMonthsAgo = new Date(System.currentTimeMillis() - (60L * 24 * 60 * 60 * 1000 * 60)); // 60 days ago
-            List<Transaction> transactions = database.transactionDao().getFilteredTransactions(
-                    twoMonthsAgo, new Date(), null, null, null, null, null, null, null, null);
+            List<Transaction> transactions = database.transactionDao().getTransactionsBetweenSync(
+                    twoMonthsAgo, new Date());
             for (Transaction t : transactions) {
                 data.append(String.format("ID: %d\n", t.getId()));
                 data.append(String.format("Amount: %.2f\n", t.getAmount()));
@@ -533,14 +541,15 @@ public class BackupDataLoader {
             }
         } else if (entityName.equals("TRANSACTIONS")) {
             Date twoMonthsAgo = new Date(System.currentTimeMillis() - (60L * 24 * 60 * 60 * 1000 * 60));
-            List<Transaction> transactions = database.transactionDao().getFilteredTransactions(
-                    twoMonthsAgo, new Date(), null, null, null, null, null, null, null, null);
+            List<Transaction> transactions = database.transactionDao().getTransactionsBetweenSync(
+                    twoMonthsAgo, new Date());
             for (Transaction t : transactions) {
                 data.append(String.format(
                         "ID: %d\nAmount: %.2f\nDescription: %s\nDate: %s\nTransaction Type: %s\nReceiver: %s\nCategory: %s\nIs excluded from summary: %s\nAccount id: %s\nLinked Payment ID: %s\nSMS Body: %s\nSMS Sender: %s\nSMS Hash: %s\n---\n",
                         t.getId(), t.getAmount(), t.getDescription(), t.getDate(), t.getTransactionType(),
                         t.getReceiverName(), t.getCategory(), t.isExcludedFromSummary(), t.getAccountId(),
-                        t.getLinkedRecurringPaymentId(), t.getSmsBody(), t.getSmsSender(), t.getSmsHash()));
+                        t.getLinkedRecurringPaymentId(), t.getSmsBody(), t.getSmsSender(), t.getSmsHash(),
+                        t.getTransferGroupId(), t.isNeedsReview()));
             }
         }
 
@@ -616,6 +625,9 @@ public class BackupDataLoader {
                                     processFileIfExists(context, driveService, fileMap, "transactions.txt",
                                             "TRANSACTIONS", loader);
 
+                                    AppDatabase restored = AppDatabase.getDatabase(context);
+                                    restored.runInTransaction(() -> Transfers.linkLegacyPairs(
+                                            restored.getOpenHelper().getWritableDatabase()));
                                     Log.i(TAG, "Restore process completed.");
                                     callback.onSuccess("Restore completed successfully");
                                 } catch (Exception e) {

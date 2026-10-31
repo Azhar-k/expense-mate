@@ -10,7 +10,8 @@ import android.util.Log;
 
 @Entity(tableName = "transactions", indices = {
         @Index(value = {"dedupKey", "messageTime"}),
-        @Index(value = {"matchKey", "messageTime"})
+        @Index(value = {"matchKey", "messageTime"}),
+        @Index(value = {"transferGroupId"})
 })
 public class Transaction {
     @PrimaryKey(autoGenerate = true)
@@ -33,6 +34,8 @@ public class Transaction {
     private String matchKey; // Amount, type and merchant, for alerts that have no full text
     private Long messageTime; // When the message arrived; date can be edited, this cannot
     private String source; // Entry path that created the row, see TransactionKeys
+    private String transferGroupId; // Shared by the two sides of a transfer, null otherwise
+    private boolean needsReview; // Captured from a message and still waiting for a category
 
     public Transaction() {
         this.category = "Default"; // Default category
@@ -204,6 +207,51 @@ public class Transaction {
 
     public void setSource(String source) {
         this.source = source;
+    }
+
+    public String getTransferGroupId() {
+        return transferGroupId;
+    }
+
+    public void setTransferGroupId(String transferGroupId) {
+        this.transferGroupId = transferGroupId;
+    }
+
+    public boolean isNeedsReview() {
+        return needsReview;
+    }
+
+    public void setNeedsReview(boolean needsReview) {
+        this.needsReview = needsReview;
+    }
+
+    public boolean isTransfer() {
+        return transferGroupId != null;
+    }
+
+    /** Rows are shared with list adapters, so edits work on a copy and let the database refresh the list. */
+    public Transaction copy() {
+        Transaction copy = new Transaction();
+        copy.id = id;
+        copy.amount = amount;
+        copy.description = description;
+        copy.date = date;
+        copy.transactionType = transactionType;
+        copy.receiverName = receiverName;
+        copy.smsBody = smsBody;
+        copy.smsSender = smsSender;
+        copy.category = category;
+        copy.linkedRecurringPaymentId = linkedRecurringPaymentId;
+        copy.smsHash = smsHash;
+        copy.accountId = accountId;
+        copy.isExcludedFromSummary = isExcludedFromSummary;
+        copy.dedupKey = dedupKey;
+        copy.matchKey = matchKey;
+        copy.messageTime = messageTime;
+        copy.source = source;
+        copy.transferGroupId = transferGroupId;
+        copy.needsReview = needsReview;
+        return copy;
     }
 
     private String generateSmsHash(String smsBody, String smsSender, Date date) {
