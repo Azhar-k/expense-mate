@@ -50,6 +50,24 @@
             android:layout_marginTop="16dp"
             android:paddingStart="4dp"
             android:paddingBottom="6dp"
+            android:text="Appearance" />
+
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <include
+                android:id="@+id/rowTheme"
+                layout="@layout/item_settings_row" />
+        </com.google.android.material.card.MaterialCardView>
+
+        <TextView
+            style="@style/Text.ExpenseMate.Section"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:paddingStart="4dp"
+            android:paddingBottom="6dp"
             android:text="Organise" />
 
         <com.google.android.material.card.MaterialCardView

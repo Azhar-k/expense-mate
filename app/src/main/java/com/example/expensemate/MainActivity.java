@@ -22,6 +22,7 @@ import androidx.navigation.ui.NavigationUI;
 
 import com.example.expensemate.service.RcsNotificationListenerService;
 import com.example.expensemate.service.SmsMonitorService;
+import com.example.expensemate.ui.common.AppTheme;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
@@ -39,6 +40,7 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        AppTheme.apply(this);
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 

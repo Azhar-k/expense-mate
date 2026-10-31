@@ -31,6 +31,7 @@ import com.example.expensemate.databinding.FragmentSettingsBinding;
 import com.example.expensemate.databinding.ItemSettingsRowBinding;
 import com.example.expensemate.service.GoogleDriveService;
 import com.example.expensemate.service.GoogleSignInHelper;
+import com.example.expensemate.ui.common.AppTheme;
 import com.example.expensemate.ui.common.Ui;
 import com.example.expensemate.viewmodel.CategoryViewModel;
 import com.google.android.gms.auth.api.signin.GoogleSignIn;
@@ -97,6 +98,9 @@ public class SettingsFragment extends Fragment {
                     binding.rowCategories.tvSubtitle.setText(expense + " expense · " + income + " income");
                 });
 
+        configureRow(binding.rowTheme, R.drawable.ic_palette, "Theme", AppTheme.LABELS[AppTheme.selected(requireContext())]);
+        binding.rowTheme.getRoot().setOnClickListener(v -> chooseTheme());
+
         configureRow(binding.rowAbout, R.drawable.ic_info, "Expense Mate", "Version " + BuildConfig.VERSION_NAME);
         binding.rowAbout.getRoot().setOnClickListener(v -> new MaterialAlertDialogBuilder(requireContext())
                 .setTitle("Expense Mate " + BuildConfig.VERSION_NAME)
@@ -121,6 +125,20 @@ public class SettingsFragment extends Fragment {
     public void onResume() {
         super.onResume();
         renderCaptureStatus();
+    }
+
+    private void chooseTheme() {
+        new MaterialAlertDialogBuilder(requireContext())
+                .setTitle("Theme")
+                .setSingleChoiceItems(AppTheme.LABELS, AppTheme.selected(requireContext()), (dialog, which) -> {
+                    dialog.dismiss();
+                    AppTheme.select(requireContext().getApplicationContext(), which);
+                    if (binding != null) {
+                        binding.rowTheme.tvSubtitle.setText(AppTheme.LABELS[which]);
+                    }
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
     }
 
     private void configureRow(ItemSettingsRowBinding row, int icon, String title, String subtitle) {
