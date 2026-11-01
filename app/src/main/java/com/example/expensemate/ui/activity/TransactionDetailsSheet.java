@@ -25,6 +25,7 @@ import com.example.expensemate.viewmodel.CategoryViewModel;
 import com.example.expensemate.viewmodel.RecurringPaymentsViewModel;
 import com.example.expensemate.viewmodel.TransactionViewModel;
 import com.google.android.material.chip.Chip;
+import com.google.android.material.chip.ChipGroup;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -134,24 +135,27 @@ public class TransactionDetailsSheet extends ExpandedSheet {
 
     private void renderTransfer() {
         Ui.styleIconTile(binding.ivIcon, R.drawable.ic_swap, R.color.transfer_container, R.color.transfer);
-        String from = "Unknown";
-        String to = "Unknown";
+        Transaction debit = null;
+        Transaction credit = null;
         for (Transaction leg : legs) {
-            String name = TransactionText.accountName(accountNames, leg.getAccountId());
             if ("DEBIT".equals(leg.getTransactionType())) {
-                from = name;
+                debit = leg;
             } else {
-                to = name;
+                credit = leg;
             }
         }
-        binding.tvTitle.setText(from + " → " + to);
+        binding.tvTitle.setText(TransactionText.transferRoute(accountNames, debit, credit));
         binding.tvAmount.setText(Money.format(transaction.getAmount()));
         binding.tvAmount.setTextColor(requireContext().getColor(R.color.transfer));
         binding.groupCategory.setVisibility(View.GONE);
         binding.rowCount.setVisibility(View.GONE);
         binding.tvMessage.setVisibility(View.GONE);
-        Ui.addKeyValue(binding.details, "From", from);
-        Ui.addKeyValue(binding.details, "To", to);
+        if (debit != null && credit != null) {
+            Ui.addKeyValue(binding.details, "From virtual", TransactionText.accountName(accountNames, debit.getAccountId()));
+            Ui.addKeyValue(binding.details, "To virtual", TransactionText.accountName(accountNames, credit.getAccountId()));
+            Ui.addKeyValue(binding.details, "From real", TransactionText.accountName(accountNames, debit.getRealAccountId()));
+            Ui.addKeyValue(binding.details, "To real", TransactionText.accountName(accountNames, credit.getRealAccountId()));
+        }
         if (TransactionText.hasText(transaction.getDescription())) {
             Ui.addKeyValue(binding.details, "Note", transaction.getDescription());
         }
@@ -169,7 +173,8 @@ public class TransactionDetailsSheet extends ExpandedSheet {
 
         binding.groupCategory.setVisibility(View.VISIBLE);
         buildCategoryChips(credit);
-        buildAccountChips();
+        buildAccountChips(binding.chipsAccount, false, transaction.getAccountId());
+        buildAccountChips(binding.chipsRealAccount, true, transaction.getRealAccountId());
 
         if (TransactionText.hasText(transaction.getReceiverName())) {
             Ui.addKeyValue(binding.details, credit ? "Received from" : "Paid to", transaction.getReceiverName());
@@ -223,30 +228,35 @@ public class TransactionDetailsSheet extends ExpandedSheet {
         }
     }
 
-    private void buildAccountChips() {
-        binding.chipsAccount.removeAllViews();
-        Long selected = transaction.getAccountId();
+    private void buildAccountChips(ChipGroup group, boolean real, Long selected) {
+        group.removeAllViews();
         // The current account comes first, so it is in view without scrolling
         for (Account account : accounts) {
-            if (selected != null && account.getId() == selected) {
-                addAccountChip(account, true);
+            if (account.isReal() == real && selected != null && account.getId() == selected) {
+                addAccountChip(group, account, true);
             }
         }
         for (Account account : accounts) {
-            if (selected == null || account.getId() != selected) {
-                addAccountChip(account, false);
+            if (account.isReal() == real && (selected == null || account.getId() != selected)) {
+                addAccountChip(group, account, false);
             }
         }
     }
 
-    private void addAccountChip(Account account, boolean checked) {
+    private void addAccountChip(ChipGroup group, Account account, boolean checked) {
         Chip chip = new Chip(requireContext(), null, com.google.android.material.R.attr.chipStyle);
         chip.setText(account.getName());
         chip.setCheckable(true);
         chip.setCheckedIconVisible(false);
         chip.setChecked(checked);
-        chip.setOnClickListener(v -> viewModel.setAccount(transaction.getId(), account.getId()));
-        binding.chipsAccount.addView(chip);
+        chip.setOnClickListener(v -> {
+            if (account.isReal()) {
+                viewModel.setRealAccount(transaction.getId(), account.getId());
+            } else {
+                viewModel.setAccount(transaction.getId(), account.getId());
+            }
+        });
+        group.addView(chip);
     }
 
     @Override

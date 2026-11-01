@@ -51,10 +51,14 @@ public final class BillForm {
 
         List<Account> accounts = new ArrayList<>();
         Ui.observeOnce(new ViewModelProvider(activity).get(AccountViewModel.class).getAllAccounts(), activity, list -> {
-            accounts.addAll(list);
             List<String> names = new ArrayList<>();
             names.add(NO_ACCOUNT);
             for (Account account : list) {
+                // A planned transfer moves money between virtual accounts
+                if (account.isReal()) {
+                    continue;
+                }
+                accounts.add(account);
                 names.add(account.getName());
                 if (bill != null && bill.getFromAccountId() != null && bill.getFromAccountId() == account.getId()) {
                     form.etFrom.setText(account.getName(), false);

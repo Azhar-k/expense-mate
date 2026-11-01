@@ -1,11 +1,17 @@
 package com.example.expensemate.data;
 
+import androidx.annotation.NonNull;
 import androidx.room.Entity;
 import androidx.room.PrimaryKey;
+import androidx.sqlite.db.SupportSQLiteDatabase;
 import java.util.Date;
 
 @Entity(tableName = "accounts")
 public class Account {
+    public static final String TYPE_VIRTUAL = "VIRTUAL";
+    public static final String TYPE_REAL = "REAL";
+    static final String DEFAULT_REAL_NAME = "Bank account";
+
     @PrimaryKey(autoGenerate = true)
     private long id;
     
@@ -14,7 +20,22 @@ public class Account {
     private String bank;
     private Date expiryDate;
     private String description;
-    private boolean isDefault;
+    private boolean isDefault; // One per type
+    @NonNull
+    private String type = TYPE_VIRTUAL;
+
+    /** Gives real accounts a default, and any transaction without a real account that default. */
+    public static void ensureDefaultRealAccount(SupportSQLiteDatabase database) {
+        database.execSQL("INSERT INTO accounts (name, accountNumber, bank, description, isDefault, type) "
+                + "SELECT ?, '', '', '', 0, ? WHERE NOT EXISTS (SELECT 1 FROM accounts WHERE type = ?)",
+                new Object[] { DEFAULT_REAL_NAME, TYPE_REAL, TYPE_REAL });
+        database.execSQL("UPDATE accounts SET isDefault = 1 WHERE id = (SELECT MIN(id) FROM accounts WHERE type = ?) "
+                + "AND NOT EXISTS (SELECT 1 FROM accounts WHERE type = ? AND isDefault = 1)",
+                new Object[] { TYPE_REAL, TYPE_REAL });
+        database.execSQL("UPDATE transactions SET realAccountId = "
+                + "(SELECT id FROM accounts WHERE type = ? AND isDefault = 1) WHERE realAccountId IS NULL",
+                new Object[] { TYPE_REAL });
+    }
 
     public Account(String name, String accountNumber, String bank, Date expiryDate, String description) {
         this.name = name;
@@ -46,4 +67,10 @@ public class Account {
     
     public boolean isDefault() { return isDefault; }
     public void setDefault(boolean isDefault) { this.isDefault = isDefault; }
+
+    @NonNull
+    public String getType() { return type; }
+    public void setType(@NonNull String type) { this.type = type; }
+
+    public boolean isReal() { return TYPE_REAL.equals(type); }
 } 

@@ -11,7 +11,8 @@ erDiagram
         String category "Refers to Category.name"
         long linkedRecurringPaymentId FK "Logical FK to RecurringPayment"
         String smsHash
-        long accountId FK "Logical FK to Account"
+        long accountId FK "Logical FK to a virtual Account"
+        long realAccountId FK "Logical FK to a real Account"
         boolean isExcludedFromSummary
     }
 
@@ -39,13 +40,15 @@ erDiagram
         String bank
         long expiryDate "Timestamp"
         String description
-        boolean isDefault
+        boolean isDefault "One per type"
+        String type "VIRTUAL or REAL"
         String currency
     }
 
     %% Relationships
-    %% Transaction links to Account via accountId
+    %% Transaction links to a virtual Account via accountId and a real Account via realAccountId
     ACCOUNT ||--o{ TRANSACTION : "accountId"
+    ACCOUNT ||--o{ TRANSACTION : "realAccountId"
     
     %% Transaction links to RecurringPayment via linkedRecurringPaymentId
     RECURRING_PAYMENT |o--o{ TRANSACTION : "linkedRecurringPaymentId"

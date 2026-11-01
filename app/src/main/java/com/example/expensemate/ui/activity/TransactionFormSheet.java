@@ -145,16 +145,24 @@ public class TransactionFormSheet extends ExpandedSheet {
 
         accountViewModel.getAllAccounts().observe(getViewLifecycleOwner(), list -> {
             accounts = list;
-            List<String> names = new ArrayList<>();
+            List<String> virtualNames = new ArrayList<>();
+            List<String> realNames = new ArrayList<>();
             for (Account account : list) {
-                names.add(account.getName());
+                (account.isReal() ? realNames : virtualNames).add(account.getName());
             }
-            Ui.setDropdownItems(binding.etAccount, names);
-            Ui.setDropdownItems(binding.etFrom, names);
-            Ui.setDropdownItems(binding.etTo, names);
+            Ui.setDropdownItems(binding.etAccount, virtualNames);
+            Ui.setDropdownItems(binding.etFrom, virtualNames);
+            Ui.setDropdownItems(binding.etTo, virtualNames);
+            Ui.setDropdownItems(binding.etRealAccount, realNames);
+            Ui.setDropdownItems(binding.etFromReal, realNames);
+            Ui.setDropdownItems(binding.etToReal, realNames);
             if (!isEditing() && binding.etAccount.getText().length() == 0) {
                 for (Account account : list) {
-                    if (account.isDefault()) {
+                    if (account.isDefault() && account.isReal()) {
+                        binding.etRealAccount.setText(account.getName(), false);
+                        binding.etFromReal.setText(account.getName(), false);
+                        binding.etToReal.setText(account.getName(), false);
+                    } else if (account.isDefault()) {
                         binding.etAccount.setText(account.getName(), false);
                         binding.etFrom.setText(account.getName(), false);
                     }
@@ -248,9 +256,12 @@ public class TransactionFormSheet extends ExpandedSheet {
             if (editingDebit != null && editingCredit != null) {
                 binding.etFrom.setText(nameOf(editingDebit.getAccountId()), false);
                 binding.etTo.setText(nameOf(editingCredit.getAccountId()), false);
+                binding.etFromReal.setText(nameOf(editingDebit.getRealAccountId()), false);
+                binding.etToReal.setText(nameOf(editingCredit.getRealAccountId()), false);
             }
         } else {
             binding.etAccount.setText(nameOf(editing.getAccountId()), false);
+            binding.etRealAccount.setText(nameOf(editing.getRealAccountId()), false);
         }
     }
 
@@ -274,10 +285,11 @@ public class TransactionFormSheet extends ExpandedSheet {
         return "";
     }
 
-    private Long accountIdOf(AutoCompleteTextView view) {
+    // A virtual and a real account can share a name, so the field says which kind it holds
+    private Long accountIdOf(AutoCompleteTextView view, boolean real) {
         String name = view.getText().toString();
         for (Account account : accounts) {
-            if (account.getName().equals(name)) {
+            if (account.isReal() == real && account.getName().equals(name)) {
                 return account.getId();
             }
         }
@@ -296,7 +308,9 @@ public class TransactionFormSheet extends ExpandedSheet {
         boolean transfer = isTransferMode();
         binding.groupCategory.setVisibility(transfer ? View.GONE : View.VISIBLE);
         binding.tilAccount.setVisibility(transfer ? View.GONE : View.VISIBLE);
+        binding.tilRealAccount.setVisibility(transfer ? View.GONE : View.VISIBLE);
         binding.groupTransfer.setVisibility(transfer ? View.VISIBLE : View.GONE);
+        binding.groupTransferReal.setVisibility(transfer ? View.VISIBLE : View.GONE);
         binding.tilReceiver.setVisibility(transfer ? View.GONE : View.VISIBLE);
         binding.tilReceiver.setHint(isIncomeMode() ? "Received from" : "Paid to");
         selectedCategoryStillValid();
@@ -369,11 +383,17 @@ public class TransactionFormSheet extends ExpandedSheet {
     }
 
     private void saveTransfer(double amount) {
-        Long fromId = accountIdOf(binding.etFrom);
-        Long toId = accountIdOf(binding.etTo);
+        Long fromId = accountIdOf(binding.etFrom, false);
+        Long toId = accountIdOf(binding.etTo, false);
+        Long fromRealId = accountIdOf(binding.etFromReal, true);
+        Long toRealId = accountIdOf(binding.etToReal, true);
+        // Money can move on either side, but it has to move on at least one
+        boolean nothingMoves = fromId != null && fromId.equals(toId) && fromRealId != null && fromRealId.equals(toRealId);
         binding.tilFrom.setError(fromId == null ? "Choose" : null);
-        binding.tilTo.setError(toId == null ? "Choose" : fromId != null && fromId.equals(toId) ? "Pick another" : null);
-        if (fromId == null || toId == null || fromId.equals(toId)) {
+        binding.tilTo.setError(toId == null ? "Choose" : nothingMoves ? "Pick another" : null);
+        binding.tilFromReal.setError(fromRealId == null ? "Choose" : null);
+        binding.tilToReal.setError(toRealId == null ? "Choose" : null);
+        if (fromId == null || toId == null || fromRealId == null || toRealId == null || nothingMoves) {
             return;
         }
         String note = binding.etNote.getText().toString().trim();
@@ -381,28 +401,33 @@ public class TransactionFormSheet extends ExpandedSheet {
             if (editingDebit == null || editingCredit == null) {
                 return;
             }
-            viewModel.updateTransfer(updatedLeg(editingDebit, amount, fromId, note),
-                    updatedLeg(editingCredit, amount, toId, note));
+            viewModel.updateTransfer(updatedLeg(editingDebit, amount, fromId, fromRealId, note),
+                    updatedLeg(editingCredit, amount, toId, toRealId, note));
         } else {
             Transaction[] legs = Transfers.newPair(amount, fromId, toId, date.getTime(), note);
+            legs[0].setRealAccountId(fromRealId);
+            legs[1].setRealAccountId(toRealId);
             viewModel.insertTransfer(legs[0], legs[1]);
         }
         dismiss();
     }
 
-    private Transaction updatedLeg(Transaction leg, double amount, long accountId, String note) {
+    private Transaction updatedLeg(Transaction leg, double amount, long accountId, long realAccountId, String note) {
         Transaction copy = leg.copy();
         copy.setAmount(amount);
         copy.setAccountId(accountId);
+        copy.setRealAccountId(realAccountId);
         copy.setDescription(note);
         copy.setDate(date.getTime());
         return copy;
     }
 
     private void saveTransaction(double amount) {
-        Long accountId = accountIdOf(binding.etAccount);
-        binding.tilAccount.setError(accountId == null ? "Choose an account" : null);
-        if (accountId == null) {
+        Long accountId = accountIdOf(binding.etAccount, false);
+        Long realAccountId = accountIdOf(binding.etRealAccount, true);
+        binding.tilAccount.setError(accountId == null ? "Choose a virtual account" : null);
+        binding.tilRealAccount.setError(realAccountId == null ? "Choose a real account" : null);
+        if (accountId == null || realAccountId == null) {
             return;
         }
         if (selectedCategory == null) {
@@ -417,6 +442,7 @@ public class TransactionFormSheet extends ExpandedSheet {
         row.setDate(date.getTime());
         row.setCategory(selectedCategory);
         row.setAccountId(accountId);
+        row.setRealAccountId(realAccountId);
         row.setDescription(binding.etNote.getText().toString().trim());
         row.setReceiverName(binding.etReceiver.getText().toString().trim());
         row.setNeedsReview(false);

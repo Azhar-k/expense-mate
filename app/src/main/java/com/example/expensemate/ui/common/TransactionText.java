@@ -30,6 +30,17 @@ public final class TransactionText {
         return name != null ? name : "No account";
     }
 
+    /** Names the side the money moved on: a transfer can stay in one virtual account and change real account. */
+    public static String transferRoute(java.util.Map<Long, String> names, Transaction debit, Transaction credit) {
+        if (debit == null || credit == null) {
+            return (debit != null ? accountName(names, debit.getAccountId()) : "Unknown") + " → "
+                    + (credit != null ? accountName(names, credit.getAccountId()) : "Unknown");
+        }
+        boolean sameVirtual = java.util.Objects.equals(debit.getAccountId(), credit.getAccountId());
+        return accountName(names, sameVirtual ? debit.getRealAccountId() : debit.getAccountId()) + " → "
+                + accountName(names, sameVirtual ? credit.getRealAccountId() : credit.getAccountId());
+    }
+
     public static int categoryIcon(String category) {
         String name = category != null ? category.toLowerCase(Locale.ROOT) : "";
         if (containsAny(name, "food", "eat", "dining", "restaurant", "cafe", "lunch", "dinner")) {

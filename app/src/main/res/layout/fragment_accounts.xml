@@ -67,11 +67,36 @@
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <LinearLayout
-                android:id="@+id/listAccounts"
+            <TextView
+                style="@style/Text.ExpenseMate.Section"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
+                android:layout_marginTop="14dp"
+                android:layout_marginBottom="6dp"
+                android:paddingStart="4dp"
+                android:paddingEnd="4dp"
+                android:text="Virtual accounts" />
+
+            <LinearLayout
+                android:id="@+id/listVirtual"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" />
+
+            <TextView
+                style="@style/Text.ExpenseMate.Section"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="14dp"
+                android:layout_marginBottom="6dp"
+                android:paddingStart="4dp"
+                android:paddingEnd="4dp"
+                android:text="Real accounts" />
+
+            <LinearLayout
+                android:id="@+id/listReal"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
                 android:orientation="vertical" />
 
             <TextView

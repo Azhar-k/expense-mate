@@ -25,17 +25,26 @@ public interface TransactionDao {
                         +
                         "linkedRecurringPaymentId = :linkedRecurringPaymentId, isExcludedFromSummary = :isExcludedFromSummary, "
                         +
-                        "accountId = :accountId, needsReview = :needsReview WHERE id = :id")
+                        "accountId = :accountId, realAccountId = :realAccountId, needsReview = :needsReview WHERE id = :id")
         void updateTransaction(long id, double amount, String description, Date date, String transactionType,
                         String receiverName,
                         String smsBody, String smsSender, String category, Long linkedRecurringPaymentId,
-                        Long accountId, boolean isExcludedFromSummary, boolean needsReview);
+                        Long accountId, Long realAccountId, boolean isExcludedFromSummary, boolean needsReview);
 
         @Query("UPDATE transactions SET category = :category, needsReview = 0 WHERE id = :id")
         void setCategory(long id, String category);
 
         @Query("UPDATE transactions SET accountId = :accountId WHERE id = :id")
         void setAccount(long id, long accountId);
+
+        @Query("UPDATE transactions SET realAccountId = :accountId WHERE id = :id")
+        void setRealAccount(long id, long accountId);
+
+        @Query("UPDATE transactions SET accountId = :toAccountId WHERE accountId = :fromAccountId")
+        void moveToAccount(long fromAccountId, long toAccountId);
+
+        @Query("UPDATE transactions SET realAccountId = :toAccountId WHERE realAccountId = :fromAccountId")
+        void moveToRealAccount(long fromAccountId, long toAccountId);
 
         @Query("UPDATE transactions SET isExcludedFromSummary = :excluded WHERE id = :id")
         void setExcludedFromSummary(long id, boolean excluded);
@@ -71,7 +80,7 @@ public interface TransactionDao {
         default void updateRow(Transaction row) {
                 updateTransaction(row.getId(), row.getAmount(), row.getDescription(), row.getDate(),
                                 row.getTransactionType(), row.getReceiverName(), row.getSmsBody(), row.getSmsSender(),
-                                row.getCategory(), row.getLinkedRecurringPaymentId(), row.getAccountId(),
+                                row.getCategory(), row.getLinkedRecurringPaymentId(), row.getAccountId(), row.getRealAccountId(),
                                 row.isExcludedFromSummary(), row.isNeedsReview());
         }
 
@@ -171,14 +180,14 @@ public interface TransactionDao {
                         "COALESCE(SUM(CASE WHEN transactionType = 'CREDIT' AND transferGroupId IS NOT NULL AND isExcludedFromSummary = 0 THEN amount END), 0) AS movedIn "
                         +
                         "FROM transactions WHERE date >= :fromDate AND date < :toDate " +
-                        "AND (:accountId IS NULL OR accountId = :accountId)")
+                        "AND (:accountId IS NULL OR accountId = :accountId OR realAccountId = :accountId)")
         LiveData<SummaryTotals> getSummaryTotals(Date fromDate, Date toDate, Long accountId);
 
         @Query("SELECT category, SUM(amount) as total FROM transactions " +
                         "WHERE transactionType = :transactionType AND isExcludedFromSummary = 0 " +
                         "AND transferGroupId IS NULL " +
                         "AND date >= :fromDate AND date < :toDate " +
-                        "AND (:accountId IS NULL OR accountId = :accountId) " +
+                        "AND (:accountId IS NULL OR accountId = :accountId OR realAccountId = :accountId) " +
                         "GROUP BY category ORDER BY total DESC")
         LiveData<List<CategorySum>> getCategorySums(String transactionType, Date fromDate, Date toDate, Long accountId);
 
@@ -193,8 +202,11 @@ public interface TransactionDao {
                         + "FROM transactions WHERE isExcludedFromSummary = 0")
         LiveData<Double> getNetBalance();
 
+        // A row counts once for its virtual account and once for its real account; their ids never overlap.
         @Query("SELECT accountId, COALESCE(SUM(CASE WHEN transactionType = 'CREDIT' THEN amount WHEN transactionType = 'DEBIT' THEN -amount END), 0) AS balance "
-                        + "FROM transactions WHERE isExcludedFromSummary = 0 AND accountId IS NOT NULL GROUP BY accountId")
+                        + "FROM (SELECT accountId, amount, transactionType FROM transactions WHERE isExcludedFromSummary = 0 "
+                        + "UNION ALL SELECT realAccountId, amount, transactionType FROM transactions WHERE isExcludedFromSummary = 0) "
+                        + "WHERE accountId IS NOT NULL GROUP BY accountId")
         LiveData<List<AccountBalance>> getAccountBalances();
 
         /****************************************************************************************************/
@@ -202,7 +214,7 @@ public interface TransactionDao {
 
         @Query("SELECT * FROM transactions " +
                         "WHERE date BETWEEN :startDate AND :endDate " +
-                        "AND accountId = :accountId " +
+                        "AND (accountId = :accountId OR realAccountId = :accountId) " +
                         "ORDER BY date DESC")
         LiveData<List<Transaction>> getTransactionsForAccountDetailsScreen(Date startDate, Date endDate,
                         long accountId);
@@ -212,7 +224,7 @@ public interface TransactionDao {
 
         @Query("SELECT * FROM transactions " +
                         "WHERE date BETWEEN :fromDate AND :toDate " +
-                        "AND (:accountId IS NULL OR accountId = :accountId) " +
+                        "AND (:accountId IS NULL OR accountId = :accountId OR realAccountId = :accountId) " +
                         "AND (:search IS NULL OR description LIKE '%' || :search || '%' " +
                         "OR receiverName LIKE '%' || :search || '%' " +
                         "OR CAST(amount AS TEXT) LIKE :search || '%') " +

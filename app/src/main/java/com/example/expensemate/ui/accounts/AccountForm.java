@@ -7,6 +7,7 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.FragmentActivity;
 import androidx.lifecycle.ViewModelProvider;
 
+import com.example.expensemate.R;
 import com.example.expensemate.data.Account;
 import com.example.expensemate.databinding.DialogAccountFormBinding;
 import com.example.expensemate.ui.common.Pickers;
@@ -30,6 +31,10 @@ public final class AccountForm {
         Calendar expiry = Calendar.getInstance();
         final boolean[] hasExpiry = { false };
 
+        form.chipsType.check(account != null && account.isReal() ? R.id.typeReal : R.id.typeVirtual);
+        // Transactions already point at this account as one kind or the other
+        form.typeVirtual.setEnabled(account == null);
+        form.typeReal.setEnabled(account == null);
         if (account != null) {
             form.etName.setText(account.getName());
             form.etBank.setText(account.getBank());
@@ -67,7 +72,9 @@ public final class AccountForm {
 
             AccountViewModel viewModel = new ViewModelProvider(activity).get(AccountViewModel.class);
             if (account == null) {
-                viewModel.insert(new Account(name, number, bank, expiryDate, description));
+                Account added = new Account(name, number, bank, expiryDate, description);
+                added.setType(form.chipsType.getCheckedChipId() == R.id.typeReal ? Account.TYPE_REAL : Account.TYPE_VIRTUAL);
+                viewModel.insert(added);
             } else {
                 account.setName(name);
                 account.setBank(bank);
@@ -106,18 +113,22 @@ public final class AccountForm {
         return detail.toString();
     }
 
+    public static String typeLabel(Account account) {
+        return account.isReal() ? "real" : "virtual";
+    }
+
     private static boolean notBlank(String text) {
         return text != null && !text.trim().isEmpty();
     }
 
     public static void confirmDelete(FragmentActivity activity, Account account, Runnable onDeleted) {
         if (account.isDefault()) {
-            Ui.snackbar(activity, "Choose another default account before deleting this one");
+            Ui.snackbar(activity, "Choose another default " + typeLabel(account) + " account before deleting this one");
             return;
         }
         new MaterialAlertDialogBuilder(activity)
                 .setTitle("Delete " + account.getName() + "?")
-                .setMessage("Its transactions stay in your history, but they will show as having no account.")
+                .setMessage("Its transactions move to your default " + typeLabel(account) + " account.")
                 .setNegativeButton("Cancel", null)
                 .setPositiveButton("Delete", (dialog, which) -> {
                     new ViewModelProvider(activity).get(AccountViewModel.class).delete(account);

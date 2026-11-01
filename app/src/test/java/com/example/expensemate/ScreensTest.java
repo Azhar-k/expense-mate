@@ -131,6 +131,10 @@ public class ScreensTest {
             database.accountDao().insert(new Account("Household", "000022227730", "Axis Bank", null, ""));
             database.accountDao().insert(new Account("Savings", "000033331096", "HDFC Bank", null, ""));
             database.accountDao().insert(new Account("Credit card", "", "", daysAgo(-900, 9), ""));
+            Account bank = new Account("Bank account", "", "", null, "");
+            bank.setType(Account.TYPE_REAL);
+            bank.setDefault(true);
+            database.accountDao().insert(bank);
 
             List<Account> accounts = database.accountDao().getAllAccountsSync();
             long credit = idOf(accounts, "Credit card");
@@ -452,6 +456,7 @@ public class ScreensTest {
         assertEquals("Eating out", saved.getCategory());
         assertEquals("DEBIT", saved.getTransactionType());
         assertEquals(Long.valueOf(salaryId), saved.getAccountId());
+        assertNotNull("Goes to the default real account", saved.getRealAccountId());
     }
 
     @Test

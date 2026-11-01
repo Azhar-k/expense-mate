@@ -192,11 +192,7 @@ public class ActivityAdapter extends ListAdapter<ActivityRow, RecyclerView.ViewH
         }
 
         private String transferTitle(ActivityRow row) {
-            String from = row.debitLeg != null
-                    ? TransactionText.accountName(accountNames, row.debitLeg.getAccountId()) : "Unknown";
-            String to = row.creditLeg != null
-                    ? TransactionText.accountName(accountNames, row.creditLeg.getAccountId()) : "Unknown";
-            return from + " → " + to;
+            return TransactionText.transferRoute(accountNames, row.debitLeg, row.creditLeg);
         }
     }
 }

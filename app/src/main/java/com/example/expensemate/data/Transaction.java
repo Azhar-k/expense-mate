@@ -28,7 +28,8 @@ public class Transaction {
     private String category; // New field for transaction category
     private Long linkedRecurringPaymentId; // ID of the linked recurring payment, null if not linked
     private String smsHash; // Hash of SMS body and sender for duplicate detection
-    private Long accountId; // ID of the linked account
+    private Long accountId; // ID of the linked virtual account
+    private Long realAccountId; // ID of the linked real account
     private boolean isExcludedFromSummary; // Whether this transaction should be excluded from summary calculations
     private String dedupKey; // Hash of the normalized message text, null for manual entries
     private String matchKey; // Amount, type and merchant, for alerts that have no full text
@@ -169,6 +170,14 @@ public class Transaction {
         this.accountId = accountId;
     }
 
+    public Long getRealAccountId() {
+        return realAccountId;
+    }
+
+    public void setRealAccountId(Long realAccountId) {
+        this.realAccountId = realAccountId;
+    }
+
     public boolean isExcludedFromSummary() {
         return isExcludedFromSummary;
     }
@@ -244,6 +253,7 @@ public class Transaction {
         copy.linkedRecurringPaymentId = linkedRecurringPaymentId;
         copy.smsHash = smsHash;
         copy.accountId = accountId;
+        copy.realAccountId = realAccountId;
         copy.isExcludedFromSummary = isExcludedFromSummary;
         copy.dedupKey = dedupKey;
         copy.matchKey = matchKey;

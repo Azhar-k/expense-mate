@@ -28,7 +28,7 @@ public class Migration9To10Test {
         createVersion9(file);
 
         AppDatabase database = Room.databaseBuilder(context, AppDatabase.class, file.getPath())
-                .addMigrations(AppDatabase.MIGRATION_9_10)
+                .addMigrations(AppDatabase.MIGRATION_9_10, AppDatabase.MIGRATION_10_11)
                 .allowMainThreadQueries()
                 .build();
         try {

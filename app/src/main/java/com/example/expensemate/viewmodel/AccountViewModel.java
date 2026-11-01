@@ -31,8 +31,12 @@ public class AccountViewModel extends AndroidViewModel {
         return repository.getDefaultAccountSync();
     }
 
-    public void setDefaultAccount(long accountId) {
-        repository.setDefaultAccount(accountId);
+    public Account getDefaultRealAccountSync() {
+        return repository.getDefaultRealAccountSync();
+    }
+
+    public void setDefaultAccount(Account account) {
+        repository.setDefaultAccount(account);
     }
 
     public void insert(Account account) {

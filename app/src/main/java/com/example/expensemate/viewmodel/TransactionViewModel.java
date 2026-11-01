@@ -234,13 +234,7 @@ public class TransactionViewModel extends AndroidViewModel {
     public void insertTransaction(Transaction transaction) {
         executorService.execute(() -> {
             try {
-                // If no account is set, use the default account
-                if (transaction.getAccountId() == null) {
-                    Account defaultAccount = accountViewModel.getDefaultAccountSync();
-                    if (defaultAccount != null) {
-                        transaction.setAccountId(defaultAccount.getId());
-                    }
-                }
+                fillDefaultAccounts(transaction);
                 transactionDao.insertWithChosenCategory(transaction);
             } catch (Exception e) {
                 Log.e(TAG, "Error inserting transaction", e);
@@ -264,6 +258,10 @@ public class TransactionViewModel extends AndroidViewModel {
 
     public void setAccount(long id, long accountId) {
         executorService.execute(() -> transactionDao.setAccount(id, accountId));
+    }
+
+    public void setRealAccount(long id, long accountId) {
+        executorService.execute(() -> transactionDao.setRealAccount(id, accountId));
     }
 
     public void setExcludedFromSummary(long id, boolean excluded) {
@@ -300,6 +298,8 @@ public class TransactionViewModel extends AndroidViewModel {
     public void insertTransfer(Transaction debit, Transaction credit) {
         executorService.execute(() -> {
             try {
+                fillDefaultAccounts(debit);
+                fillDefaultAccounts(credit);
                 transactionDao.insertTransfer(debit, credit);
             } catch (Exception e) {
                 Log.e(TAG, "Error saving transfer", e);
@@ -324,13 +324,24 @@ public class TransactionViewModel extends AndroidViewModel {
      * @return true if a row was inserted
      */
     public boolean insertIfNew(Transaction transaction) {
+        fillDefaultAccounts(transaction);
+        return transactionDao.insertIfNew(transaction);
+    }
+
+    /** A transaction always has both accounts, so whichever is missing goes to its default. */
+    private void fillDefaultAccounts(Transaction transaction) {
         if (transaction.getAccountId() == null) {
             Account defaultAccount = accountViewModel.getDefaultAccountSync();
             if (defaultAccount != null) {
                 transaction.setAccountId(defaultAccount.getId());
             }
         }
-        return transactionDao.insertIfNew(transaction);
+        if (transaction.getRealAccountId() == null) {
+            Account defaultReal = accountViewModel.getDefaultRealAccountSync();
+            if (defaultReal != null) {
+                transaction.setRealAccountId(defaultReal.getId());
+            }
+        }
     }
 
     @Override

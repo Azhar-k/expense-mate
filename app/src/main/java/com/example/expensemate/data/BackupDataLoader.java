@@ -139,6 +139,11 @@ public class BackupDataLoader {
                                     + transaction.getId());
                         }
                         break;
+                    case "Real account id":
+                        if (!value.equalsIgnoreCase("null")) {
+                            transaction.setRealAccountId(Long.parseLong(value));
+                        }
+                        break;
                     case "Is excluded from summary":
                         if (!value.equals("null")) {
                             transaction.setExcludedFromSummary(Boolean.parseBoolean(value));
@@ -302,6 +307,7 @@ public class BackupDataLoader {
             Date expiryDate = null;
             String description = "";
             boolean isDefault = false;
+            String type = Account.TYPE_VIRTUAL;
 
             for (String line : lines) {
                 String[] parts = line.split(": ", 2);
@@ -336,12 +342,16 @@ public class BackupDataLoader {
                     case "Is Default":
                         isDefault = Boolean.parseBoolean(value);
                         break;
+                    case "Account Type":
+                        type = value;
+                        break;
                 }
             }
 
             if (!name.isEmpty()) {
                 Account account = new Account(name, accountNumber, bank, expiryDate, description);
                 account.setDefault(isDefault);
+                account.setType(type);
 
                 // Set the original ID to preserve referential integrity
                 if (originalId != -1) {
@@ -418,6 +428,7 @@ public class BackupDataLoader {
                     data.append(String.format("Expiry Date: %s\n", a.getExpiryDate()));
                     data.append(String.format("Description: %s\n", a.getDescription()));
                     data.append(String.format("Is Default: %b\n", a.isDefault()));
+                    data.append(String.format("Account Type: %s\n", a.getType()));
                     data.append("---\n");
                 }
             }
@@ -437,6 +448,7 @@ public class BackupDataLoader {
                 data.append(String.format("Category: %s\n", t.getCategory()));
                 data.append(String.format("Is excluded from summary: %s\n", t.isExcludedFromSummary()));
                 data.append(String.format("Account id: %s\n", t.getAccountId()));
+                data.append(String.format("Real account id: %s\n", t.getRealAccountId()));
                 data.append(String.format("Linked Payment ID: %s\n", t.getLinkedRecurringPaymentId()));
                 data.append(String.format("SMS Body: %s\n", t.getSmsBody()));
                 data.append(String.format("SMS Sender: %s\n", t.getSmsSender()));
@@ -538,9 +550,9 @@ public class BackupDataLoader {
             if (accounts != null) {
                 for (Account a : accounts) {
                     data.append(String.format(
-                            "ID: %d\nName: %s\nAccount Number: %s\nBank: %s\nExpiry Date: %s\nDescription: %s\nIs Default: %b\n---\n",
+                            "ID: %d\nName: %s\nAccount Number: %s\nBank: %s\nExpiry Date: %s\nDescription: %s\nIs Default: %b\nAccount Type: %s\n---\n",
                             a.getId(), a.getName(), a.getAccountNumber(), a.getBank(), a.getExpiryDate(),
-                            a.getDescription(), a.isDefault()));
+                            a.getDescription(), a.isDefault(), a.getType()));
                 }
             }
         } else if (entityName.equals("TRANSACTIONS")) {
@@ -549,9 +561,10 @@ public class BackupDataLoader {
                     twoMonthsAgo, new Date());
             for (Transaction t : transactions) {
                 data.append(String.format(
-                        "ID: %d\nAmount: %.2f\nDescription: %s\nDate: %s\nTransaction Type: %s\nReceiver: %s\nCategory: %s\nIs excluded from summary: %s\nAccount id: %s\nLinked Payment ID: %s\nSMS Body: %s\nSMS Sender: %s\nSMS Hash: %s\n---\n",
+                        "ID: %d\nAmount: %.2f\nDescription: %s\nDate: %s\nTransaction Type: %s\nReceiver: %s\nCategory: %s\nIs excluded from summary: %s\nAccount id: %s\nReal account id: %s\nLinked Payment ID: %s\nSMS Body: %s\nSMS Sender: %s\nSMS Hash: %s\n---\n",
                         t.getId(), t.getAmount(), t.getDescription(), t.getDate(), t.getTransactionType(),
                         t.getReceiverName(), t.getCategory(), t.isExcludedFromSummary(), t.getAccountId(),
+                        t.getRealAccountId(),
                         t.getLinkedRecurringPaymentId(), t.getSmsBody(), t.getSmsSender(), t.getSmsHash(),
                         t.getTransferGroupId(), t.isNeedsReview()));
             }
@@ -632,6 +645,7 @@ public class BackupDataLoader {
                                     AppDatabase restored = AppDatabase.getDatabase(context);
                                     restored.runInTransaction(() -> {
                                         Category.ensureDefaults(restored.getOpenHelper().getWritableDatabase());
+                                        Account.ensureDefaultRealAccount(restored.getOpenHelper().getWritableDatabase());
                                         Transfers.linkLegacyPairs(restored.getOpenHelper().getWritableDatabase());
                                         CounterpartyCategory.rebuildFromTransactions(
                                                 restored.getOpenHelper().getWritableDatabase());

@@ -69,6 +69,7 @@ public class ActivityRow {
                 && Objects.equals(a.getCategory(), b.getCategory())
                 && Objects.equals(a.getTransactionType(), b.getTransactionType())
                 && Objects.equals(a.getAccountId(), b.getAccountId())
+                && Objects.equals(a.getRealAccountId(), b.getRealAccountId())
                 && a.isExcludedFromSummary() == b.isExcludedFromSummary()
                 && a.isNeedsReview() == b.isNeedsReview();
     }

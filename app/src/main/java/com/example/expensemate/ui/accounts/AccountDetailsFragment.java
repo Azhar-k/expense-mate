@@ -88,8 +88,9 @@ public class AccountDetailsFragment extends Fragment {
                         AccountForm.show(requireActivity(), account);
                         return true;
                     case MENU_DEFAULT:
-                        accountViewModel.setDefaultAccount(account.getId());
-                        Ui.snackbar(requireActivity(), account.getName() + " is now your default account");
+                        accountViewModel.setDefaultAccount(account);
+                        Ui.snackbar(requireActivity(), account.getName() + " is now your default "
+                                + AccountForm.typeLabel(account) + " account");
                         return true;
                     case MENU_DELETE:
                         AccountForm.confirmDelete(requireActivity(), account,

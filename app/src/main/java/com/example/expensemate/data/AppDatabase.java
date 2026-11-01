@@ -18,7 +18,7 @@ import java.util.List;
 
 import androidx.annotation.NonNull;
 
-@Database(entities = {Transaction.class, Category.class, RecurringPayment.class, Account.class, CounterpartyCategory.class}, version = 10, exportSchema = false)
+@Database(entities = {Transaction.class, Category.class, RecurringPayment.class, Account.class, CounterpartyCategory.class}, version = 11, exportSchema = false)
 @TypeConverters(Converters.class)
 public abstract class AppDatabase extends RoomDatabase {
     private static volatile AppDatabase INSTANCE;
@@ -238,6 +238,16 @@ public abstract class AppDatabase extends RoomDatabase {
         }
     };
 
+    static final Migration MIGRATION_10_11 = new Migration(10, 11) {
+        @Override
+        public void migrate(SupportSQLiteDatabase database) {
+            // Every account so far is virtual
+            database.execSQL("ALTER TABLE accounts ADD COLUMN type TEXT NOT NULL DEFAULT 'VIRTUAL'");
+            database.execSQL("ALTER TABLE transactions ADD COLUMN realAccountId INTEGER");
+            Account.ensureDefaultRealAccount(database);
+        }
+    };
+
     private static final long REVIEW_BACKFILL_MS = 30L * 24 * 60 * 60 * 1000;
 
     public abstract TransactionDao transactionDao();
@@ -275,6 +285,11 @@ public abstract class AppDatabase extends RoomDatabase {
         Account defaultAccount = new Account("Savings", "", "", null, "Default savings account");
         defaultAccount.setDefault(true);
         accountDao.insert(defaultAccount);
+
+        Account realAccount = new Account(Account.DEFAULT_REAL_NAME, "", "", null, "");
+        realAccount.setType(Account.TYPE_REAL);
+        realAccount.setDefault(true);
+        accountDao.insert(realAccount);
     }
 
     public static AppDatabase getDatabase(final Context context) {
@@ -283,7 +298,7 @@ public abstract class AppDatabase extends RoomDatabase {
                 if (INSTANCE == null) {
                     INSTANCE = Room.databaseBuilder(context.getApplicationContext(),
                             AppDatabase.class, "expense_mate_database")
-                            .addMigrations(INITIAL_MIGRATION, MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10)
+                            .addMigrations(INITIAL_MIGRATION, MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11)
                             .addCallback(new RoomDatabase.Callback() {
                                 @Override
                                 public void onCreate(@NonNull SupportSQLiteDatabase db) {

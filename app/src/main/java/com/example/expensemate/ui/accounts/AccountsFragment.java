@@ -78,14 +78,25 @@ public class AccountsFragment extends Fragment {
     }
 
     private void render() {
-        binding.listAccounts.removeAllViews();
-        for (int i = 0; i < accounts.size(); i++) {
-            binding.listAccounts.addView(buildRow(accounts.get(i), i == 0, i == accounts.size() - 1));
+        renderSection(binding.listVirtual, false);
+        renderSection(binding.listReal, true);
+    }
+
+    private void renderSection(ViewGroup list, boolean real) {
+        list.removeAllViews();
+        List<Account> shown = new ArrayList<>();
+        for (Account account : accounts) {
+            if (account.isReal() == real) {
+                shown.add(account);
+            }
+        }
+        for (int i = 0; i < shown.size(); i++) {
+            list.addView(buildRow(list, shown.get(i), i == 0, i == shown.size() - 1));
         }
     }
 
-    private View buildRow(Account account, boolean first, boolean last) {
-        ItemAccountBinding row = ItemAccountBinding.inflate(getLayoutInflater(), binding.listAccounts, false);
+    private View buildRow(ViewGroup list, Account account, boolean first, boolean last) {
+        ItemAccountBinding row = ItemAccountBinding.inflate(getLayoutInflater(), list, false);
         row.getRoot().setBackgroundResource(first && last ? R.drawable.bg_row_single
                 : first ? R.drawable.bg_row_top : last ? R.drawable.bg_row_bottom : R.drawable.bg_row_middle);
         row.divider.setVisibility(last ? View.GONE : View.VISIBLE);
@@ -127,7 +138,7 @@ public class AccountsFragment extends Fragment {
             if (item.getItemId() == Menu.EDIT) {
                 AccountForm.show(requireActivity(), account);
             } else if (item.getItemId() == Menu.SET_DEFAULT) {
-                accountViewModel.setDefaultAccount(account.getId());
+                accountViewModel.setDefaultAccount(account);
             } else {
                 AccountForm.confirmDelete(requireActivity(), account, null);
             }
