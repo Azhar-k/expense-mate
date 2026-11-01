@@ -2,22 +2,43 @@ plugins {
     id 'com.android.application'
 }
 
+def keystoreFile = rootProject.file('keystore.properties')
+def keystore = new Properties()
+if (keystoreFile.exists()) {
+    keystoreFile.withInputStream { keystore.load(it) }
+}
+
 android {
     namespace 'com.example.expensemate'
-    compileSdk 34
+    compileSdkVersion 'android-36.1'
+    buildToolsVersion '36.1.0'
 
     defaultConfig {
         applicationId "com.example.expensemate"
         minSdk 29
-        targetSdk 34
+        targetSdk 36
         versionCode 1
         versionName "1.0"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        if (keystoreFile.exists()) {
+            release {
+                storeFile file(keystore['storeFile'])
+                storePassword keystore['storePassword']
+                keyAlias keystore['keyAlias']
+                keyPassword keystore['keyPassword']
+            }
+        }
+    }
+
     buildTypes {
         release {
+            if (keystoreFile.exists()) {
+                signingConfig signingConfigs.release
+            }
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }

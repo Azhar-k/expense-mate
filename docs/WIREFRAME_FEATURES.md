@@ -405,19 +405,22 @@ Manually scan SMS messages from a date range to extract and import transactions.
 - `READ_SMS`: To read SMS messages
 - `RECEIVE_SMS`: To receive incoming SMS notifications
 
-### Foreground Service Permission
-- `FOREGROUND_SERVICE_DATA_SYNC`: For Android 14+ (for SMS monitoring service)
+### Boot Permission
+- `RECEIVE_BOOT_COMPLETED`: To set RCS capture up again after a reboot
 
 ---
 
-## Background Services
+## Background Capture
 
-### SMS Monitor Service
-- Runs as foreground service
-- Monitors incoming SMS messages
+### SMS Receiver
+- Declared in the manifest, so Android wakes the app for each new SMS
 - Automatically parses and creates transactions
-- Processes SMS in real-time
 - Prevents duplicate transactions using SMS hash
+
+### MMS Change Job
+- A JobScheduler content job that wakes the app when the MMS provider changes, for RCS messages
+- Scheduled when the app opens, after a reboot and after an update
+- Anything missed, such as after a force stop, is picked up the next time the app opens
 
 ---
 

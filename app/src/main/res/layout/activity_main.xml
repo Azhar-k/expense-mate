@@ -4,14 +4,20 @@
     android:id="@+id/root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/background"
-    android:fitsSystemWindows="true"
+    android:background="@color/surface"
     android:orientation="vertical">
+
+    <View
+        android:id="@+id/status_bar_band"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:background="@color/background" />
 
     <com.google.android.material.appbar.MaterialToolbar
         android:id="@+id/toolbar"
         android:layout_width="match_parent"
-        android:layout_height="?attr/actionBarSize" />
+        android:layout_height="?attr/actionBarSize"
+        android:background="@color/background" />
 
     <androidx.fragment.app.FragmentContainerView
         android:id="@+id/nav_host_fragment"
@@ -19,6 +25,7 @@
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
+        android:background="@color/background"
         app:defaultNavHost="true"
         app:navGraph="@navigation/mobile_navigation" />
 

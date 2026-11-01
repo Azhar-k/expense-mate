@@ -88,8 +88,7 @@ public class RcsNotificationListenerService extends NotificationListenerService 
             String text    = getExtra(extras, Notification.EXTRA_TEXT);
             String body    = bigText != null ? bigText : text;
             if (TransactionKeys.isSmsSender(sender)) {
-                // SmsMonitorService already has this message from the SMS broadcast
-                Log.d(TAG, "Skipping SMS notification from: " + sender);
+                // SmsReceiver already has this message from the SMS broadcast
                 return;
             }
             if (sender != null && body != null && !body.trim().isEmpty()) {

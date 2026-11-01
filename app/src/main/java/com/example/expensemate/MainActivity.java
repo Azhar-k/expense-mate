@@ -6,31 +6,31 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
-import android.os.Build;
 import android.os.Bundle;
 import android.provider.Settings;
-import android.util.Log;
 import android.view.View;
+import android.view.ViewGroup;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
 import androidx.navigation.NavController;
 import androidx.navigation.fragment.NavHostFragment;
 import androidx.navigation.ui.AppBarConfiguration;
 import androidx.navigation.ui.NavigationUI;
 
 import com.example.expensemate.service.RcsNotificationListenerService;
-import com.example.expensemate.service.SmsMonitorService;
+import com.example.expensemate.service.MmsChangeJob;
 import com.example.expensemate.ui.common.AppTheme;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 public class MainActivity extends AppCompatActivity {
-    private static final String TAG = "MainActivity";
     private static final int SMS_PERMISSION_REQUEST_CODE = 123;
-    private static final int FOREGROUND_SERVICE_PERMISSION_REQUEST_CODE = 124;
     private static final String PREFS = "main_activity";
     private static final String PREF_NOTIFICATION_ACCESS_ASKED = "notification_access_asked";
     private static final String PREF_SMS_EXPLAINED = "sms_explained";
@@ -66,7 +66,22 @@ public class MainActivity extends AppCompatActivity {
             bottomNavView.setVisibility(topLevel ? View.VISIBLE : View.GONE);
         });
 
+        applySystemBarInsets();
         startCaptureSetup();
+    }
+
+    // From Android 15 the app draws behind the system bars, so it has to leave room for them
+    private void applySystemBarInsets() {
+        View statusBarBand = findViewById(R.id.status_bar_band);
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.root), (root, insets) -> {
+            Insets bars = insets.getInsets(WindowInsetsCompat.Type.systemBars()
+                    | WindowInsetsCompat.Type.displayCutout() | WindowInsetsCompat.Type.ime());
+            root.setPadding(bars.left, 0, bars.right, bars.bottom);
+            ViewGroup.LayoutParams band = statusBarBand.getLayoutParams();
+            band.height = bars.top;
+            statusBarBand.setLayoutParams(band);
+            return WindowInsetsCompat.CONSUMED;
+        });
     }
 
     @Override
@@ -104,7 +119,7 @@ public class MainActivity extends AppCompatActivity {
     // nag: Settings shows what is off and how to turn it on.
     private void startCaptureSetup() {
         if (hasSmsPermission(this)) {
-            checkAndRequestPermissions();
+            MmsChangeJob.start(this, () -> { });
             askForNotificationAccessOnce();
         } else if (!prefs().getBoolean(PREF_SMS_EXPLAINED, false)) {
             prefs().edit().putBoolean(PREF_SMS_EXPLAINED, true).apply();
@@ -124,19 +139,6 @@ public class MainActivity extends AppCompatActivity {
                 SMS_PERMISSION_REQUEST_CODE);
     }
 
-    private void checkAndRequestPermissions() {
-        // Check foreground service data sync permission for Android 14+
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE
-                && ContextCompat.checkSelfPermission(this, Manifest.permission.FOREGROUND_SERVICE_DATA_SYNC)
-                        != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this,
-                    new String[] { Manifest.permission.FOREGROUND_SERVICE_DATA_SYNC },
-                    FOREGROUND_SERVICE_PERMISSION_REQUEST_CODE);
-            return;
-        }
-        startSmsMonitorService();
-    }
-
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
             @NonNull int[] grantResults) {
@@ -144,20 +146,10 @@ public class MainActivity extends AppCompatActivity {
 
         if (requestCode == SMS_PERMISSION_REQUEST_CODE) {
             if (hasSmsPermission(this)) {
-                checkAndRequestPermissions();
+                MmsChangeJob.start(this, () -> { });
             }
             askForNotificationAccessOnce();
-        } else if (requestCode == FOREGROUND_SERVICE_PERMISSION_REQUEST_CODE) {
-            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                startSmsMonitorService();
-            }
         }
-    }
-
-    private void startSmsMonitorService() {
-        Intent serviceIntent = new Intent(this, SmsMonitorService.class);
-        startService(serviceIntent);
-        Log.d(TAG, "SMS Monitor Service started");
     }
 
     private void askForNotificationAccessOnce() {

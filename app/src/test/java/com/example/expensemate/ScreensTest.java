@@ -65,11 +65,11 @@ public class ScreensTest {
     @Before
     public void setUp() throws Exception {
         Application app = ApplicationProvider.getApplicationContext();
-        Shadows.shadowOf(app).grantPermissions(Manifest.permission.READ_SMS, Manifest.permission.RECEIVE_SMS,
-                "android.permission.FOREGROUND_SERVICE_DATA_SYNC");
+        Shadows.shadowOf(app).grantPermissions(Manifest.permission.READ_SMS, Manifest.permission.RECEIVE_SMS);
         app.getSharedPreferences("main_activity", Context.MODE_PRIVATE).edit()
                 .putBoolean("notification_access_asked", true).apply();
         database = AppDatabase.getDatabase(app);
+        database.getOpenHelper().getWritableDatabase(); // So the first-run defaults land before the seed
         settle();
         seed();
         settle();

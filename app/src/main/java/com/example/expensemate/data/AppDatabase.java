@@ -328,9 +328,7 @@ public abstract class AppDatabase extends RoomDatabase {
                                 }
                             })
                             .build();
-                    new Thread(()->{
-                        BackupDataLoader.exportDatabaseDataToLocal(context, INSTANCE);
-                    }).start();
+                    new Thread(()-> BackupDataLoader.deleteOldLocalExports(context)).start();
                 }
             }
         }

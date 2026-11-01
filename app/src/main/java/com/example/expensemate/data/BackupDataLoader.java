@@ -391,102 +391,14 @@ public class BackupDataLoader {
         }
     }
 
-    public static void exportDatabaseDataToLocal(Context context, AppDatabase database) {
-        try {
-            StringBuilder data = new StringBuilder();
-            data.append("=== Database Export ").append(new Date()).append(" ===\n\n");
-
-            // Export categories
-            data.append("\n=== CATEGORIES ===\n");
-            List<Category> categories = database.categoryDao().getAllCategoriesSync();
-            for (Category c : categories) {
-                data.append(String.format("ID: %d\n", c.getId()));
-                data.append(String.format("Name: %s\n", c.getName()));
-                data.append(String.format("Type: %s\n", c.getType()));
-                data.append(String.format("Is Default: %b\n", c.isDefault()));
-                data.append("---\n");
+    /** Earlier versions left a plain text copy of the database here on every start. */
+    static void deleteOldLocalExports(Context context) {
+        File[] exports = new File(context.getFilesDir(), "database_exports").listFiles();
+        if (exports != null) {
+            for (File export : exports) {
+                export.delete();
             }
-
-            // Export recurring payments
-            data.append("\n=== RECURRING PAYMENTS ===\n");
-            List<RecurringPayment> payments = database.recurringPaymentDao().getAllRecurringPaymentsSync();
-            for (RecurringPayment p : payments) {
-                data.append(String.format("ID: %d\n", p.getId()));
-                data.append(String.format("Name: %s\n", p.getName()));
-                data.append(String.format("Amount: %.2f\n", p.getAmount()));
-                data.append(String.format("Due Day: %d\n", p.getDueDay()));
-                data.append(String.format("Expiry Date: %s\n", p.getExpiryDate()));
-                data.append(String.format("Is Completed: %b\n", p.isCompleted()));
-                data.append(String.format("Last Completed Date: %s\n", p.getLastCompletedDate()));
-                data.append(String.format("From Account ID: %s\n", p.getFromAccountId()));
-                data.append(String.format("To Account ID: %s\n", p.getToAccountId()));
-                data.append("---\n");
-            }
-
-            // Export accounts
-            data.append("\n=== ACCOUNTS ===\n");
-            List<Account> accounts = database.accountDao().getAllAccountsSync();
-            if (accounts != null) {
-                for (Account a : accounts) {
-                    data.append(String.format("ID: %d\n", a.getId()));
-                    data.append(String.format("Name: %s\n", a.getName()));
-                    data.append(String.format("Account Number: %s\n", a.getAccountNumber()));
-                    data.append(String.format("Bank: %s\n", a.getBank()));
-                    data.append(String.format("Expiry Date: %s\n", a.getExpiryDate()));
-                    data.append(String.format("Description: %s\n", a.getDescription()));
-                    data.append(String.format("Is Default: %b\n", a.isDefault()));
-                    data.append(String.format("Account Type: %s\n", a.getType()));
-                    data.append("---\n");
-                }
-            }
-
-            // Export transactions (last two months only)
-            data.append("=== TRANSACTIONS ===\n");
-            Date twoMonthsAgo = new Date(System.currentTimeMillis() - (60L * 24 * 60 * 60 * 1000 * 60)); // 60 days ago
-            List<Transaction> transactions = database.transactionDao().getTransactionsBetweenSync(
-                    twoMonthsAgo, new Date());
-            for (Transaction t : transactions) {
-                data.append(String.format("ID: %d\n", t.getId()));
-                data.append(String.format("Amount: %.2f\n", t.getAmount()));
-                data.append(String.format("Description: %s\n", t.getDescription()));
-                data.append(String.format("Date: %s\n", t.getDate()));
-                data.append(String.format("Transaction Type: %s\n", t.getTransactionType()));
-                data.append(String.format("Receiver: %s\n", t.getReceiverName()));
-                data.append(String.format("Category: %s\n", t.getCategory()));
-                data.append(String.format("Is excluded from summary: %s\n", t.isExcludedFromSummary()));
-                data.append(String.format("Account id: %s\n", t.getAccountId()));
-                data.append(String.format("Real account id: %s\n", t.getRealAccountId()));
-                data.append(String.format("Linked Payment ID: %s\n", t.getLinkedRecurringPaymentId()));
-                data.append(String.format("SMS Body: %s\n", t.getSmsBody()));
-                data.append(String.format("SMS Sender: %s\n", t.getSmsSender()));
-                data.append(String.format("SMS Hash: %s\n", t.getSmsHash()));
-                data.append(String.format("Transfer Group: %s\n", t.getTransferGroupId()));
-                data.append(String.format("Needs Review: %b\n", t.isNeedsReview()));
-                data.append("---\n");
-            }
-
-            // Save to file
-            File exportDir = new File(context.getFilesDir(), "database_exports");
-            if (!exportDir.exists()) {
-                Log.i("DatabaseExport", "directory do not exist. Creating it");
-                exportDir.mkdirs();
-            }
-
-            String fileName = "database_export_" + System.currentTimeMillis() + ".txt";
-            File exportFile = new File(exportDir, fileName);
-
-            try (FileWriter writer = new FileWriter(exportFile)) {
-                writer.write(data.toString());
-            }
-
-            if (exportFile.exists()) {
-                Log.i("DatabaseExport", "File exists after writing: " + exportFile.getAbsolutePath());
-            } else {
-                Log.i("DatabaseExport", "File does NOT exist after writing!");
-            }
-            Log.i("DatabaseExport", "Data exported to: " + exportFile.getAbsolutePath());
-        } catch (Exception e) {
-            Log.e("DatabaseExport", "Error exporting data", e);
+            new File(context.getFilesDir(), "database_exports").delete();
         }
     }
 

@@ -5,52 +5,36 @@ import android.content.Context;
 import android.content.Intent;
 import android.provider.Telephony;
 import android.telephony.SmsMessage;
-import android.util.Log;
 
+/** Declared in the manifest, so Android starts the app for a new SMS even when it is not running. */
 public class SmsReceiver extends BroadcastReceiver {
-    private static final String TAG = "SmsReceiver";
-
-    public SmsReceiver() {
-        callback = (x, y)->{
-        };
-    }
-    private final SmsCallback callback;
-
-    public interface SmsCallback {
-        void onSmsReceived(String smsBody, String sender);
-    }
-
-    public SmsReceiver(SmsCallback callback) {
-        this.callback = callback;
-    }
 
     @Override
     public void onReceive(Context context, Intent intent) {
-        if (Telephony.Sms.Intents.SMS_RECEIVED_ACTION.equals(intent.getAction())) {
-            SmsMessage[] messages = Telephony.Sms.Intents.getMessagesFromIntent(intent);
-            if (messages != null) {
-                StringBuilder fullMessage = new StringBuilder();
-                String sender = null;
-                
-                // Concatenate all message parts
-                for (SmsMessage message : messages) {
-                    if (sender == null) {
-                        sender = message.getOriginatingAddress();
-                    }
-                    String body = message.getMessageBody();
-                    if (body != null) {
-                        fullMessage.append(body);
-                    }
-                }
-                
-                String completeBody = fullMessage.toString();
-                Log.d(TAG, "Received SMS from: " + sender);
-                Log.d(TAG, "Full SMS body length: " + (completeBody != null ? completeBody.length() : 0));
-                
-                if (sender != null) {
-                    callback.onSmsReceived(completeBody, sender);
-                }
+        if (!Telephony.Sms.Intents.SMS_RECEIVED_ACTION.equals(intent.getAction())) {
+            return;
+        }
+        SmsMessage[] messages = Telephony.Sms.Intents.getMessagesFromIntent(intent);
+        if (messages == null) {
+            return;
+        }
+        StringBuilder fullMessage = new StringBuilder();
+        String sender = null;
+
+        // Concatenate all message parts
+        for (SmsMessage message : messages) {
+            if (sender == null) {
+                sender = message.getOriginatingAddress();
+            }
+            String body = message.getMessageBody();
+            if (body != null) {
+                fullMessage.append(body);
             }
         }
+
+        if (sender != null) {
+            PendingResult pending = goAsync();
+            MessageCapture.handleSms(context, fullMessage.toString(), sender, pending::finish);
+        }
     }
-} 
+}
