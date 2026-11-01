@@ -34,7 +34,9 @@ public interface TransactionDao {
         @Query("UPDATE transactions SET category = :category, needsReview = 0 WHERE id = :id")
         void setCategory(long id, String category);
 
-        @Query("UPDATE transactions SET accountId = :accountId WHERE id = :id")
+        // A row that had no virtual account has no real one either, so it gets the default real account now.
+        @Query("UPDATE transactions SET accountId = :accountId, realAccountId = COALESCE(realAccountId, " +
+                        "(SELECT id FROM accounts WHERE type = 'REAL' AND isDefault = 1)) WHERE id = :id")
         void setAccount(long id, long accountId);
 
         @Query("UPDATE transactions SET realAccountId = :accountId WHERE id = :id")

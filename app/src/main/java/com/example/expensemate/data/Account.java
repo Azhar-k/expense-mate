@@ -24,7 +24,10 @@ public class Account {
     @NonNull
     private String type = TYPE_VIRTUAL;
 
-    /** Gives real accounts a default, and any transaction without a real account that default. */
+    /**
+     * Gives real accounts a default, and that default to any transaction without a real account.
+     * A transaction whose virtual account is missing is left as it is until someone assigns one.
+     */
     public static void ensureDefaultRealAccount(SupportSQLiteDatabase database) {
         database.execSQL("INSERT INTO accounts (name, accountNumber, bank, description, isDefault, type) "
                 + "SELECT ?, '', '', '', 0, ? WHERE NOT EXISTS (SELECT 1 FROM accounts WHERE type = ?)",
@@ -33,8 +36,9 @@ public class Account {
                 + "AND NOT EXISTS (SELECT 1 FROM accounts WHERE type = ? AND isDefault = 1)",
                 new Object[] { TYPE_REAL, TYPE_REAL });
         database.execSQL("UPDATE transactions SET realAccountId = "
-                + "(SELECT id FROM accounts WHERE type = ? AND isDefault = 1) WHERE realAccountId IS NULL",
-                new Object[] { TYPE_REAL });
+                + "(SELECT id FROM accounts WHERE type = ? AND isDefault = 1) WHERE realAccountId IS NULL "
+                + "AND accountId IN (SELECT id FROM accounts WHERE type = ?)",
+                new Object[] { TYPE_REAL, TYPE_VIRTUAL });
     }
 
     public Account(String name, String accountNumber, String bank, Date expiryDate, String description) {

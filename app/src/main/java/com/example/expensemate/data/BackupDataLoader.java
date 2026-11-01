@@ -28,8 +28,12 @@ public class BackupDataLoader {
     private final Context context;
 
     public BackupDataLoader(Context context) {
+        this(context, AppDatabase.getDatabase(context));
+    }
+
+    BackupDataLoader(Context context, AppDatabase database) {
         this.context = context;
-        this.database = AppDatabase.getDatabase(context);
+        this.database = database;
         this.executorService = Executors.newSingleThreadExecutor();
         this.dateFormat = new SimpleDateFormat("EEE MMM dd HH:mm:ss zzz yyyy", Locale.US);
     }
@@ -97,6 +101,7 @@ public class BackupDataLoader {
     private void processTransaction(String data) {
         try {
             Transaction transaction = new Transaction();
+            boolean hasRealAccountLine = false;
             String[] lines = data.split("\n");
             for (String line : lines) {
                 String[] parts = line.split(": ", 2);
@@ -140,6 +145,7 @@ public class BackupDataLoader {
                         }
                         break;
                     case "Real account id":
+                        hasRealAccountLine = true;
                         if (!value.equalsIgnoreCase("null")) {
                             transaction.setRealAccountId(Long.parseLong(value));
                         }
@@ -174,7 +180,8 @@ public class BackupDataLoader {
                 }
             }
 
-            if (transaction.getAccountId() == null) {
+            // Only older backups need this; a newer one comes back exactly as it was saved
+            if (transaction.getAccountId() == null && !hasRealAccountLine) {
                 Account defaultAccount = database.accountDao().getDefaultAccountSync();
                 Log.i("Transaction", "Account do not exist for transaction. Adding default account. Transaction Id:" + transaction.getId());
                 transaction.setAccountId(defaultAccount.getId());
@@ -343,7 +350,7 @@ public class BackupDataLoader {
                         isDefault = Boolean.parseBoolean(value);
                         break;
                     case "Account Type":
-                        type = value;
+                        type = Account.TYPE_REAL.equals(value) ? Account.TYPE_REAL : Account.TYPE_VIRTUAL;
                         break;
                 }
             }
@@ -453,6 +460,8 @@ public class BackupDataLoader {
                 data.append(String.format("SMS Body: %s\n", t.getSmsBody()));
                 data.append(String.format("SMS Sender: %s\n", t.getSmsSender()));
                 data.append(String.format("SMS Hash: %s\n", t.getSmsHash()));
+                data.append(String.format("Transfer Group: %s\n", t.getTransferGroupId()));
+                data.append(String.format("Needs Review: %b\n", t.isNeedsReview()));
                 data.append("---\n");
             }
 
@@ -526,8 +535,8 @@ public class BackupDataLoader {
         }).start();
     }
 
-    private static void uploadEntity(Context context, String folderId, GoogleDriveService driveService,
-            String entityName, AppDatabase database, String fileName) throws IOException {
+    /** The text of one backup file; {@link #loadSingleEntityFromFile} reads it back. */
+    static String entityText(String entityName, AppDatabase database) {
         StringBuilder data = new StringBuilder();
         // Basic logic to get data based on entity name - Simplified for brevity, assume
         // similar logic to before but separated
@@ -561,7 +570,7 @@ public class BackupDataLoader {
                     twoMonthsAgo, new Date());
             for (Transaction t : transactions) {
                 data.append(String.format(
-                        "ID: %d\nAmount: %.2f\nDescription: %s\nDate: %s\nTransaction Type: %s\nReceiver: %s\nCategory: %s\nIs excluded from summary: %s\nAccount id: %s\nReal account id: %s\nLinked Payment ID: %s\nSMS Body: %s\nSMS Sender: %s\nSMS Hash: %s\n---\n",
+                        "ID: %d\nAmount: %.2f\nDescription: %s\nDate: %s\nTransaction Type: %s\nReceiver: %s\nCategory: %s\nIs excluded from summary: %s\nAccount id: %s\nReal account id: %s\nLinked Payment ID: %s\nSMS Body: %s\nSMS Sender: %s\nSMS Hash: %s\nTransfer Group: %s\nNeeds Review: %b\n---\n",
                         t.getId(), t.getAmount(), t.getDescription(), t.getDate(), t.getTransactionType(),
                         t.getReceiverName(), t.getCategory(), t.isExcludedFromSummary(), t.getAccountId(),
                         t.getRealAccountId(),
@@ -569,10 +578,14 @@ public class BackupDataLoader {
                         t.getTransferGroupId(), t.isNeedsReview()));
             }
         }
+        return data.toString();
+    }
 
+    private static void uploadEntity(Context context, String folderId, GoogleDriveService driveService,
+            String entityName, AppDatabase database, String fileName) throws IOException {
         File tempFile = new File(context.getCacheDir(), fileName);
         try (FileWriter writer = new FileWriter(tempFile)) {
-            writer.write(data.toString());
+            writer.write(entityText(entityName, database));
         }
 
         // We can't wait for the callback here easily in this structure without
@@ -642,14 +655,7 @@ public class BackupDataLoader {
                                     processFileIfExists(context, driveService, fileMap, "transactions.txt",
                                             "TRANSACTIONS", loader);
 
-                                    AppDatabase restored = AppDatabase.getDatabase(context);
-                                    restored.runInTransaction(() -> {
-                                        Category.ensureDefaults(restored.getOpenHelper().getWritableDatabase());
-                                        Account.ensureDefaultRealAccount(restored.getOpenHelper().getWritableDatabase());
-                                        Transfers.linkLegacyPairs(restored.getOpenHelper().getWritableDatabase());
-                                        CounterpartyCategory.rebuildFromTransactions(
-                                                restored.getOpenHelper().getWritableDatabase());
-                                    });
+                                    finishRestore(AppDatabase.getDatabase(context));
                                     Log.i(TAG, "Restore process completed.");
                                     callback.onSuccess("Restore completed successfully");
                                 } catch (Exception e) {
@@ -676,6 +682,16 @@ public class BackupDataLoader {
                 callback.onError("Error loading backup: " + e.getMessage());
             }
         }).start();
+    }
+
+    /** Fills in what an older backup does not carry, and rebuilds what no backup carries. */
+    static void finishRestore(AppDatabase restored) {
+        restored.runInTransaction(() -> {
+            Category.ensureDefaults(restored.getOpenHelper().getWritableDatabase());
+            Account.ensureDefaultRealAccount(restored.getOpenHelper().getWritableDatabase());
+            Transfers.linkLegacyPairs(restored.getOpenHelper().getWritableDatabase());
+            CounterpartyCategory.rebuildFromTransactions(restored.getOpenHelper().getWritableDatabase());
+        });
     }
 
     private static void processFileIfExists(Context context, GoogleDriveService driveService,

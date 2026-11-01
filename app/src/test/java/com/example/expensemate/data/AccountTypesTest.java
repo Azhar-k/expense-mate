@@ -154,7 +154,32 @@ public class AccountTypesTest {
     }
 
     @Test
-    public void migrationMakesEveryAccountVirtualAndGivesEveryRowARealAccount() {
+    public void assigningAVirtualAccountToARowWithoutOneAlsoGivesItTheDefaultRealAccount() {
+        Transaction row = new Transaction();
+        row.setId(50);
+        row.setAmount(10);
+        row.setTransactionType("DEBIT");
+        dao.insertTransaction(row);
+
+        dao.setAccount(50, trip);
+
+        Transaction saved = dao.getAllTransactionsSyncOrderByDateAsc().get(0);
+        assertEquals(Long.valueOf(trip), saved.getAccountId());
+        assertEquals(Long.valueOf(bank), saved.getRealAccountId());
+    }
+
+    @Test
+    public void assigningAVirtualAccountKeepsAChosenRealAccount() {
+        insert(10, "DEBIT", daily, wallet);
+        long id = dao.getAllTransactionsSyncOrderByDateAsc().get(0).getId();
+
+        dao.setAccount(id, trip);
+
+        assertEquals(Long.valueOf(wallet), dao.getAllTransactionsSyncOrderByDateAsc().get(0).getRealAccountId());
+    }
+
+    @Test
+    public void migrationMakesEveryAccountVirtualAndSkipsRowsWithoutAVirtualAccount() {
         database.close();
         Context context = ApplicationProvider.getApplicationContext();
         File file = context.getDatabasePath("migration-10-11.db");
@@ -179,9 +204,13 @@ public class AccountTypesTest {
         assertTrue(real.isReal());
 
         List<Transaction> rows = database.transactionDao().getAllTransactionsSyncOrderByDateAsc();
-        assertEquals(2, rows.size());
+        assertEquals(3, rows.size());
         for (Transaction row : rows) {
-            assertEquals(Long.valueOf(real.getId()), row.getRealAccountId());
+            if (row.getId() == 1) {
+                assertEquals(Long.valueOf(real.getId()), row.getRealAccountId());
+            } else {
+                assertEquals("No or deleted virtual account", null, row.getRealAccountId());
+            }
         }
     }
 
@@ -220,6 +249,7 @@ public class AccountTypesTest {
                 + "isExcludedFromSummary, needsReview) VALUES (?,?,?,?,?,0,0)";
         db.execSQL(insert, new Object[] { 1, 10.0, T0, "DEBIT", 1 });
         db.execSQL(insert, new Object[] { 2, 10.0, T0 + 1000, "DEBIT", null });
+        db.execSQL(insert, new Object[] { 3, 10.0, T0 + 2000, "DEBIT", 99 });
         db.setVersion(10);
         db.close();
     }
