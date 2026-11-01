@@ -85,6 +85,9 @@ public class CategoriesFragment extends Fragment {
             Ui.styleIconTile(row.ivIcon, TransactionText.categoryIcon(category.getName()), R.color.surface_variant,
                     R.color.on_surface);
             row.tvName.setText(category.getName());
+            if (category.isDefault()) {
+                Ui.styleTag(row.tvDefault, "Default", R.color.primary_container, R.color.on_primary_container);
+            }
             row.getRoot().setOnClickListener(v -> showForm(category));
             binding.list.addView(row.getRoot());
         }
@@ -97,6 +100,12 @@ public class CategoriesFragment extends Fragment {
         if (category != null) {
             form.etName.setText(category.getName());
         }
+        // Each type always has a default, so this one stays until another category takes over
+        boolean isDefault = category != null && category.isDefault();
+        form.switchDefault.setChecked(isDefault);
+        form.switchDefault.setEnabled(!isDefault);
+        form.typeExpense.setEnabled(!isDefault);
+        form.typeIncome.setEnabled(!isDefault);
 
         MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(requireContext())
                 .setTitle(category == null ? "Add a category" : "Edit category")
@@ -115,18 +124,25 @@ public class CategoriesFragment extends Fragment {
                 return;
             }
             String newType = form.chipsType.getCheckedChipId() == R.id.typeIncome ? "INCOME" : "EXPENSE";
-            if (category == null) {
-                viewModel.insertCategory(new Category(name, newType));
+            Category saved = category != null ? category : new Category(name, newType);
+            saved.setName(name);
+            saved.setType(newType);
+            if (form.switchDefault.isChecked()) {
+                viewModel.saveAsDefault(saved);
+            } else if (category == null) {
+                viewModel.insertCategory(saved);
             } else {
-                category.setName(name);
-                category.setType(newType);
-                viewModel.updateCategory(category);
+                viewModel.updateCategory(saved);
             }
             dialog.dismiss();
         });
     }
 
     private void confirmDelete(Category category) {
+        if (category.isDefault()) {
+            Ui.snackbar(requireActivity(), "Choose another default category before deleting this one");
+            return;
+        }
         new MaterialAlertDialogBuilder(requireContext())
                 .setTitle("Delete " + category.getName() + "?")
                 .setMessage("Transactions already using it keep the name.")

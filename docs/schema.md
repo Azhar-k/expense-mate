@@ -19,6 +19,7 @@ erDiagram
         long id PK "Auto-generated"
         String name "Unique identifier used in Transaction"
         String type "EXPENSE or INCOME"
+        boolean isDefault "One per type, goes on captured payments"
     }
 
     RECURRING_PAYMENT {

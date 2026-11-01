@@ -39,6 +39,10 @@ public class CategoryViewModel extends AndroidViewModel {
         executorService.execute(() -> categoryDao.updateCategory(category));
     }
 
+    public void saveAsDefault(Category category) {
+        executorService.execute(() -> categoryDao.saveAsDefault(category));
+    }
+
     public void deleteCategory(Category category) {
         executorService.execute(() -> categoryDao.deleteCategory(category));
     }

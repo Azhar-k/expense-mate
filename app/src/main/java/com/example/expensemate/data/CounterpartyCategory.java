@@ -56,11 +56,20 @@ public class CounterpartyCategory {
      * Backups do not carry the mappings, so a restore comes through here as well.
      */
     public static void rebuildFromTransactions(SupportSQLiteDatabase database) {
+        rebuild(database, "c.isDefault = 0");
+    }
+
+    /** For a migration older than the default category flag, when the Default name was all there was. */
+    static void rebuildBeforeDefaultFlag(SupportSQLiteDatabase database) {
+        rebuild(database, "t.category <> 'Default'");
+    }
+
+    private static void rebuild(SupportSQLiteDatabase database, String notDefault) {
         database.execSQL("DELETE FROM counterparty_categories");
         String sql = "SELECT t.receiverName, t.transactionType, c.id FROM transactions t JOIN categories c "
                 + "ON c.name = t.category AND c.type = CASE t.transactionType WHEN 'CREDIT' THEN 'INCOME' ELSE 'EXPENSE' END "
                 + "WHERE t.transactionType IS NOT NULL AND t.transferGroupId IS NULL AND t.needsReview = 0 "
-                + "AND t.category <> 'Default' ORDER BY t.date ASC, t.id ASC";
+                + "AND " + notDefault + " ORDER BY t.date ASC, t.id ASC";
         try (Cursor cursor = database.query(sql)) {
             while (cursor.moveToNext()) {
                 String counterparty = TransactionKeys.counterpartyKey(cursor.getString(0));

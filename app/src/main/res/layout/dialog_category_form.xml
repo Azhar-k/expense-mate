@@ -45,4 +45,11 @@
             android:text="Income"
             app:checkedIconVisible="false" />
     </com.google.android.material.chip.ChipGroup>
+
+    <com.google.android.material.materialswitch.MaterialSwitch
+        android:id="@+id/switchDefault"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:text="Default for captured transactions" />
 </LinearLayout>

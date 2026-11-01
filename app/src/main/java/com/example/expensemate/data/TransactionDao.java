@@ -34,6 +34,9 @@ public interface TransactionDao {
         @Query("UPDATE transactions SET category = :category, needsReview = 0 WHERE id = :id")
         void setCategory(long id, String category);
 
+        @Query("UPDATE transactions SET accountId = :accountId WHERE id = :id")
+        void setAccount(long id, long accountId);
+
         @Query("UPDATE transactions SET isExcludedFromSummary = :excluded WHERE id = :id")
         void setExcludedFromSummary(long id, boolean excluded);
 
@@ -88,12 +91,23 @@ public interface TransactionDao {
                         "AND transactionType = :transactionType")
         void deleteCounterpartyCategory(String counterparty, String transactionType);
 
-        // Default means no choice was made, so it stays out and those payments keep asking for a category.
+        // The default category means no choice was made, so it stays out and those payments keep asking for a category.
         @Query("INSERT OR REPLACE INTO counterparty_categories (counterparty, transactionType, categoryId) " +
                         "SELECT :counterparty, :transactionType, id FROM categories WHERE name = :category " +
-                        "AND name <> 'Default' " +
+                        "AND isDefault = 0 " +
                         "AND type = CASE :transactionType WHEN 'CREDIT' THEN 'INCOME' ELSE 'EXPENSE' END LIMIT 1")
         void saveCounterpartyCategory(String counterparty, String transactionType, String category);
+
+        @Query("SELECT name FROM categories WHERE isDefault = 1 " +
+                        "AND type = CASE :transactionType WHEN 'CREDIT' THEN 'INCOME' ELSE 'EXPENSE' END LIMIT 1")
+        String getDefaultCategory(String transactionType);
+
+        default void applyDefaultCategory(Transaction transaction) {
+                String category = getDefaultCategory(transaction.getTransactionType());
+                if (category != null) {
+                        transaction.setCategory(category);
+                }
+        }
 
         default void applyRememberedCategory(Transaction transaction) {
                 String counterparty = TransactionKeys.counterpartyKey(transaction.getReceiverName());
@@ -252,6 +266,7 @@ public interface TransactionDao {
                 if (isDuplicate(transaction)) {
                         return false;
                 }
+                applyDefaultCategory(transaction);
                 applyRememberedCategory(transaction);
                 insertTransaction(transaction);
                 return true;

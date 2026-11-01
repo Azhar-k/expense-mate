@@ -18,7 +18,7 @@ import java.util.List;
 
 import androidx.annotation.NonNull;
 
-@Database(entities = {Transaction.class, Category.class, RecurringPayment.class, Account.class, CounterpartyCategory.class}, version = 9, exportSchema = false)
+@Database(entities = {Transaction.class, Category.class, RecurringPayment.class, Account.class, CounterpartyCategory.class}, version = 10, exportSchema = false)
 @TypeConverters(Converters.class)
 public abstract class AppDatabase extends RoomDatabase {
     private static volatile AppDatabase INSTANCE;
@@ -226,7 +226,15 @@ public abstract class AppDatabase extends RoomDatabase {
                     + "`transactionType` TEXT NOT NULL, "
                     + "`categoryId` INTEGER NOT NULL, "
                     + "PRIMARY KEY(`counterparty`, `transactionType`))");
-            CounterpartyCategory.rebuildFromTransactions(database);
+            CounterpartyCategory.rebuildBeforeDefaultFlag(database);
+        }
+    };
+
+    static final Migration MIGRATION_9_10 = new Migration(9, 10) {
+        @Override
+        public void migrate(SupportSQLiteDatabase database) {
+            database.execSQL("ALTER TABLE categories ADD COLUMN isDefault INTEGER NOT NULL DEFAULT 0");
+            Category.ensureDefaults(database);
         }
     };
 
@@ -244,7 +252,7 @@ public abstract class AppDatabase extends RoomDatabase {
         };
 
         for (String category : defaultExpenseCategories) {
-            categoryDao.insertCategory(new Category(category, "EXPENSE"));
+            insertDefaultCategory(categoryDao, category, "EXPENSE");
         }
 
         // Insert default income categories
@@ -253,8 +261,14 @@ public abstract class AppDatabase extends RoomDatabase {
         };
 
         for (String category : defaultIncomeCategories) {
-            categoryDao.insertCategory(new Category(category, "INCOME"));
+            insertDefaultCategory(categoryDao, category, "INCOME");
         }
+    }
+
+    private static void insertDefaultCategory(CategoryDao categoryDao, String name, String type) {
+        Category category = new Category(name, type);
+        category.setDefault("Default".equals(name));
+        categoryDao.insertCategory(category);
     }
 
     private static void insertDefaultAccount(AccountDao accountDao) {
@@ -269,7 +283,7 @@ public abstract class AppDatabase extends RoomDatabase {
                 if (INSTANCE == null) {
                     INSTANCE = Room.databaseBuilder(context.getApplicationContext(),
                             AppDatabase.class, "expense_mate_database")
-                            .addMigrations(INITIAL_MIGRATION, MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9)
+                            .addMigrations(INITIAL_MIGRATION, MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10)
                             .addCallback(new RoomDatabase.Callback() {
                                 @Override
                                 public void onCreate(@NonNull SupportSQLiteDatabase db) {

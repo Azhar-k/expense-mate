@@ -46,6 +46,7 @@ public class TransactionDetailsSheet extends ExpandedSheet {
     private List<Category> categories = new ArrayList<>();
     private List<RecurringPayment> bills = new ArrayList<>();
     private Map<Long, String> accountNames = new HashMap<>();
+    private List<Account> accounts = new ArrayList<>();
     private final SimpleDateFormat whenFormat = new SimpleDateFormat("d MMM yyyy, HH:mm", Locale.getDefault());
 
     public static void show(FragmentActivity activity, long transactionId) {
@@ -90,6 +91,7 @@ public class TransactionDetailsSheet extends ExpandedSheet {
                 names.put(account.getId(), account.getName());
             }
             accountNames = names;
+            this.accounts = accounts;
             render();
         });
         provider.get(CategoryViewModel.class).getAllCategories().observe(getViewLifecycleOwner(), list -> {
@@ -167,8 +169,8 @@ public class TransactionDetailsSheet extends ExpandedSheet {
 
         binding.groupCategory.setVisibility(View.VISIBLE);
         buildCategoryChips(credit);
+        buildAccountChips();
 
-        Ui.addKeyValue(binding.details, "Account", TransactionText.accountName(accountNames, transaction.getAccountId()));
         if (TransactionText.hasText(transaction.getReceiverName())) {
             Ui.addKeyValue(binding.details, credit ? "Received from" : "Paid to", transaction.getReceiverName());
         }
@@ -203,9 +205,8 @@ public class TransactionDetailsSheet extends ExpandedSheet {
         binding.chipsCategory.removeAllViews();
         String type = credit ? "INCOME" : "EXPENSE";
         Set<String> names = new LinkedHashSet<>();
-        if (!transaction.isNeedsReview()) {
-            names.add(transaction.getCategory());
-        }
+        // A row waiting for review shows its default first, unselected until someone confirms it
+        names.add(transaction.getCategory());
         for (Category category : categories) {
             if (category.getType().equals(type)) {
                 names.add(category.getName());
@@ -220,6 +221,32 @@ public class TransactionDetailsSheet extends ExpandedSheet {
             chip.setOnClickListener(v -> viewModel.setCategory(transaction, name));
             binding.chipsCategory.addView(chip);
         }
+    }
+
+    private void buildAccountChips() {
+        binding.chipsAccount.removeAllViews();
+        Long selected = transaction.getAccountId();
+        // The current account comes first, so it is in view without scrolling
+        for (Account account : accounts) {
+            if (selected != null && account.getId() == selected) {
+                addAccountChip(account, true);
+            }
+        }
+        for (Account account : accounts) {
+            if (selected == null || account.getId() != selected) {
+                addAccountChip(account, false);
+            }
+        }
+    }
+
+    private void addAccountChip(Account account, boolean checked) {
+        Chip chip = new Chip(requireContext(), null, com.google.android.material.R.attr.chipStyle);
+        chip.setText(account.getName());
+        chip.setCheckable(true);
+        chip.setCheckedIconVisible(false);
+        chip.setChecked(checked);
+        chip.setOnClickListener(v -> viewModel.setAccount(transaction.getId(), account.getId()));
+        binding.chipsAccount.addView(chip);
     }
 
     @Override

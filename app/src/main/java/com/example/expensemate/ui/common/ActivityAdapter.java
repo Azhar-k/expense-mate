@@ -167,7 +167,7 @@ public class ActivityAdapter extends ListAdapter<ActivityRow, RecyclerView.ViewH
                 boolean credit = "CREDIT".equals(transaction.getTransactionType());
                 if (transaction.isNeedsReview()) {
                     Ui.styleIconTile(binding.ivIcon, R.drawable.ic_tag, R.color.warning_container, R.color.warning);
-                    binding.tvSubtitle.setText("Needs a category · " + account + " · " + time);
+                    binding.tvSubtitle.setText(transaction.getCategory() + " · Needs review · " + account + " · " + time);
                 } else {
                     if (credit) {
                         Ui.styleIconTile(binding.ivIcon, TransactionText.categoryIcon(transaction.getCategory()),

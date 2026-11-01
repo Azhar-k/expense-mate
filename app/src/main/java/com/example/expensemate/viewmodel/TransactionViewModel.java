@@ -262,6 +262,10 @@ public class TransactionViewModel extends AndroidViewModel {
         executorService.execute(() -> transactionDao.chooseCategory(transaction, category));
     }
 
+    public void setAccount(long id, long accountId) {
+        executorService.execute(() -> transactionDao.setAccount(id, accountId));
+    }
+
     public void setExcludedFromSummary(long id, boolean excluded) {
         executorService.execute(() -> transactionDao.setExcludedFromSummary(id, excluded));
     }

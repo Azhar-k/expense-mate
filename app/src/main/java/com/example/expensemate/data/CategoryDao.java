@@ -21,7 +21,25 @@ public interface CategoryDao {
     int countCategories(String name, String type);
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    void insertCategory(Category category);
+    long insertCategory(Category category);
+
+    @Query("UPDATE categories SET isDefault = 0 WHERE type = :type")
+    void clearDefaultCategory(String type);
+
+    @Query("UPDATE categories SET isDefault = 1 WHERE id = :id")
+    void markDefaultCategory(long id);
+
+    /** Saves the category and makes it the only default of its type. */
+    @androidx.room.Transaction
+    default void saveAsDefault(Category category) {
+        if (category.getId() == 0) {
+            category.setId(insertCategory(category));
+        } else {
+            updateCategory(category);
+        }
+        clearDefaultCategory(category.getType());
+        markDefaultCategory(category.getId());
+    }
 
     // Expense and income lists can share a name, such as Default and Others.
     @androidx.room.Transaction

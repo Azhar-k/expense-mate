@@ -198,6 +198,7 @@ public class BackupDataLoader {
             String[] lines = data.split("\n");
             String name = "";
             String type = "";
+            boolean isDefault = false;
 
             for (String line : lines) {
                 String[] parts = line.split(": ", 2);
@@ -214,11 +215,16 @@ public class BackupDataLoader {
                     case "Type":
                         type = value;
                         break;
+                    case "Is Default":
+                        isDefault = Boolean.parseBoolean(value);
+                        break;
                 }
             }
 
             if (!name.isEmpty() && !type.isEmpty()) {
-                database.categoryDao().insertIfMissing(new Category(name, type));
+                Category category = new Category(name, type);
+                category.setDefault(isDefault);
+                database.categoryDao().insertIfMissing(category);
             }
         } catch (Exception e) {
             Log.e(TAG, "Error processing category", e);
@@ -380,6 +386,7 @@ public class BackupDataLoader {
                 data.append(String.format("ID: %d\n", c.getId()));
                 data.append(String.format("Name: %s\n", c.getName()));
                 data.append(String.format("Type: %s\n", c.getType()));
+                data.append(String.format("Is Default: %b\n", c.isDefault()));
                 data.append("---\n");
             }
 
@@ -515,7 +522,8 @@ public class BackupDataLoader {
         if (entityName.equals("CATEGORIES")) {
             List<Category> categories = database.categoryDao().getAllCategoriesSync();
             for (Category c : categories) {
-                data.append(String.format("ID: %d\nName: %s\nType: %s\n---\n", c.getId(), c.getName(), c.getType()));
+                data.append(String.format("ID: %d\nName: %s\nType: %s\nIs Default: %b\n---\n", c.getId(), c.getName(),
+                        c.getType(), c.isDefault()));
             }
         } else if (entityName.equals("RECURRING PAYMENTS")) {
             List<RecurringPayment> payments = database.recurringPaymentDao().getAllRecurringPaymentsSync();
@@ -623,6 +631,7 @@ public class BackupDataLoader {
 
                                     AppDatabase restored = AppDatabase.getDatabase(context);
                                     restored.runInTransaction(() -> {
+                                        Category.ensureDefaults(restored.getOpenHelper().getWritableDatabase());
                                         Transfers.linkLegacyPairs(restored.getOpenHelper().getWritableDatabase());
                                         CounterpartyCategory.rebuildFromTransactions(
                                                 restored.getOpenHelper().getWritableDatabase());

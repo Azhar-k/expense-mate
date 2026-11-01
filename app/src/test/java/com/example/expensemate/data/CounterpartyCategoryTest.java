@@ -39,7 +39,7 @@ public class CounterpartyCategoryTest {
                 .build();
         dao = database.transactionDao();
         categories = database.categoryDao();
-        categories.insertCategory(new Category("Default", "EXPENSE"));
+        categories.saveAsDefault(new Category("Default", "EXPENSE"));
         categories.insertCategory(new Category("Food", "EXPENSE"));
         categories.insertCategory(new Category("Fuel", "EXPENSE"));
         categories.insertCategory(new Category("Food", "INCOME"));
@@ -84,6 +84,33 @@ public class CounterpartyCategoryTest {
     @Test
     public void unknownCounterpartyWaitsForACategory() {
         assertWaitingForCategory(capture("SWIGGY", "DEBIT"));
+    }
+
+    @Test
+    public void capturedPaymentGetsTheCategoryMarkedDefault() {
+        categories.saveAsDefault(find("Fuel", "EXPENSE"));
+        categories.saveAsDefault(find("Salary", "INCOME"));
+
+        Transaction debit = capture("SWIGGY", "DEBIT");
+        assertEquals("Fuel", debit.getCategory());
+        assertTrue(debit.isNeedsReview());
+        assertEquals("Salary", capture("ACME", "CREDIT").getCategory());
+    }
+
+    @Test
+    public void rememberedCategoryBeatsTheDefault() {
+        categories.saveAsDefault(find("Fuel", "EXPENSE"));
+        dao.insertWithChosenCategory(chosen("SWIGGY", "DEBIT", "Food"));
+
+        assertEquals("Food", capture("SWIGGY", "DEBIT").getCategory());
+    }
+
+    @Test
+    public void choosingTheMarkedDefaultIsNotRemembered() {
+        categories.saveAsDefault(find("Fuel", "EXPENSE"));
+        dao.insertWithChosenCategory(chosen("SWIGGY", "DEBIT", "Fuel"));
+
+        assertTrue(capture("SWIGGY", "DEBIT").isNeedsReview());
     }
 
     @Test
