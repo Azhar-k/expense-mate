@@ -135,6 +135,51 @@
             android:orientation="vertical" />
 
         <LinearLayout
+            android:id="@+id/rowLoan"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:visibility="gone">
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="8dp"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    style="@style/Text.ExpenseMate.Sub"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Money lent" />
+
+                <TextView
+                    android:id="@+id/tvLoan"
+                    style="@style/Text.ExpenseMate.Body"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content" />
+            </LinearLayout>
+
+            <Button
+                android:id="@+id/btnLoanUnlink"
+                style="@style/Widget.Material3.Button.TextButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Unlink"
+                android:textSize="12sp" />
+
+            <Button
+                android:id="@+id/btnLoan"
+                style="@style/Widget.Material3.Button.TonalButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="12sp" />
+        </LinearLayout>
+
+        <LinearLayout
             android:id="@+id/rowCount"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

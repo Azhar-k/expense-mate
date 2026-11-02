@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+    <!-- Ids match the destinations, so the drawer navigates on its own -->
+    <group android:id="@+id/drawer_main">
+        <item
+            android:id="@+id/navigation_loans"
+            android:icon="@drawable/ic_handshake"
+            android:title="Money lent"
+            app:actionLayout="@layout/drawer_amount" />
+    </group>
+    <group android:id="@+id/drawer_more">
+        <item
+            android:id="@+id/navigation_categories"
+            android:icon="@drawable/ic_tag"
+            android:title="Categories" />
+        <item
+            android:id="@+id/navigation_sms_scan"
+            android:icon="@drawable/ic_sms"
+            android:title="Scan messages" />
+        <item
+            android:id="@+id/navigation_settings"
+            android:icon="@drawable/ic_settings"
+            android:title="Settings" />
+    </group>
+</menu>

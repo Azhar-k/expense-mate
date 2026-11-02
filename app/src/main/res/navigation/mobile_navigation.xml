@@ -34,6 +34,11 @@
     </fragment>
 
     <fragment
+        android:id="@+id/navigation_loans"
+        android:name="com.example.expensemate.ui.loans.LoansFragment"
+        android:label="Money lent" />
+
+    <fragment
         android:id="@+id/navigation_settings"
         android:name="com.example.expensemate.ui.settings.SettingsFragment"
         android:label="Settings" />

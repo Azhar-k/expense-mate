@@ -188,7 +188,7 @@ public class AccountTypesTest {
         createVersion10(file);
 
         database = Room.databaseBuilder(context, AppDatabase.class, file.getPath())
-                .addMigrations(AppDatabase.MIGRATION_10_11, AppDatabase.MIGRATION_11_12)
+                .addMigrations(AppDatabase.MIGRATION_10_11, AppDatabase.MIGRATION_11_12, AppDatabase.MIGRATION_12_13)
                 .allowMainThreadQueries()
                 .build();
         accounts = database.accountDao();

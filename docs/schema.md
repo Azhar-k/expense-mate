@@ -14,6 +14,18 @@ erDiagram
         long accountId FK "Logical FK to a virtual Account"
         long realAccountId FK "Logical FK to a real Account"
         boolean isExcludedFromSummary
+        long loanId FK "Logical FK to Loan: a debit lent it, a credit returns it"
+    }
+
+    LOAN {
+        long id PK "Auto-generated"
+        String person
+        double amount "What was lent"
+        long date "Timestamp"
+        String note
+        double returnedManually "Returns recorded by hand, such as cash"
+        boolean closedManually "Marked as returned by hand"
+        long closedDate "Timestamp"
     }
 
     CATEGORY {
@@ -54,6 +66,9 @@ erDiagram
     
     %% Transaction links to RecurringPayment via linkedRecurringPaymentId
     RECURRING_PAYMENT |o--o{ TRANSACTION : "linkedRecurringPaymentId"
+
+    %% Transaction links to Loan via loanId; linked credits add up to what has come back
+    LOAN |o--o{ TRANSACTION : "loanId"
 
     %% Transaction links to Category via name string (not ID)
     CATEGORY ||--o{ TRANSACTION : "category (name match)"

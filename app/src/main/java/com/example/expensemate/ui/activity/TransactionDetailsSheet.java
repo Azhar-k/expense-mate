@@ -13,15 +13,20 @@ import androidx.lifecycle.ViewModelProvider;
 import com.example.expensemate.R;
 import com.example.expensemate.data.Account;
 import com.example.expensemate.data.Category;
+import com.example.expensemate.data.LoanSummary;
 import com.example.expensemate.data.RecurringPayment;
 import com.example.expensemate.data.Transaction;
 import com.example.expensemate.databinding.SheetTransactionDetailsBinding;
 import com.example.expensemate.ui.common.ExpandedSheet;
 import com.example.expensemate.ui.common.TransactionText;
 import com.example.expensemate.ui.common.Ui;
+import com.example.expensemate.ui.loans.LoanActions;
+import com.example.expensemate.ui.loans.LoanDetailsSheet;
+import com.example.expensemate.ui.loans.LoanForm;
 import com.example.expensemate.util.Money;
 import com.example.expensemate.viewmodel.AccountViewModel;
 import com.example.expensemate.viewmodel.CategoryViewModel;
+import com.example.expensemate.viewmodel.LoanViewModel;
 import com.example.expensemate.viewmodel.RecurringPaymentsViewModel;
 import com.example.expensemate.viewmodel.TransactionViewModel;
 import com.google.android.material.chip.Chip;
@@ -48,6 +53,8 @@ public class TransactionDetailsSheet extends ExpandedSheet {
     private List<RecurringPayment> bills = new ArrayList<>();
     private Map<Long, String> accountNames = new HashMap<>();
     private List<Account> accounts = new ArrayList<>();
+    private List<LoanSummary> loans = new ArrayList<>();
+    private LoanViewModel loanViewModel;
     private final SimpleDateFormat whenFormat = new SimpleDateFormat("d MMM yyyy, HH:mm", Locale.getDefault());
 
     public static void show(FragmentActivity activity, long transactionId) {
@@ -103,6 +110,11 @@ public class TransactionDetailsSheet extends ExpandedSheet {
             bills = list;
             render();
         });
+        loanViewModel = provider.get(LoanViewModel.class);
+        loanViewModel.getLoans().observe(getViewLifecycleOwner(), list -> {
+            loans = list;
+            render();
+        });
         viewModel.getTransaction(requireArguments().getLong(ARG_ID)).observe(getViewLifecycleOwner(), row -> {
             if (row == null) {
                 dismissAllowingStateLoss();
@@ -148,6 +160,7 @@ public class TransactionDetailsSheet extends ExpandedSheet {
         binding.tvAmount.setText(Money.format(transaction.getAmount()));
         binding.tvAmount.setTextColor(requireContext().getColor(R.color.transfer));
         binding.groupCategory.setVisibility(View.GONE);
+        binding.rowLoan.setVisibility(View.GONE);
         binding.rowCount.setVisibility(View.GONE);
         binding.tvMessage.setVisibility(View.GONE);
         if (debit != null && credit != null) {
@@ -180,6 +193,7 @@ public class TransactionDetailsSheet extends ExpandedSheet {
             Ui.addKeyValue(binding.details, credit ? "Received from" : "Paid to", transaction.getReceiverName());
         }
         Ui.addKeyValue(binding.details, "Linked bill", linkedBillName());
+        renderLoan(credit);
 
         binding.rowCount.setVisibility(View.VISIBLE);
         binding.switchCount.setChecked(!transaction.isExcludedFromSummary());
@@ -192,6 +206,50 @@ public class TransactionDetailsSheet extends ExpandedSheet {
         } else if (TransactionText.hasText(transaction.getDescription())) {
             Ui.addKeyValue(binding.details, "Note", transaction.getDescription());
         }
+    }
+
+    // A debit can start a loan; a credit can pay one back
+    private void renderLoan(boolean credit) {
+        binding.rowLoan.setVisibility(View.VISIBLE);
+        LoanSummary linked = linkedLoan();
+        binding.btnLoanUnlink.setVisibility(linked != null ? View.VISIBLE : View.GONE);
+        if (linked != null) {
+            binding.tvLoan.setText((credit ? "Return from " : "Lent to ") + linked.loan.getPerson());
+            binding.btnLoan.setText("Open");
+            binding.btnLoan.setOnClickListener(v -> {
+                FragmentActivity activity = requireActivity();
+                dismiss();
+                LoanDetailsSheet.show(activity, linked.loan.getId());
+            });
+            binding.btnLoanUnlink.setOnClickListener(v -> loanViewModel.unlink(transaction.getId()));
+        } else if (credit) {
+            binding.tvLoan.setText("Did someone pay you back?");
+            binding.btnLoan.setText("Mark as a return");
+            binding.btnLoan.setOnClickListener(
+                    v -> LoanActions.pickLoanForReturn(requireActivity(), transaction, loans));
+        } else {
+            binding.tvLoan.setText("Lent this to someone?");
+            binding.btnLoan.setText("Track as lent");
+            binding.btnLoan.setOnClickListener(v -> {
+                FragmentActivity activity = requireActivity();
+                Transaction from = transaction;
+                dismiss();
+                LoanForm.showFromTransaction(activity, from);
+            });
+        }
+    }
+
+    @Nullable
+    private LoanSummary linkedLoan() {
+        Long loanId = transaction.getLoanId();
+        if (loanId != null) {
+            for (LoanSummary summary : loans) {
+                if (summary.loan.getId() == loanId) {
+                    return summary;
+                }
+            }
+        }
+        return null;
     }
 
     private String linkedBillName() {

@@ -37,16 +37,17 @@ public class BackupDataLoader {
     static final String FORMAT_LINE = "Format: 2";
     private static final String NULL = "\\N";
 
-    /** Restore order: transactions refer to accounts and bills, mappings to categories. */
+    /** Restore order: transactions refer to accounts, bills and loans, mappings to categories. */
     static final String[][] FILES = {
             { "CATEGORIES", "categories.txt" },
             { "RECURRING PAYMENTS", "recurring_payments.txt" },
             { "ACCOUNTS", "accounts.txt" },
+            { "LOANS", "loans.txt" },
             { "TRANSACTIONS", "transactions.txt" },
             { "COUNTERPARTY CATEGORIES", "counterparty_categories.txt" },
     };
     private static final String[] TABLES = {
-            "transactions", "categories", "recurring_payments", "accounts", "counterparty_categories" };
+            "transactions", "categories", "recurring_payments", "accounts", "counterparty_categories", "loans" };
 
     private final AppDatabase database;
     private final SimpleDateFormat dateFormat;
@@ -107,6 +108,19 @@ public class BackupDataLoader {
                     data.append("---\n");
                 }
                 break;
+            case "LOANS":
+                for (Loan l : database.loanDao().getAllLoansSync()) {
+                    put(data, "ID", l.getId());
+                    put(data, "Person", l.getPerson());
+                    put(data, "Amount", l.getAmount());
+                    put(data, "Date", l.getDate());
+                    put(data, "Note", l.getNote());
+                    put(data, "Returned Manually", l.getReturnedManually());
+                    put(data, "Closed Manually", l.isClosedManually());
+                    put(data, "Closed Date", l.getClosedDate());
+                    data.append("---\n");
+                }
+                break;
             case "TRANSACTIONS":
                 for (Transaction t : database.transactionDao().getAllTransactionsSyncOrderByDateAsc()) {
                     put(data, "ID", t.getId());
@@ -120,6 +134,7 @@ public class BackupDataLoader {
                     put(data, "Account id", t.getAccountId());
                     put(data, "Real account id", t.getRealAccountId());
                     put(data, "Linked Payment ID", t.getLinkedRecurringPaymentId());
+                    put(data, "Loan ID", t.getLoanId());
                     put(data, "SMS Body", t.getSmsBody());
                     put(data, "SMS Sender", t.getSmsSender());
                     put(data, "SMS Hash", t.getSmsHash());
@@ -237,6 +252,9 @@ public class BackupDataLoader {
                 case "COUNTERPARTY CATEGORIES":
                     processCounterpartyCategory(record);
                     break;
+                case "LOANS":
+                    processLoan(record);
+                    break;
             }
         } catch (Exception e) {
             Log.e(TAG, "Error processing entity in section " + section, e);
@@ -312,6 +330,7 @@ public class BackupDataLoader {
         transaction.setRealAccountId(record.number("Real account id"));
         transaction.setExcludedFromSummary(record.flag("Is excluded from summary"));
         transaction.setLinkedRecurringPaymentId(record.number("Linked Payment ID"));
+        transaction.setLoanId(record.number("Loan ID"));
         transaction.setSmsBody(record.text("SMS Body"));
         transaction.setSmsSender(record.text("SMS Sender"));
         transaction.setSmsHash(record.text("SMS Hash"));
@@ -403,6 +422,26 @@ public class BackupDataLoader {
             account.setId(originalId);
         }
         database.accountDao().insert(account);
+    }
+
+    // The original id keeps returns pointing at the right loan
+    private void processLoan(Record record) throws ParseException {
+        String person = record.text("Person");
+        if (person == null || person.trim().isEmpty()) {
+            return;
+        }
+        Loan loan = new Loan();
+        if (record.has("ID")) {
+            loan.setId(record.number("ID"));
+        }
+        loan.setPerson(person);
+        loan.setAmount(record.amount("Amount"));
+        loan.setDate(record.date("Date"));
+        loan.setNote(record.text("Note"));
+        loan.setReturnedManually(record.amount("Returned Manually"));
+        loan.setClosedManually(record.flag("Closed Manually"));
+        loan.setClosedDate(record.date("Closed Date"));
+        database.loanDao().insert(loan);
     }
 
     private String orEmpty(Record record, String key) {

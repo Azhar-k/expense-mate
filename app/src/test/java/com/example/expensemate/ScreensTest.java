@@ -457,7 +457,7 @@ public class ScreensTest {
         ((TextView) dialog.findViewById(R.id.etReceiver)).setText("Test Cafe");
         dialog.findViewById(R.id.btnSave).performClick();
         settle();
-        assertEquals("Choose a category", ((TextView) dialog.findViewById(R.id.tvCategoryLabel)).getText().toString());
+        assertEquals("Choose a category", ((TextView) dialog.findViewById(R.id.pickCategory).findViewById(R.id.tvLabel)).getText().toString());
         assertEquals(before, allRows().size());
 
         clickChip(dialog, "Eating out");

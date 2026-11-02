@@ -11,7 +11,8 @@ import android.util.Log;
 @Entity(tableName = "transactions", indices = {
         @Index(value = {"dedupKey", "messageTime"}),
         @Index(value = {"matchKey", "messageTime"}),
-        @Index(value = {"transferGroupId"})
+        @Index(value = {"transferGroupId"}),
+        @Index(value = {"loanId"})
 })
 public class Transaction {
     @PrimaryKey(autoGenerate = true)
@@ -37,6 +38,7 @@ public class Transaction {
     private String source; // Entry path that created the row, see TransactionKeys
     private String transferGroupId; // Shared by the two sides of a transfer, null otherwise
     private boolean needsReview; // Captured from a message and still waiting for a category
+    private Long loanId; // Money lent that this row gave out (a debit) or brought back (a credit)
 
     public Transaction() {
         this.category = "Default"; // Default category
@@ -234,6 +236,14 @@ public class Transaction {
         this.needsReview = needsReview;
     }
 
+    public Long getLoanId() {
+        return loanId;
+    }
+
+    public void setLoanId(Long loanId) {
+        this.loanId = loanId;
+    }
+
     public boolean isTransfer() {
         return transferGroupId != null;
     }
@@ -261,6 +271,7 @@ public class Transaction {
         copy.source = source;
         copy.transferGroupId = transferGroupId;
         copy.needsReview = needsReview;
+        copy.loanId = loanId;
         return copy;
     }
 

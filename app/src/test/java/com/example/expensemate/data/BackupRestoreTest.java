@@ -251,6 +251,55 @@ public class BackupRestoreTest {
     }
 
     @Test
+    public void loansComeBackWithTheirReturns() throws Exception {
+        account(1, "Daily", Account.TYPE_VIRTUAL, true);
+        Loan loan = new Loan();
+        loan.setId(5);
+        loan.setPerson("Ravi");
+        loan.setAmount(5000);
+        loan.setDate(new Date(1793447463000L));
+        loan.setNote("for the trip\nback next month");
+        loan.setReturnedManually(500);
+        loan.setClosedManually(true);
+        loan.setClosedDate(new Date(1793447469000L));
+        source.loanDao().insert(loan);
+        Transaction lent = row(1, "DEBIT", 1L, null);
+        lent.setLoanId(5L);
+        source.transactionDao().insertTransaction(lent);
+        Transaction back = row(2, "CREDIT", 1L, null);
+        back.setLoanId(5L);
+        source.transactionDao().insertTransaction(back);
+
+        new BackupDataLoader(context, restored).restore(backupFiles());
+
+        Loan restoredLoan = restored.loanDao().getAllLoansSync().get(0);
+        assertEquals(5, restoredLoan.getId());
+        assertEquals("Ravi", restoredLoan.getPerson());
+        assertEquals(5000, restoredLoan.getAmount(), 0);
+        assertEquals(1793447463000L, restoredLoan.getDate().getTime());
+        assertEquals("for the trip\nback next month", restoredLoan.getNote());
+        assertEquals(500, restoredLoan.getReturnedManually(), 0);
+        assertTrue(restoredLoan.isClosedManually());
+        assertEquals(1793447469000L, restoredLoan.getClosedDate().getTime());
+        assertEquals(Long.valueOf(5), find(restored, 1).getLoanId());
+        assertEquals(Long.valueOf(5), find(restored, 2).getLoanId());
+        assertEquals(500 + 102, restored.loanDao().getLoanSummariesSync().get(0).returned, 0.001);
+    }
+
+    @Test
+    public void aBackupWithoutLoansStillRestores() throws Exception {
+        account(1, "Daily", Account.TYPE_VIRTUAL, true);
+        source.transactionDao().insertTransaction(row(1, "DEBIT", 1L, null));
+        Map<String, File> files = backupFiles();
+        files.remove("LOANS");
+
+        new BackupDataLoader(context, restored).restore(files);
+
+        assertTrue(restored.loanDao().getAllLoansSync().isEmpty());
+        assertNull(find(restored, 1).getLoanId());
+    }
+
+    @Test
     public void aRestoreThatFailsLeavesTheDataAsItWas() throws Exception {
         account(1, "Daily", Account.TYPE_VIRTUAL, true);
         source.transactionDao().insertTransaction(row(1, "DEBIT", 1L, null));

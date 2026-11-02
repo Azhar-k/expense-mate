@@ -10,24 +10,33 @@ import android.os.Bundle;
 import android.provider.Settings;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.TextView;
+import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.graphics.Insets;
+import androidx.core.view.GravityCompat;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
+import androidx.drawerlayout.widget.DrawerLayout;
+import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.NavController;
 import androidx.navigation.fragment.NavHostFragment;
 import androidx.navigation.ui.AppBarConfiguration;
 import androidx.navigation.ui.NavigationUI;
 
+import com.example.expensemate.data.LoanSummary;
 import com.example.expensemate.service.RcsNotificationListenerService;
 import com.example.expensemate.service.MmsChangeJob;
 import com.example.expensemate.ui.common.AppTheme;
+import com.example.expensemate.util.Money;
+import com.example.expensemate.viewmodel.LoanViewModel;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import com.google.android.material.navigation.NavigationView;
 
 public class MainActivity extends AppCompatActivity {
     private static final int SMS_PERMISSION_REQUEST_CODE = 123;
@@ -37,6 +46,8 @@ public class MainActivity extends AppCompatActivity {
 
     private BottomNavigationView bottomNavView;
     private NavController navController;
+    private DrawerLayout drawerLayout;
+    private AppBarConfiguration appBarConfiguration;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -53,17 +64,22 @@ public class MainActivity extends AppCompatActivity {
         bottomNavView = findViewById(R.id.nav_view);
         NavigationUI.setupWithNavController(bottomNavView, navController);
 
-        AppBarConfiguration appBarConfiguration = new AppBarConfiguration.Builder(
+        drawerLayout = findViewById(R.id.drawer_layout);
+        appBarConfiguration = new AppBarConfiguration.Builder(
                 R.id.navigation_home, R.id.navigation_activity, R.id.navigation_bills, R.id.navigation_accounts)
+                .setOpenableLayout(drawerLayout)
                 .build();
         NavigationUI.setupActionBarWithNavController(this, navController, appBarConfiguration);
+        setUpDrawer();
 
-        // Tabs are for the four main screens; anything deeper gets a back arrow instead
+        // Tabs and the drawer are for the four main screens; anything deeper gets a back arrow instead
         navController.addOnDestinationChangedListener((controller, destination, arguments) -> {
             int id = destination.getId();
             boolean topLevel = id == R.id.navigation_home || id == R.id.navigation_activity
                     || id == R.id.navigation_bills || id == R.id.navigation_accounts;
             bottomNavView.setVisibility(topLevel ? View.VISIBLE : View.GONE);
+            drawerLayout.setDrawerLockMode(topLevel ? DrawerLayout.LOCK_MODE_UNLOCKED
+                    : DrawerLayout.LOCK_MODE_LOCKED_CLOSED);
         });
 
         applySystemBarInsets();
@@ -73,20 +89,62 @@ public class MainActivity extends AppCompatActivity {
     // From Android 15 the app draws behind the system bars, so it has to leave room for them
     private void applySystemBarInsets() {
         View statusBarBand = findViewById(R.id.status_bar_band);
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.root), (root, insets) -> {
+        View root = findViewById(R.id.root);
+        View drawerView = findViewById(R.id.drawer_view);
+        ViewCompat.setOnApplyWindowInsetsListener(drawerLayout, (drawer, insets) -> {
             Insets bars = insets.getInsets(WindowInsetsCompat.Type.systemBars()
                     | WindowInsetsCompat.Type.displayCutout() | WindowInsetsCompat.Type.ime());
             root.setPadding(bars.left, 0, bars.right, bars.bottom);
             ViewGroup.LayoutParams band = statusBarBand.getLayoutParams();
             band.height = bars.top;
             statusBarBand.setLayoutParams(band);
+            // The drawer pads itself, so it gets the insets as they came
+            ViewCompat.dispatchApplyWindowInsets(drawerView, insets);
             return WindowInsetsCompat.CONSUMED;
+        });
+    }
+
+    // Drawer screens open on top of the current tab, so back returns to it
+    private void setUpDrawer() {
+        NavigationView drawerView = findViewById(R.id.drawer_view);
+        drawerView.setNavigationItemSelectedListener(item -> {
+            drawerLayout.closeDrawer(GravityCompat.START);
+            navController.navigate(item.getItemId());
+            return false;
+        });
+
+        TextView lentAmount = (TextView) drawerView.getMenu().findItem(R.id.navigation_loans).getActionView();
+        new ViewModelProvider(this).get(LoanViewModel.class).getLoans().observe(this, loans -> {
+            double outstanding = 0;
+            for (LoanSummary summary : loans) {
+                outstanding += summary.outstanding();
+            }
+            lentAmount.setText(outstanding > 0 ? Money.format(outstanding) : "");
+        });
+
+        OnBackPressedCallback closeDrawer = new OnBackPressedCallback(false) {
+            @Override
+            public void handleOnBackPressed() {
+                drawerLayout.closeDrawer(GravityCompat.START);
+            }
+        };
+        getOnBackPressedDispatcher().addCallback(this, closeDrawer);
+        drawerLayout.addDrawerListener(new DrawerLayout.SimpleDrawerListener() {
+            @Override
+            public void onDrawerOpened(@NonNull View drawerView) {
+                closeDrawer.setEnabled(true);
+            }
+
+            @Override
+            public void onDrawerClosed(@NonNull View drawerView) {
+                closeDrawer.setEnabled(false);
+            }
         });
     }
 
     @Override
     public boolean onSupportNavigateUp() {
-        return navController.navigateUp() || super.onSupportNavigateUp();
+        return NavigationUI.navigateUp(navController, appBarConfiguration) || super.onSupportNavigateUp();
     }
 
     public void openTab(int tabId) {
