@@ -25,18 +25,69 @@
         <item name="cornerSizeBottomRight">0dp</item>
     </style>
 
-    <style name="Widget.ExpenseMate.Field" parent="Widget.Material3.TextInputLayout.OutlinedBox">
-        <item name="boxCornerRadiusTopStart">12dp</item>
-        <item name="boxCornerRadiusTopEnd">12dp</item>
-        <item name="boxCornerRadiusBottomStart">12dp</item>
-        <item name="boxCornerRadiusBottomEnd">12dp</item>
+    <!-- Tinted fields with no outline or underline; focus shows as a deeper tint -->
+    <style name="Widget.ExpenseMate.Field" parent="Widget.Material3.TextInputLayout.FilledBox">
+        <item name="boxBackgroundColor">@color/field_box</item>
+        <item name="boxStrokeWidth">0dp</item>
+        <item name="boxStrokeWidthFocused">0dp</item>
+        <item name="boxCornerRadiusTopStart">14dp</item>
+        <item name="boxCornerRadiusTopEnd">14dp</item>
+        <item name="boxCornerRadiusBottomStart">14dp</item>
+        <item name="boxCornerRadiusBottomEnd">14dp</item>
     </style>
 
-    <style name="Widget.ExpenseMate.Dropdown" parent="Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu">
-        <item name="boxCornerRadiusTopStart">12dp</item>
-        <item name="boxCornerRadiusTopEnd">12dp</item>
-        <item name="boxCornerRadiusBottomStart">12dp</item>
-        <item name="boxCornerRadiusBottomEnd">12dp</item>
+    <style name="Widget.ExpenseMate.Dropdown" parent="Widget.Material3.TextInputLayout.FilledBox.ExposedDropdownMenu">
+        <item name="boxBackgroundColor">@color/field_box</item>
+        <item name="boxStrokeWidth">0dp</item>
+        <item name="boxStrokeWidthFocused">0dp</item>
+        <item name="boxCornerRadiusTopStart">14dp</item>
+        <item name="boxCornerRadiusTopEnd">14dp</item>
+        <item name="boxCornerRadiusBottomStart">14dp</item>
+        <item name="boxCornerRadiusBottomEnd">14dp</item>
+    </style>
+
+    <!-- A pill track holding the type choices, with the chosen one filled -->
+    <style name="Widget.ExpenseMate.SegmentGroup" parent="Widget.Material3.MaterialButtonToggleGroup">
+        <item name="android:background">@drawable/bg_segment</item>
+        <item name="android:padding">4dp</item>
+        <item name="singleSelection">true</item>
+        <item name="selectionRequired">true</item>
+    </style>
+
+    <style name="Widget.ExpenseMate.Segment" parent="Widget.Material3.Button.TextButton">
+        <item name="backgroundTint">@color/segment_background</item>
+        <item name="android:textColor">@color/segment_text</item>
+        <item name="strokeWidth">0dp</item>
+        <item name="cornerRadius">20dp</item>
+        <item name="android:insetTop">0dp</item>
+        <item name="android:insetBottom">0dp</item>
+        <item name="android:minHeight">40dp</item>
+    </style>
+
+    <style name="Widget.ExpenseMate.FormChip" parent="Widget.Material3.Chip.Filter">
+        <item name="chipBackgroundColor">@color/form_chip_background</item>
+        <item name="android:textColor">@color/form_chip_text</item>
+        <item name="chipStrokeWidth">0dp</item>
+        <item name="chipCornerRadius">18dp</item>
+        <item name="checkedIconVisible">false</item>
+    </style>
+
+    <style name="Widget.ExpenseMate.FormAction" parent="Widget.Material3.Chip.Assist">
+        <item name="chipBackgroundColor">@color/field</item>
+        <item name="chipStrokeWidth">0dp</item>
+        <item name="chipCornerRadius">18dp</item>
+        <item name="chipIconTint">@color/primary</item>
+    </style>
+
+    <!-- Lets chips made in code pick up the form chip style -->
+    <style name="ThemeOverlay.ExpenseMate.FormChips" parent="">
+        <item name="chipStyle">@style/Widget.ExpenseMate.FormChip</item>
+    </style>
+
+    <style name="Widget.ExpenseMate.Save" parent="Widget.ExpenseMate.Primary">
+        <item name="cornerRadius">28dp</item>
+        <item name="android:minHeight">56dp</item>
+        <item name="android:textSize">16sp</item>
     </style>
 
     <style name="Widget.ExpenseMate.Primary" parent="Widget.Material3.Button">
@@ -52,6 +103,12 @@
     </style>
 
     <style name="Text.ExpenseMate.ScreenTitle" parent="TextAppearance.Material3.TitleLarge">
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="android:textColor">@color/on_surface</item>
+    </style>
+
+    <style name="Text.ExpenseMate.SheetTitle" parent="">
+        <item name="android:textSize">20sp</item>
         <item name="android:fontFamily">sans-serif-medium</item>
         <item name="android:textColor">@color/on_surface</item>
     </style>

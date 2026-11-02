@@ -7,7 +7,6 @@ import android.view.ViewGroup;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 
@@ -16,6 +15,7 @@ import com.example.expensemate.data.Category;
 import com.example.expensemate.databinding.DialogCategoryFormBinding;
 import com.example.expensemate.databinding.FragmentCategoriesBinding;
 import com.example.expensemate.databinding.ItemCategoryBinding;
+import com.example.expensemate.ui.common.FormSheet;
 import com.example.expensemate.ui.common.ReorderDialog;
 import com.example.expensemate.ui.common.TransactionText;
 import com.example.expensemate.ui.common.Ui;
@@ -118,7 +118,7 @@ public class CategoriesFragment extends Fragment {
     private void showForm(@Nullable Category category) {
         DialogCategoryFormBinding form = DialogCategoryFormBinding.inflate(getLayoutInflater());
         String type = category != null ? category.getType() : selectedType();
-        form.chipsType.check("INCOME".equals(type) ? R.id.typeIncome : R.id.typeExpense);
+        form.typeToggle.check("INCOME".equals(type) ? R.id.typeIncome : R.id.typeExpense);
         if (category != null) {
             form.etName.setText(category.getName());
         }
@@ -129,23 +129,18 @@ public class CategoriesFragment extends Fragment {
         form.typeExpense.setEnabled(!isDefault);
         form.typeIncome.setEnabled(!isDefault);
 
-        MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(requireContext())
-                .setTitle(category == null ? "Add a category" : "Edit category")
-                .setView(form.getRoot())
-                .setNegativeButton("Cancel", null)
-                .setPositiveButton("Save", null);
+        FormSheet sheet = FormSheet.create(requireContext(),
+                category == null ? "Add a category" : "Edit category", form.getRoot());
         if (category != null) {
-            builder.setNeutralButton("Delete", (d, which) -> confirmDelete(category));
+            sheet.onDelete(() -> confirmDelete(category));
         }
-        AlertDialog dialog = builder.create();
-        dialog.show();
-        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
+        sheet.onSave(() -> {
             String name = form.etName.getText().toString().trim();
             form.tilName.setError(name.isEmpty() ? "Enter a name" : null);
             if (name.isEmpty()) {
                 return;
             }
-            String newType = form.chipsType.getCheckedChipId() == R.id.typeIncome ? "INCOME" : "EXPENSE";
+            String newType = form.typeToggle.getCheckedButtonId() == R.id.typeIncome ? "INCOME" : "EXPENSE";
             Category saved = category != null ? category : new Category(name, newType);
             saved.setName(name);
             saved.setType(newType);
@@ -156,8 +151,9 @@ public class CategoriesFragment extends Fragment {
             } else {
                 viewModel.updateCategory(saved);
             }
-            dialog.dismiss();
+            sheet.dismiss();
         });
+        sheet.show();
     }
 
     private void confirmDelete(Category category) {

@@ -3,10 +3,10 @@ package com.example.expensemate.ui.activity;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.view.ContextThemeWrapper;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.AutoCompleteTextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -54,7 +54,12 @@ public class TransactionFormSheet extends ExpandedSheet {
 
     private final Calendar date = Calendar.getInstance();
     private final SimpleDateFormat dateFormat = new SimpleDateFormat("d MMM yyyy, HH:mm", Locale.getDefault());
-    private List<Account> accounts = new ArrayList<>();
+    private AccountChips account;
+    private AccountChips realAccount;
+    private AccountChips from;
+    private AccountChips to;
+    private AccountChips fromReal;
+    private AccountChips toReal;
     private List<Category> categories = new ArrayList<>();
     private List<RecurringPayment> bills = new ArrayList<>();
     private String selectedCategory;
@@ -104,6 +109,16 @@ public class TransactionFormSheet extends ExpandedSheet {
         AccountViewModel accountViewModel = provider.get(AccountViewModel.class);
         CategoryViewModel categoryViewModel = provider.get(CategoryViewModel.class);
 
+        account = new AccountChips(binding.pickAccount, "Virtual account");
+        realAccount = new AccountChips(binding.pickRealAccount, "Real account");
+        from = new AccountChips(binding.pickFrom, "From virtual");
+        to = new AccountChips(binding.pickTo, "To virtual");
+        fromReal = new AccountChips(binding.pickFromReal, "From real");
+        toReal = new AccountChips(binding.pickToReal, "To real");
+        binding.pickCategory.tvLabel.setText("Category");
+        // A category can be left empty, so tapping the chosen one clears it
+        binding.pickCategory.chips.setSelectionRequired(false);
+
         binding.typeToggle.check(R.id.btnExpense);
         binding.typeToggle.addOnButtonCheckedListener((group, checkedId, isChecked) -> {
             if (isChecked) {
@@ -144,27 +159,27 @@ public class TransactionFormSheet extends ExpandedSheet {
         }
 
         accountViewModel.getAllAccounts().observe(getViewLifecycleOwner(), list -> {
-            accounts = list;
-            List<String> virtualNames = new ArrayList<>();
-            List<String> realNames = new ArrayList<>();
-            for (Account account : list) {
-                (account.isReal() ? realNames : virtualNames).add(account.getName());
+            List<Account> virtual = new ArrayList<>();
+            List<Account> real = new ArrayList<>();
+            for (Account each : list) {
+                (each.isReal() ? real : virtual).add(each);
             }
-            Ui.setDropdownItems(binding.etAccount, virtualNames);
-            Ui.setDropdownItems(binding.etFrom, virtualNames);
-            Ui.setDropdownItems(binding.etTo, virtualNames);
-            Ui.setDropdownItems(binding.etRealAccount, realNames);
-            Ui.setDropdownItems(binding.etFromReal, realNames);
-            Ui.setDropdownItems(binding.etToReal, realNames);
-            if (!isEditing() && binding.etAccount.getText().length() == 0) {
-                for (Account account : list) {
-                    if (account.isDefault() && account.isReal()) {
-                        binding.etRealAccount.setText(account.getName(), false);
-                        binding.etFromReal.setText(account.getName(), false);
-                        binding.etToReal.setText(account.getName(), false);
-                    } else if (account.isDefault()) {
-                        binding.etAccount.setText(account.getName(), false);
-                        binding.etFrom.setText(account.getName(), false);
+            boolean firstFill = account.selectedId() == null && realAccount.selectedId() == null;
+            account.setAccounts(virtual);
+            from.setAccounts(virtual);
+            to.setAccounts(virtual);
+            realAccount.setAccounts(real);
+            fromReal.setAccounts(real);
+            toReal.setAccounts(real);
+            if (!isEditing() && firstFill) {
+                for (Account each : list) {
+                    if (each.isDefault() && each.isReal()) {
+                        realAccount.select(each.getId());
+                        fromReal.select(each.getId());
+                        toReal.select(each.getId());
+                    } else if (each.isDefault()) {
+                        account.select(each.getId());
+                        from.select(each.getId());
                     }
                 }
             }
@@ -254,14 +269,14 @@ public class TransactionFormSheet extends ExpandedSheet {
         }
         if (editing.isTransfer()) {
             if (editingDebit != null && editingCredit != null) {
-                binding.etFrom.setText(nameOf(editingDebit.getAccountId()), false);
-                binding.etTo.setText(nameOf(editingCredit.getAccountId()), false);
-                binding.etFromReal.setText(nameOf(editingDebit.getRealAccountId()), false);
-                binding.etToReal.setText(nameOf(editingCredit.getRealAccountId()), false);
+                from.select(editingDebit.getAccountId());
+                to.select(editingCredit.getAccountId());
+                fromReal.select(editingDebit.getRealAccountId());
+                toReal.select(editingCredit.getRealAccountId());
             }
         } else {
-            binding.etAccount.setText(nameOf(editing.getAccountId()), false);
-            binding.etRealAccount.setText(nameOf(editing.getRealAccountId()), false);
+            account.select(editing.getAccountId());
+            realAccount.select(editing.getRealAccountId());
         }
     }
 
@@ -276,26 +291,6 @@ public class TransactionFormSheet extends ExpandedSheet {
         }
     }
 
-    private String nameOf(Long accountId) {
-        for (Account account : accounts) {
-            if (accountId != null && account.getId() == accountId) {
-                return account.getName();
-            }
-        }
-        return "";
-    }
-
-    // A virtual and a real account can share a name, so the field says which kind it holds
-    private Long accountIdOf(AutoCompleteTextView view, boolean real) {
-        String name = view.getText().toString();
-        for (Account account : accounts) {
-            if (account.isReal() == real && account.getName().equals(name)) {
-                return account.getId();
-            }
-        }
-        return null;
-    }
-
     private boolean isTransferMode() {
         return binding.typeToggle.getCheckedButtonId() == R.id.btnTransfer;
     }
@@ -306,11 +301,10 @@ public class TransactionFormSheet extends ExpandedSheet {
 
     private void onTypeChanged() {
         boolean transfer = isTransferMode();
-        binding.groupCategory.setVisibility(transfer ? View.GONE : View.VISIBLE);
-        binding.tilAccount.setVisibility(transfer ? View.GONE : View.VISIBLE);
-        binding.tilRealAccount.setVisibility(transfer ? View.GONE : View.VISIBLE);
+        binding.pickCategory.getRoot().setVisibility(transfer ? View.GONE : View.VISIBLE);
+        binding.pickAccount.getRoot().setVisibility(transfer ? View.GONE : View.VISIBLE);
+        binding.pickRealAccount.getRoot().setVisibility(transfer ? View.GONE : View.VISIBLE);
         binding.groupTransfer.setVisibility(transfer ? View.VISIBLE : View.GONE);
-        binding.groupTransferReal.setVisibility(transfer ? View.VISIBLE : View.GONE);
         binding.tilReceiver.setVisibility(transfer ? View.GONE : View.VISIBLE);
         binding.tilReceiver.setHint(isIncomeMode() ? "Received from" : "Paid to");
         selectedCategoryStillValid();
@@ -333,7 +327,7 @@ public class TransactionFormSheet extends ExpandedSheet {
     }
 
     private void buildCategoryChips() {
-        binding.chipsCategory.removeAllViews();
+        binding.pickCategory.chips.removeAllViews();
         String type = isIncomeMode() ? "INCOME" : "EXPENSE";
         Set<String> names = new LinkedHashSet<>();
         for (Category category : categories) {
@@ -346,17 +340,22 @@ public class TransactionFormSheet extends ExpandedSheet {
             names.add(selectedCategory);
         }
         for (String name : names) {
-            Chip chip = new Chip(requireContext(), null, com.google.android.material.R.attr.chipStyle);
+            Chip chip = new Chip(new ContextThemeWrapper(requireContext(), R.style.ThemeOverlay_ExpenseMate_FormChips),
+                    null, com.google.android.material.R.attr.chipStyle);
             chip.setText(name);
             chip.setCheckable(true);
             chip.setCheckedIconVisible(false);
             chip.setChecked(name.equals(selectedCategory));
             chip.setOnClickListener(v -> {
                 selectedCategory = chip.isChecked() ? name : null;
-                binding.tvCategoryLabel.setText("Category");
-                binding.tvCategoryLabel.setTextColor(requireContext().getColor(R.color.on_surface_variant));
+                binding.pickCategory.tvLabel.setText("Category");
+                binding.pickCategory.tvLabel.setTextColor(requireContext().getColor(R.color.on_surface_variant));
             });
-            binding.chipsCategory.addView(chip);
+            binding.pickCategory.chips.addView(chip);
+            if (chip.isChecked()) {
+                binding.pickCategory.scroll.post(() -> binding.pickCategory.scroll.smoothScrollTo(
+                        Math.max(0, chip.getLeft() - binding.pickCategory.chips.getPaddingStart()), 0));
+            }
         }
     }
 
@@ -383,16 +382,17 @@ public class TransactionFormSheet extends ExpandedSheet {
     }
 
     private void saveTransfer(double amount) {
-        Long fromId = accountIdOf(binding.etFrom, false);
-        Long toId = accountIdOf(binding.etTo, false);
-        Long fromRealId = accountIdOf(binding.etFromReal, true);
-        Long toRealId = accountIdOf(binding.etToReal, true);
+        Long fromId = from.selectedId();
+        Long toId = to.selectedId();
+        Long fromRealId = fromReal.selectedId();
+        Long toRealId = toReal.selectedId();
         // Money can move on either side, but it has to move on at least one
         boolean nothingMoves = fromId != null && fromId.equals(toId) && fromRealId != null && fromRealId.equals(toRealId);
-        binding.tilFrom.setError(fromId == null ? "Choose" : null);
-        binding.tilTo.setError(toId == null ? "Choose" : nothingMoves ? "Pick another" : null);
-        binding.tilFromReal.setError(fromRealId == null ? "Choose" : null);
-        binding.tilToReal.setError(toRealId == null ? "Choose" : null);
+        from.setError(fromId == null ? "Choose where it comes from" : null);
+        to.setError(toId == null ? "Choose where it goes"
+                : nothingMoves ? "Pick another, so money moves on one side" : null);
+        fromReal.setError(fromRealId == null ? "Choose where it comes from" : null);
+        toReal.setError(toRealId == null ? "Choose where it goes" : null);
         if (fromId == null || toId == null || fromRealId == null || toRealId == null || nothingMoves) {
             return;
         }
@@ -423,16 +423,16 @@ public class TransactionFormSheet extends ExpandedSheet {
     }
 
     private void saveTransaction(double amount) {
-        Long accountId = accountIdOf(binding.etAccount, false);
-        Long realAccountId = accountIdOf(binding.etRealAccount, true);
-        binding.tilAccount.setError(accountId == null ? "Choose a virtual account" : null);
-        binding.tilRealAccount.setError(realAccountId == null ? "Choose a real account" : null);
+        Long accountId = account.selectedId();
+        Long realAccountId = realAccount.selectedId();
+        account.setError(accountId == null ? "Choose a virtual account" : null);
+        realAccount.setError(realAccountId == null ? "Choose a real account" : null);
         if (accountId == null || realAccountId == null) {
             return;
         }
         if (selectedCategory == null) {
-            binding.tvCategoryLabel.setText("Choose a category");
-            binding.tvCategoryLabel.setTextColor(requireContext().getColor(R.color.alert));
+            binding.pickCategory.tvLabel.setText("Choose a category");
+            binding.pickCategory.tvLabel.setTextColor(requireContext().getColor(R.color.alert));
             return;
         }
 

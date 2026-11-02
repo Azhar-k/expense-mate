@@ -4,19 +4,18 @@ import android.view.LayoutInflater;
 import android.widget.AutoCompleteTextView;
 
 import androidx.annotation.Nullable;
-import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.FragmentActivity;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.example.expensemate.data.Account;
 import com.example.expensemate.data.RecurringPayment;
 import com.example.expensemate.databinding.DialogBillFormBinding;
+import com.example.expensemate.ui.common.FormSheet;
 import com.example.expensemate.ui.common.Pickers;
 import com.example.expensemate.ui.common.Ui;
 import com.example.expensemate.util.Money;
 import com.example.expensemate.viewmodel.AccountViewModel;
 import com.example.expensemate.viewmodel.RecurringPaymentsViewModel;
-import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -71,15 +70,10 @@ public final class BillForm {
             Ui.setDropdownItems(form.etTo, names);
         });
 
-        AlertDialog dialog = new MaterialAlertDialogBuilder(activity)
-                .setTitle(bill == null ? "Add a bill" : "Edit " + bill.getName())
-                .setView(form.getRoot())
-                .setNegativeButton("Cancel", null)
-                .setPositiveButton("Save", null)
-                .create();
-        dialog.show();
-        // Keeps the dialog open when something needs fixing
-        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
+        FormSheet sheet = FormSheet.create(activity, bill == null ? "Add a bill" : "Edit " + bill.getName(),
+                form.getRoot());
+        // Keeps the sheet open when something needs fixing
+        sheet.onSave(() -> {
             String name = form.etName.getText().toString().trim();
             Double amount = parseAllowingZero(form.etAmount.getText().toString());
             Integer dueDay = parseDay(form.etDueDay.getText().toString());
@@ -110,8 +104,9 @@ public final class BillForm {
                 bill.setToAccountId(toId);
                 viewModel.update(bill);
             }
-            dialog.dismiss();
+            sheet.dismiss();
         });
+        sheet.show();
     }
 
     private static Long idOf(AutoCompleteTextView view, List<Account> accounts) {

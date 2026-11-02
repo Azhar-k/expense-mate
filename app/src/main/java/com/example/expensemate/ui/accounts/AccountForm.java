@@ -3,13 +3,13 @@ package com.example.expensemate.ui.accounts;
 import android.view.LayoutInflater;
 
 import androidx.annotation.Nullable;
-import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.FragmentActivity;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.example.expensemate.R;
 import com.example.expensemate.data.Account;
 import com.example.expensemate.databinding.DialogAccountFormBinding;
+import com.example.expensemate.ui.common.FormSheet;
 import com.example.expensemate.ui.common.Pickers;
 import com.example.expensemate.ui.common.Ui;
 import com.example.expensemate.viewmodel.AccountViewModel;
@@ -36,7 +36,7 @@ public final class AccountForm {
         Calendar expiry = Calendar.getInstance();
         final boolean[] hasExpiry = { false };
 
-        form.chipsType.check(real ? R.id.typeReal : R.id.typeVirtual);
+        form.typeToggle.check(real ? R.id.typeReal : R.id.typeVirtual);
         // Transactions already point at this account as one kind or the other
         form.typeVirtual.setEnabled(account == null);
         form.typeReal.setEnabled(account == null);
@@ -57,14 +57,9 @@ public final class AccountForm {
                     form.etExpiry.setText(format.format(expiry.getTime()));
                 }));
 
-        AlertDialog dialog = new MaterialAlertDialogBuilder(activity)
-                .setTitle(account == null ? "Add an account" : "Edit " + account.getName())
-                .setView(form.getRoot())
-                .setNegativeButton("Cancel", null)
-                .setPositiveButton("Save", null)
-                .create();
-        dialog.show();
-        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
+        FormSheet sheet = FormSheet.create(activity,
+                account == null ? "Add an account" : "Edit " + account.getName(), form.getRoot());
+        sheet.onSave(() -> {
             String name = form.etName.getText().toString().trim();
             form.tilName.setError(name.isEmpty() ? "Enter a name" : null);
             if (name.isEmpty()) {
@@ -78,7 +73,7 @@ public final class AccountForm {
             AccountViewModel viewModel = new ViewModelProvider(activity).get(AccountViewModel.class);
             if (account == null) {
                 Account added = new Account(name, number, bank, expiryDate, description);
-                added.setType(form.chipsType.getCheckedChipId() == R.id.typeReal ? Account.TYPE_REAL : Account.TYPE_VIRTUAL);
+                added.setType(form.typeToggle.getCheckedButtonId() == R.id.typeReal ? Account.TYPE_REAL : Account.TYPE_VIRTUAL);
                 viewModel.insert(added);
             } else {
                 account.setName(name);
@@ -88,8 +83,9 @@ public final class AccountForm {
                 account.setExpiryDate(expiryDate);
                 viewModel.update(account);
             }
-            dialog.dismiss();
+            sheet.dismiss();
         });
+        sheet.show();
     }
 
     /** Shows only the last four digits, so a full number is never on screen by accident. */
