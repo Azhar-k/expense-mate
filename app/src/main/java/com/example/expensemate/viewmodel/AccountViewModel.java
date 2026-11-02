@@ -47,6 +47,10 @@ public class AccountViewModel extends AndroidViewModel {
         repository.update(account);
     }
 
+    public void saveOrder(List<Long> ids) {
+        repository.saveOrder(ids);
+    }
+
     public void delete(Account account) {
         repository.delete(account);
     }

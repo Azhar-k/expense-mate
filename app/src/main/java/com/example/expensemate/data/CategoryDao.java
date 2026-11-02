@@ -11,10 +11,10 @@ import java.util.List;
 
 @Dao
 public interface CategoryDao {
-    @Query("SELECT * FROM categories ORDER BY name ASC")
+    @Query("SELECT * FROM categories ORDER BY sortOrder ASC, name ASC")
     LiveData<List<Category>> getAllCategories();
 
-    @Query("SELECT * FROM categories WHERE type = :type ORDER BY name ASC")
+    @Query("SELECT * FROM categories WHERE type = :type ORDER BY sortOrder ASC, name ASC")
     LiveData<List<Category>> getCategoriesByType(String type);
 
     @Query("SELECT COUNT(*) FROM categories WHERE name = :name AND type = :type")
@@ -29,11 +29,33 @@ public interface CategoryDao {
     @Query("UPDATE categories SET isDefault = 1 WHERE id = :id")
     void markDefaultCategory(long id);
 
+    @Query("SELECT COALESCE(MAX(sortOrder), 0) FROM categories WHERE type = :type")
+    int lastSortOrder(String type);
+
+    /** A new category goes to the end of a list the user has ordered, or into the alphabetical one. */
+    @androidx.room.Transaction
+    default long insertAtEnd(Category category) {
+        int last = lastSortOrder(category.getType());
+        category.setSortOrder(last == 0 ? 0 : last + 1);
+        return insertCategory(category);
+    }
+
+    @Query("UPDATE categories SET sortOrder = :sortOrder WHERE id = :id")
+    void setSortOrder(long id, int sortOrder);
+
+    /** Numbers the categories from one in the order given. */
+    @androidx.room.Transaction
+    default void saveOrder(List<Long> ids) {
+        for (int i = 0; i < ids.size(); i++) {
+            setSortOrder(ids.get(i), i + 1);
+        }
+    }
+
     /** Saves the category and makes it the only default of its type. */
     @androidx.room.Transaction
     default void saveAsDefault(Category category) {
         if (category.getId() == 0) {
-            category.setId(insertCategory(category));
+            category.setId(insertAtEnd(category));
         } else {
             updateCategory(category);
         }
@@ -55,6 +77,6 @@ public interface CategoryDao {
     @Delete
     void deleteCategory(Category category);
 
-    @Query("SELECT * FROM categories ORDER BY name ASC")
+    @Query("SELECT * FROM categories ORDER BY sortOrder ASC, name ASC")
     List<Category> getAllCategoriesSync();
 }

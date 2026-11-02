@@ -16,6 +16,7 @@ import com.example.expensemate.data.Category;
 import com.example.expensemate.databinding.DialogCategoryFormBinding;
 import com.example.expensemate.databinding.FragmentCategoriesBinding;
 import com.example.expensemate.databinding.ItemCategoryBinding;
+import com.example.expensemate.ui.common.ReorderDialog;
 import com.example.expensemate.ui.common.TransactionText;
 import com.example.expensemate.ui.common.Ui;
 import com.example.expensemate.viewmodel.CategoryViewModel;
@@ -41,6 +42,7 @@ public class CategoriesFragment extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         viewModel = new ViewModelProvider(requireActivity()).get(CategoryViewModel.class);
+        Ui.addReorderAction(this, this::reorder);
         binding.fabAdd.setOnClickListener(v -> showForm(null));
         binding.tabs.addOnTabSelectedListener(new TabLayout.OnTabSelectedListener() {
             @Override
@@ -91,6 +93,26 @@ public class CategoriesFragment extends Fragment {
             row.getRoot().setOnClickListener(v -> showForm(category));
             binding.list.addView(row.getRoot());
         }
+    }
+
+    private void reorder() {
+        List<Category> shown = new ArrayList<>();
+        List<String> names = new ArrayList<>();
+        for (Category category : categories) {
+            if (selectedType().equals(category.getType())) {
+                shown.add(category);
+                names.add(category.getName());
+            }
+        }
+        ReorderDialog.show(requireContext(),
+                "INCOME".equals(selectedType()) ? "Order income categories" : "Order expense categories", names,
+                order -> {
+                    List<Long> ids = new ArrayList<>();
+                    for (int index : order) {
+                        ids.add(shown.get(index).getId());
+                    }
+                    viewModel.saveOrder(ids);
+                });
     }
 
     private void showForm(@Nullable Category category) {

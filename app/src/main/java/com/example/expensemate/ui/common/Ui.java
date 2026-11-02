@@ -3,6 +3,9 @@ package com.example.expensemate.ui.common;
 import android.content.Context;
 import android.content.res.ColorStateList;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
@@ -13,7 +16,10 @@ import android.widget.TextView;
 import androidx.annotation.ColorRes;
 import androidx.annotation.NonNull;
 import androidx.core.content.ContextCompat;
+import androidx.core.view.MenuProvider;
+import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentActivity;
+import androidx.lifecycle.Lifecycle;
 import androidx.lifecycle.LifecycleOwner;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.Observer;
@@ -29,6 +35,27 @@ import java.util.List;
 /** Small view helpers shared by the screens. */
 public final class Ui {
     private Ui() {
+    }
+
+    /** Puts a Reorder button in the toolbar while the fragment's view is showing. */
+    public static void addReorderAction(Fragment fragment, Runnable onReorder) {
+        fragment.requireActivity().addMenuProvider(new MenuProvider() {
+            @Override
+            public void onCreateMenu(@NonNull Menu menu, @NonNull MenuInflater inflater) {
+                menu.add(Menu.NONE, R.id.action_reorder, Menu.NONE, "Reorder")
+                        .setIcon(R.drawable.ic_reorder)
+                        .setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM);
+            }
+
+            @Override
+            public boolean onMenuItemSelected(@NonNull MenuItem item) {
+                if (item.getItemId() == R.id.action_reorder) {
+                    onReorder.run();
+                    return true;
+                }
+                return false;
+            }
+        }, fragment.getViewLifecycleOwner(), Lifecycle.State.RESUMED);
     }
 
     public static <T> void observeOnce(LiveData<T> liveData, LifecycleOwner owner, Observer<T> observer) {

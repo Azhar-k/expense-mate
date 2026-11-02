@@ -211,6 +211,7 @@ public class BackupDataLoader {
             String name = "";
             String type = "";
             boolean isDefault = false;
+            int sortOrder = 0;
 
             for (String line : lines) {
                 String[] parts = line.split(": ", 2);
@@ -230,12 +231,16 @@ public class BackupDataLoader {
                     case "Is Default":
                         isDefault = Boolean.parseBoolean(value);
                         break;
+                    case "Sort Order":
+                        sortOrder = Integer.parseInt(value);
+                        break;
                 }
             }
 
             if (!name.isEmpty() && !type.isEmpty()) {
                 Category category = new Category(name, type);
                 category.setDefault(isDefault);
+                category.setSortOrder(sortOrder);
                 database.categoryDao().insertIfMissing(category);
             }
         } catch (Exception e) {
@@ -315,6 +320,7 @@ public class BackupDataLoader {
             String description = "";
             boolean isDefault = false;
             String type = Account.TYPE_VIRTUAL;
+            int sortOrder = 0;
 
             for (String line : lines) {
                 String[] parts = line.split(": ", 2);
@@ -349,6 +355,9 @@ public class BackupDataLoader {
                     case "Is Default":
                         isDefault = Boolean.parseBoolean(value);
                         break;
+                    case "Sort Order":
+                        sortOrder = Integer.parseInt(value);
+                        break;
                     case "Account Type":
                         type = Account.TYPE_REAL.equals(value) ? Account.TYPE_REAL : Account.TYPE_VIRTUAL;
                         break;
@@ -359,6 +368,7 @@ public class BackupDataLoader {
                 Account account = new Account(name, accountNumber, bank, expiryDate, description);
                 account.setDefault(isDefault);
                 account.setType(type);
+                account.setSortOrder(sortOrder);
 
                 // Set the original ID to preserve referential integrity
                 if (originalId != -1) {
@@ -455,8 +465,8 @@ public class BackupDataLoader {
         if (entityName.equals("CATEGORIES")) {
             List<Category> categories = database.categoryDao().getAllCategoriesSync();
             for (Category c : categories) {
-                data.append(String.format("ID: %d\nName: %s\nType: %s\nIs Default: %b\n---\n", c.getId(), c.getName(),
-                        c.getType(), c.isDefault()));
+                data.append(String.format("ID: %d\nName: %s\nType: %s\nIs Default: %b\nSort Order: %d\n---\n", c.getId(), c.getName(),
+                        c.getType(), c.isDefault(), c.getSortOrder()));
             }
         } else if (entityName.equals("RECURRING PAYMENTS")) {
             List<RecurringPayment> payments = database.recurringPaymentDao().getAllRecurringPaymentsSync();
@@ -471,9 +481,9 @@ public class BackupDataLoader {
             if (accounts != null) {
                 for (Account a : accounts) {
                     data.append(String.format(
-                            "ID: %d\nName: %s\nAccount Number: %s\nBank: %s\nExpiry Date: %s\nDescription: %s\nIs Default: %b\nAccount Type: %s\n---\n",
+                            "ID: %d\nName: %s\nAccount Number: %s\nBank: %s\nExpiry Date: %s\nDescription: %s\nIs Default: %b\nAccount Type: %s\nSort Order: %d\n---\n",
                             a.getId(), a.getName(), a.getAccountNumber(), a.getBank(), a.getExpiryDate(),
-                            a.getDescription(), a.isDefault(), a.getType()));
+                            a.getDescription(), a.isDefault(), a.getType(), a.getSortOrder()));
                 }
             }
         } else if (entityName.equals("TRANSACTIONS")) {

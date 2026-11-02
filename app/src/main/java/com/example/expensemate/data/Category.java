@@ -1,5 +1,6 @@
 package com.example.expensemate.data;
 
+import androidx.room.ColumnInfo;
 import androidx.room.Entity;
 import androidx.room.PrimaryKey;
 import androidx.annotation.NonNull;
@@ -17,6 +18,9 @@ public class Category {
     private String type; // "EXPENSE" or "INCOME"
 
     private boolean isDefault; // Goes on captured payments; each type has exactly one
+
+    @ColumnInfo(defaultValue = "0") // Matches the migration, so inserts that leave it out still work
+    private int sortOrder; // Lists go by this, then by name; zero until the user reorders
 
     public Category(@NonNull String name, @NonNull String type) {
         this.name = name;
@@ -65,5 +69,13 @@ public class Category {
 
     public void setDefault(boolean isDefault) {
         this.isDefault = isDefault;
+    }
+
+    public int getSortOrder() {
+        return sortOrder;
+    }
+
+    public void setSortOrder(int sortOrder) {
+        this.sortOrder = sortOrder;
     }
 } 

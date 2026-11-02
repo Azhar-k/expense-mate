@@ -32,7 +32,7 @@ public class Migration8To9Test {
         createVersion8(file);
 
         AppDatabase database = Room.databaseBuilder(context, AppDatabase.class, file.getPath())
-                .addMigrations(AppDatabase.MIGRATION_8_9, AppDatabase.MIGRATION_9_10, AppDatabase.MIGRATION_10_11)
+                .addMigrations(AppDatabase.MIGRATION_8_9, AppDatabase.MIGRATION_9_10, AppDatabase.MIGRATION_10_11, AppDatabase.MIGRATION_11_12)
                 .allowMainThreadQueries()
                 .build();
         try {

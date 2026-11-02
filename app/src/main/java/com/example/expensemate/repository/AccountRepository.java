@@ -40,7 +40,11 @@ public class AccountRepository {
     }
 
     public void insert(Account account) {
-        executorService.execute(() -> accountDao.insert(account));
+        executorService.execute(() -> accountDao.insertAtEnd(account));
+    }
+
+    public void saveOrder(List<Long> ids) {
+        executorService.execute(() -> accountDao.saveOrder(ids));
     }
 
     public void update(Account account) {

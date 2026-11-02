@@ -32,7 +32,11 @@ public class CategoryViewModel extends AndroidViewModel {
     }
 
     public void insertCategory(Category category) {
-        executorService.execute(() -> categoryDao.insertCategory(category));
+        executorService.execute(() -> categoryDao.insertAtEnd(category));
+    }
+
+    public void saveOrder(List<Long> ids) {
+        executorService.execute(() -> categoryDao.saveOrder(ids));
     }
 
     public void updateCategory(Category category) {

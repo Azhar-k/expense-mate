@@ -1,6 +1,7 @@
 package com.example.expensemate.data;
 
 import androidx.annotation.NonNull;
+import androidx.room.ColumnInfo;
 import androidx.room.Entity;
 import androidx.room.PrimaryKey;
 import androidx.sqlite.db.SupportSQLiteDatabase;
@@ -23,6 +24,8 @@ public class Account {
     private boolean isDefault; // One per type
     @NonNull
     private String type = TYPE_VIRTUAL;
+    @ColumnInfo(defaultValue = "0") // Matches the migration, so inserts that leave it out still work
+    private int sortOrder; // Lists go by this, then by name; zero until the user reorders
 
     /**
      * Gives real accounts a default, and that default to any transaction without a real account.
@@ -77,4 +80,7 @@ public class Account {
     public void setType(@NonNull String type) { this.type = type; }
 
     public boolean isReal() { return TYPE_REAL.equals(type); }
+
+    public int getSortOrder() { return sortOrder; }
+    public void setSortOrder(int sortOrder) { this.sortOrder = sortOrder; }
 } 

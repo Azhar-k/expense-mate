@@ -21,6 +21,7 @@ erDiagram
         String name "Unique identifier used in Transaction"
         String type "EXPENSE or INCOME"
         boolean isDefault "One per type, goes on captured payments"
+        int sortOrder "User's order within the type, 0 until reordered"
     }
 
     RECURRING_PAYMENT {
@@ -42,6 +43,7 @@ erDiagram
         String description
         boolean isDefault "One per type"
         String type "VIRTUAL or REAL"
+        int sortOrder "User's order within the type, 0 until reordered"
         String currency
     }
 

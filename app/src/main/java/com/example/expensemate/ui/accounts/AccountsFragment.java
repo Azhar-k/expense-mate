@@ -17,6 +17,7 @@ import com.example.expensemate.data.Account;
 import com.example.expensemate.data.AccountBalance;
 import com.example.expensemate.databinding.FragmentAccountsBinding;
 import com.example.expensemate.databinding.ItemAccountBinding;
+import com.example.expensemate.ui.common.ReorderDialog;
 import com.example.expensemate.ui.common.Ui;
 import com.example.expensemate.util.Money;
 import com.example.expensemate.viewmodel.AccountViewModel;
@@ -51,6 +52,7 @@ public class AccountsFragment extends Fragment {
         accountViewModel = provider.get(AccountViewModel.class);
         TransactionViewModel transactionViewModel = provider.get(TransactionViewModel.class);
 
+        Ui.addReorderAction(this, this::reorder);
         binding.fabAdd.setOnClickListener(v -> AccountForm.show(requireActivity(), null, showingReal));
         binding.btnInfo.setOnClickListener(v -> new MaterialAlertDialogBuilder(requireContext())
                 .setTitle("Net balance")
@@ -109,6 +111,25 @@ public class AccountsFragment extends Fragment {
         binding.tvNetLabel.setText(showingReal ? "Net balance, real accounts" : "Net balance, virtual accounts");
         binding.tvNetBalance.setText(Money.format(net));
         binding.tvNetBalance.setTextColor(requireContext().getColor(net < 0 ? R.color.alert : R.color.on_surface));
+    }
+
+    private void reorder() {
+        List<Account> shown = new ArrayList<>();
+        List<String> names = new ArrayList<>();
+        for (Account account : accounts) {
+            if (account.isReal() == showingReal) {
+                shown.add(account);
+                names.add(account.getName());
+            }
+        }
+        ReorderDialog.show(requireContext(), showingReal ? "Order real accounts" : "Order virtual accounts", names,
+                order -> {
+                    List<Long> ids = new ArrayList<>();
+                    for (int index : order) {
+                        ids.add(shown.get(index).getId());
+                    }
+                    accountViewModel.saveOrder(ids);
+                });
     }
 
     private double balanceOf(Account account) {
