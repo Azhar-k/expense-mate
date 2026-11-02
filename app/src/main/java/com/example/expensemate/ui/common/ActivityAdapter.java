@@ -155,19 +155,25 @@ public class ActivityAdapter extends ListAdapter<ActivityRow, RecyclerView.ViewH
             String time = timeFormat.format(transaction.getDate());
             int amountColor = R.color.on_surface;
 
+            binding.tvTime.setText(time);
+            binding.tvSubtitle.setVisibility(row.isTransfer() ? View.VISIBLE : View.GONE);
+            binding.pills.setVisibility(row.isTransfer() ? View.GONE : View.VISIBLE);
+
             if (row.isTransfer()) {
                 Ui.styleIconTile(binding.ivIcon, R.drawable.ic_swap, R.color.transfer_container, R.color.transfer);
                 binding.tvTitle.setText(transferTitle(row));
-                binding.tvSubtitle.setText("Transfer · " + time);
+                binding.tvSubtitle.setText("Transfer");
                 binding.tvAmount.setText(Money.format(transaction.getAmount()));
                 amountColor = R.color.transfer;
             } else {
-                String account = TransactionText.accountName(accountNames, transaction.getAccountId());
                 binding.tvTitle.setText(TransactionText.title(transaction));
                 boolean credit = "CREDIT".equals(transaction.getTransactionType());
                 if (transaction.isNeedsReview()) {
                     Ui.styleIconTile(binding.ivIcon, R.drawable.ic_tag, R.color.warning_container, R.color.warning);
-                    binding.tvSubtitle.setText(transaction.getCategory() + " · Needs review · " + account + " · " + time);
+                    // The category is only a placeholder until someone picks one, so ask for it instead
+                    binding.pillCategory.setText("Needs category");
+                    binding.pillCategory.setBackgroundResource(R.drawable.bg_pill_warning);
+                    binding.pillCategory.setTextColor(ContextCompat.getColor(context, R.color.warning));
                 } else {
                     if (credit) {
                         Ui.styleIconTile(binding.ivIcon, TransactionText.categoryIcon(transaction.getCategory()),
@@ -176,8 +182,14 @@ public class ActivityAdapter extends ListAdapter<ActivityRow, RecyclerView.ViewH
                         Ui.styleIconTile(binding.ivIcon, TransactionText.categoryIcon(transaction.getCategory()),
                                 R.color.surface_variant, R.color.on_surface);
                     }
-                    binding.tvSubtitle.setText(transaction.getCategory() + " · " + account + " · " + time);
+                    binding.pillCategory.setText(transaction.getCategory());
+                    binding.pillCategory.setBackgroundResource(R.drawable.bg_pill_category);
+                    binding.pillCategory.setTextColor(ContextCompat.getColor(context, R.color.on_primary_container));
                 }
+                binding.pillAccount.setText(TransactionText.accountName(accountNames, transaction.getAccountId()));
+                Long realId = transaction.getRealAccountId();
+                binding.pillReal.setVisibility(realId != null ? View.VISIBLE : View.GONE);
+                binding.pillReal.setText(TransactionText.accountName(accountNames, realId));
                 binding.tvAmount.setText(credit ? Money.credit(transaction.getAmount())
                         : Money.debit(transaction.getAmount()));
                 if (credit) {

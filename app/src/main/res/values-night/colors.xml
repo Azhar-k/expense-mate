@@ -8,6 +8,7 @@
     <color name="outline">#2C3833</color>
     <color name="field">#222D28</color>
     <color name="field_focused">#1C3A32</color>
+    <color name="pill_stroke">#3A4842</color>
     <color name="primary">#6FD6BC</color>
     <color name="on_primary">#00382D</color>
     <color name="primary_container">#12463A</color>

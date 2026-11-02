@@ -166,6 +166,40 @@
         <item name="android:letterSpacing">0.06</item>
     </style>
 
+    <!-- The small labels under an activity row: category, virtual and real account -->
+    <style name="Text.ExpenseMate.Pill" parent="">
+        <item name="android:textSize">11.5sp</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="android:paddingStart">8dp</item>
+        <item name="android:paddingEnd">8dp</item>
+        <item name="android:paddingTop">2dp</item>
+        <item name="android:paddingBottom">2dp</item>
+        <item name="android:drawablePadding">3dp</item>
+        <item name="android:gravity">center_vertical</item>
+        <item name="android:maxLines">1</item>
+        <item name="android:ellipsize">end</item>
+        <item name="android:maxWidth">140dp</item>
+    </style>
+
+    <style name="Text.ExpenseMate.Pill.Category">
+        <item name="android:background">@drawable/bg_pill_category</item>
+        <item name="android:textColor">@color/on_primary_container</item>
+    </style>
+
+    <style name="Text.ExpenseMate.Pill.Account">
+        <item name="android:background">@drawable/bg_pill_account</item>
+        <item name="android:textColor">@color/on_surface</item>
+        <item name="android:drawableStart">@drawable/ic_wallet_small</item>
+        <item name="android:drawableTint">@color/primary</item>
+    </style>
+
+    <style name="Text.ExpenseMate.Pill.Real">
+        <item name="android:background">@drawable/bg_pill_real</item>
+        <item name="android:textColor">@color/on_surface_variant</item>
+        <item name="android:drawableStart">@drawable/ic_bank_small</item>
+        <item name="android:drawableTint">@color/on_surface_variant</item>
+    </style>
+
     <style name="Text.ExpenseMate.Tag" parent="">
         <item name="android:textSize">11sp</item>
         <item name="android:fontFamily">sans-serif-medium</item>
