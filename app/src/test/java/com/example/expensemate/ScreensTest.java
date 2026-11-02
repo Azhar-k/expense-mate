@@ -432,8 +432,21 @@ public class ScreensTest {
         return null;
     }
 
+    /** Taps a category chip: the details sheet's own row, or the add form's category picker. */
     private static void clickChip(Dialog dialog, String label) {
         android.view.ViewGroup chips = dialog.findViewById(R.id.chipsCategory);
+        if (chips == null) {
+            chips = dialog.findViewById(R.id.pickCategory).findViewById(R.id.chips);
+        }
+        clickChip(chips, label);
+    }
+
+    /** Taps a chip in one of the add form's pickers, such as the "to" account. */
+    private static void clickChip(Dialog dialog, int picker, String label) {
+        clickChip((android.view.ViewGroup) dialog.findViewById(picker).findViewById(R.id.chips), label);
+    }
+
+    private static void clickChip(android.view.ViewGroup chips, String label) {
         for (int i = 0; i < chips.getChildCount(); i++) {
             TextView chip = (TextView) chips.getChildAt(i);
             if (label.contentEquals(chip.getText())) {
@@ -491,12 +504,12 @@ public class ScreensTest {
         ((TextView) dialog.findViewById(R.id.etAmount)).setText("777");
         assertEquals("Move ₹777", ((TextView) dialog.findViewById(R.id.btnSave)).getText().toString());
 
-        ((android.widget.AutoCompleteTextView) dialog.findViewById(R.id.etTo)).setText("Salary", false);
+        clickChip(dialog, R.id.pickTo, "Salary");
         dialog.findViewById(R.id.btnSave).performClick();
         settle();
         assertEquals("Same account", before, allRows().size());
 
-        ((android.widget.AutoCompleteTextView) dialog.findViewById(R.id.etTo)).setText("Savings", false);
+        clickChip(dialog, R.id.pickTo, "Savings");
         dialog.findViewById(R.id.btnSave).performClick();
         settle();
 
