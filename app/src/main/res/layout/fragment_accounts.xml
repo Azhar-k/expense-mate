@@ -4,111 +4,105 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <androidx.core.widget.NestedScrollView
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:clipToPadding="false"
-        android:paddingBottom="88dp">
+        android:orientation="vertical">
 
-        <LinearLayout
+        <com.google.android.material.tabs.TabLayout
+            android:id="@+id/tabs"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:paddingStart="14dp"
-            android:paddingEnd="14dp">
+            android:background="@android:color/transparent"
+            app:tabGravity="fill"
+            app:tabMode="fixed">
 
-            <com.google.android.material.card.MaterialCardView
+            <com.google.android.material.tabs.TabItem
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Virtual" />
+
+            <com.google.android.material.tabs.TabItem
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Real" />
+        </com.google.android.material.tabs.TabLayout>
+
+        <androidx.core.widget.NestedScrollView
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:clipToPadding="false"
+            android:paddingBottom="88dp">
+
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="4dp">
+                android:orientation="vertical"
+                android:paddingStart="14dp"
+                android:paddingEnd="14dp">
 
-                <LinearLayout
+                <com.google.android.material.card.MaterialCardView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="16dp">
+                    android:layout_marginTop="12dp">
 
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal">
+                        android:orientation="vertical"
+                        android:padding="16dp">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <TextView
+                                android:id="@+id/tvNetLabel"
+                                style="@style/Text.ExpenseMate.Sub"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1" />
+
+                            <ImageButton
+                                android:id="@+id/btnInfo"
+                                android:layout_width="32dp"
+                                android:layout_height="32dp"
+                                android:background="?attr/selectableItemBackgroundBorderless"
+                                android:contentDescription="How this is calculated"
+                                android:padding="6dp"
+                                android:src="@drawable/ic_info"
+                                app:tint="@color/on_surface_variant" />
+                        </LinearLayout>
 
                         <TextView
-                            style="@style/Text.ExpenseMate.Sub"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="Net balance, all accounts" />
-
-                        <ImageButton
-                            android:id="@+id/btnInfo"
-                            android:layout_width="32dp"
-                            android:layout_height="32dp"
-                            android:background="?attr/selectableItemBackgroundBorderless"
-                            android:contentDescription="How this is calculated"
-                            android:padding="6dp"
-                            android:src="@drawable/ic_info"
-                            app:tint="@color/on_surface_variant" />
+                            android:id="@+id/tvNetBalance"
+                            style="@style/Text.ExpenseMate.Hero"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content" />
                     </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
 
-                    <TextView
-                        android:id="@+id/tvNetBalance"
-                        style="@style/Text.ExpenseMate.Hero"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content" />
+                <LinearLayout
+                    android:id="@+id/listAccounts"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="14dp"
+                    android:orientation="vertical" />
 
-                    <TextView
-                        style="@style/Text.ExpenseMate.Sub"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="2dp"
-                        android:text="Tracked income minus tracked expenses" />
-                </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
-
-            <TextView
-                style="@style/Text.ExpenseMate.Section"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="14dp"
-                android:layout_marginBottom="6dp"
-                android:paddingStart="4dp"
-                android:paddingEnd="4dp"
-                android:text="Virtual accounts" />
-
-            <LinearLayout
-                android:id="@+id/listVirtual"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical" />
-
-            <TextView
-                style="@style/Text.ExpenseMate.Section"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="14dp"
-                android:layout_marginBottom="6dp"
-                android:paddingStart="4dp"
-                android:paddingEnd="4dp"
-                android:text="Real accounts" />
-
-            <LinearLayout
-                android:id="@+id/listReal"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical" />
-
-            <TextView
-                style="@style/Text.ExpenseMate.Sub"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
-                android:paddingStart="4dp"
-                android:paddingEnd="4dp"
-                android:text="Tap an account for its history. Hold it to edit, set as default or delete." />
-        </LinearLayout>
-    </androidx.core.widget.NestedScrollView>
+                <TextView
+                    style="@style/Text.ExpenseMate.Sub"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:paddingStart="4dp"
+                    android:paddingEnd="4dp"
+                    android:text="Tap an account for its history. Hold it to edit, set as default or delete." />
+            </LinearLayout>
+        </androidx.core.widget.NestedScrollView>
+    </LinearLayout>
 
     <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
         android:id="@+id/fabAdd"

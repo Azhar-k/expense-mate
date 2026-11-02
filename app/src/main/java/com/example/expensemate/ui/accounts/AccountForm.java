@@ -26,12 +26,17 @@ public final class AccountForm {
     }
 
     public static void show(FragmentActivity activity, @Nullable Account account) {
+        show(activity, account, account != null && account.isReal());
+    }
+
+    /** For a new account, real picks which type the form starts on. */
+    public static void show(FragmentActivity activity, @Nullable Account account, boolean real) {
         DialogAccountFormBinding form = DialogAccountFormBinding.inflate(LayoutInflater.from(activity));
         SimpleDateFormat format = new SimpleDateFormat("MMM yyyy", Locale.getDefault());
         Calendar expiry = Calendar.getInstance();
         final boolean[] hasExpiry = { false };
 
-        form.chipsType.check(account != null && account.isReal() ? R.id.typeReal : R.id.typeVirtual);
+        form.chipsType.check(real ? R.id.typeReal : R.id.typeVirtual);
         // Transactions already point at this account as one kind or the other
         form.typeVirtual.setEnabled(account == null);
         form.typeReal.setEnabled(account == null);

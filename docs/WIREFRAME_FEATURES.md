@@ -167,9 +167,12 @@ Comprehensive list of all transactions with advanced filtering capabilities.
 - Account should be associated with a currency.
 - Where ever an amount is shown, the corresponding account's currency should be shown.
 
+### Tabs
+- Virtual and Real tabs, each with its own net balance and account list
+
 ### Net balance
 Calculated as below
-- Net Balance is calculated as:Total Income (All Accounts) - Total Expense (All Accounts)
+- Net Balance is the sum of the balances of the accounts in the selected tab
 - Transactions excluded from summary have not been considered for balance calculation.
 - An info button with info icon. When clicking on it, explain how balance is calculated
 

@@ -205,10 +205,6 @@ public class TransactionViewModel extends AndroidViewModel {
     /****************************************************************************************************/
     // Accounts
 
-    public LiveData<Double> getNetBalance() {
-        return transactionDao.getNetBalance();
-    }
-
     public LiveData<List<AccountBalance>> getAccountBalances() {
         return transactionDao.getAccountBalances();
     }

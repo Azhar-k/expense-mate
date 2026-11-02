@@ -1,6 +1,7 @@
 package com.example.expensemate;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
@@ -28,6 +29,7 @@ import com.example.expensemate.data.Transaction;
 import com.example.expensemate.data.Transfers;
 import com.example.expensemate.ui.activity.TransactionDetailsSheet;
 import com.example.expensemate.ui.activity.TransactionFormSheet;
+import com.google.android.material.tabs.TabLayout;
 
 import org.junit.After;
 import org.junit.Before;
@@ -310,6 +312,17 @@ public class ScreensTest {
         assertShows("State Bank ••4821");
         assertShows("Default");
         shoot("accounts");
+
+        assertShows("Net balance, virtual accounts");
+        assertShows("₹3,48,390");
+        TabLayout tabs = activity.findViewById(R.id.tabs);
+        tabs.selectTab(tabs.getTabAt(1));
+        settle();
+        assertShows("Net balance, real accounts");
+        assertShows("Bank account");
+        assertFalse(visibleTexts().contains("State Bank ••4821"));
+        tabs.selectTab(tabs.getTabAt(0));
+        settle();
 
         Bundle args = new Bundle();
         args.putLong("accountId", salaryId);
