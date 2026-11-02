@@ -10,6 +10,8 @@ import android.content.Context;
 import androidx.room.Room;
 import androidx.test.core.app.ApplicationProvider;
 
+import com.example.expensemate.service.GoogleDriveService;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -20,7 +22,11 @@ import org.robolectric.annotation.Config;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
 
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = 34)
@@ -176,6 +182,115 @@ public class BackupRestoreTest {
         // Its account was deleted, so there is no virtual account to pair a real one with
         assertEquals(Long.valueOf(99), find(restored, 3).getAccountId());
         assertNull(find(restored, 3).getRealAccountId());
+    }
+
+    private Map<String, File> backupFiles() throws IOException {
+        Map<String, File> files = new HashMap<>();
+        for (String[] entry : BackupDataLoader.FILES) {
+            File file = File.createTempFile("backup", ".txt", context.getCacheDir());
+            try (FileWriter writer = new FileWriter(file)) {
+                writer.write(BackupDataLoader.entityText(entry[0], source));
+            }
+            files.put(entry[0], file);
+        }
+        return files;
+    }
+
+    @Test
+    public void everyValueComesBackExactly() throws Exception {
+        source.categoryDao().saveAsDefault(new Category("Default", "EXPENSE"));
+        source.categoryDao().insertCategory(new Category("Fuel", "EXPENSE"));
+        account(1, "Daily", Account.TYPE_VIRTUAL, true);
+        Account noDetails = new Account("Bare", null, null, null, null);
+        noDetails.setId(2);
+        source.accountDao().insert(noDetails);
+        account(3, "Bank", Account.TYPE_REAL, true);
+        source.recurringPaymentDao().insert(new RecurringPayment("No end", 99.5, 3, null));
+
+        // Lines that look like the backup's own keys and separators, inside a message
+        String body = "Rs 10 debited\nAmount: 5000\n---\nC:\\path ends here\\n";
+        Transaction captured = row(7, "DEBIT", 1L, 3L);
+        captured.setAmount(1234.5678);
+        captured.setDate(new Date(1793447463123L));
+        captured.setSmsBody(body);
+        captured.setSmsSender("AX-HDFC");
+        captured.setReceiverName("Fuel Stop");
+        captured.setCategory("Fuel");
+        captured.setDescription("  padded  ");
+        captured.setSource(TransactionKeys.SOURCE_MMS_OBSERVER);
+        captured.setDedupKey("dedup");
+        captured.setMatchKey("match");
+        captured.setMessageTime(1793447460000L);
+        source.transactionDao().insertTransaction(captured);
+        Transaction manual = row(8, "CREDIT", 1L, 3L);
+        manual.setDescription(null);
+        manual.setReceiverName(null);
+        source.transactionDao().insertTransaction(manual);
+        source.transactionDao().saveCounterpartyCategory("someone", "DEBIT", "Fuel");
+
+        new BackupDataLoader(context, restored).restore(backupFiles());
+
+        Transaction back = find(restored, 7);
+        assertEquals(body, back.getSmsBody());
+        assertEquals(1234.5678, back.getAmount(), 0);
+        assertEquals(1793447463123L, back.getDate().getTime());
+        assertEquals("  padded  ", back.getDescription());
+        assertEquals(TransactionKeys.SOURCE_MMS_OBSERVER, back.getSource());
+        assertEquals("dedup", back.getDedupKey());
+        assertEquals("match", back.getMatchKey());
+        assertEquals(Long.valueOf(1793447460000L), back.getMessageTime());
+        assertNull(find(restored, 8).getDescription());
+        assertNull(find(restored, 8).getReceiverName());
+        assertNull(find(restored, 8).getSmsBody());
+
+        assertNull(findAccount(restored, "Bare").getDescription());
+        RecurringPayment bill = restored.recurringPaymentDao().getAllRecurringPaymentsSync().get(0);
+        assertEquals("No end", bill.getName());
+        assertNull(bill.getExpiryDate());
+        assertEquals("Fuel", restored.transactionDao().getCounterpartyCategory("someone", "DEBIT"));
+    }
+
+    @Test
+    public void aRestoreThatFailsLeavesTheDataAsItWas() throws Exception {
+        account(1, "Daily", Account.TYPE_VIRTUAL, true);
+        source.transactionDao().insertTransaction(row(1, "DEBIT", 1L, null));
+        new BackupDataLoader(context, restored).restore(backupFiles());
+
+        Map<String, File> broken = backupFiles();
+        broken.put("TRANSACTIONS", new File(context.getCacheDir(), "missing.txt"));
+        try {
+            new BackupDataLoader(context, restored).restore(broken);
+            throw new AssertionError("Expected the restore to fail");
+        } catch (RuntimeException expected) {
+            // The transactions file could not be read
+        }
+        assertEquals(1, restored.transactionDao().getAllTransactionsSyncOrderByDateAsc().size());
+        assertEquals(1, restored.accountDao().getAllAccountsSync().stream().filter(a -> !a.isReal()).count());
+    }
+
+    @Test
+    public void anOlderBackupWithCommaDecimalsAndNoBillEndStillRestores() throws Exception {
+        load("ACCOUNTS", "ID: 1\nName: Daily\nAccount Number: \nBank: \nExpiry Date: null\nDescription: \nIs Default: true\n---\n");
+        load("RECURRING PAYMENTS", "ID: 4\nName: Rent\nAmount: 2500,00\nDue Day: 5\nExpiry Date: null\nIs Completed: false\n"
+                + "Last Completed Date: null\nFrom Account ID: null\nTo Account ID: null\n---\n");
+        load("TRANSACTIONS", oldRow(1, "1").replace("Amount: 10.00", "Amount: 10,50"));
+        BackupDataLoader.finishRestore(restored);
+
+        assertEquals(10.5, find(restored, 1).getAmount(), 0);
+        assertNull("The word null in an older backup is no longer kept as text", find(restored, 1).getSmsBody());
+        RecurringPayment rent = restored.recurringPaymentDao().getAllRecurringPaymentsSync().get(0);
+        assertEquals(2500, rent.getAmount(), 0);
+        assertNull(rent.getExpiryDate());
+    }
+
+    @Test
+    public void onlyAFinishedBackupIsChosen() {
+        assertTrue(GoogleDriveService.isComplete(new HashSet<>(Arrays.asList(
+                "categories.txt", "accounts.txt", GoogleDriveService.COMPLETE_MARKER))));
+        assertTrue("Made before the marker existed", GoogleDriveService.isComplete(new HashSet<>(Arrays.asList(
+                "categories.txt", "recurring_payments.txt", "accounts.txt", "transactions.txt"))));
+        assertFalse("Stopped partway", GoogleDriveService.isComplete(new HashSet<>(Arrays.asList(
+                "categories.txt", "recurring_payments.txt", "accounts.txt"))));
     }
 
     private static String oldRow(long id, String accountId) {

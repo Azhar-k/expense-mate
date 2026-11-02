@@ -1,96 +1,241 @@
 package com.example.expensemate.data;
 
 import android.content.Context;
+import android.database.Cursor;
 import android.util.Log;
 
-import com.example.expensemate.R;
+import androidx.sqlite.db.SupportSQLiteDatabase;
+
 import com.example.expensemate.service.GoogleDriveService;
 import com.example.expensemate.service.GoogleSignInHelper;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.UncheckedIOException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.Map;
 
+/**
+ * Backs up to Google Drive as one text file per table and restores from them.
+ *
+ * Each record is a block of "Key: value" lines ending with "---". Files written by this version
+ * start with a {@value #FORMAT_LINE} record: their values are escaped, so text can hold line
+ * breaks, null is written as \N, and dates are milliseconds. Files without that line come from
+ * older versions and are read the way those versions wrote them.
+ */
 public class BackupDataLoader {
     private static final String TAG = "BackupDataLoader";
+    static final String FORMAT_LINE = "Format: 2";
+    private static final String NULL = "\\N";
+
+    /** Restore order: transactions refer to accounts and bills, mappings to categories. */
+    static final String[][] FILES = {
+            { "CATEGORIES", "categories.txt" },
+            { "RECURRING PAYMENTS", "recurring_payments.txt" },
+            { "ACCOUNTS", "accounts.txt" },
+            { "TRANSACTIONS", "transactions.txt" },
+            { "COUNTERPARTY CATEGORIES", "counterparty_categories.txt" },
+    };
+    private static final String[] TABLES = {
+            "transactions", "categories", "recurring_payments", "accounts", "counterparty_categories" };
+
     private final AppDatabase database;
-    private final ExecutorService executorService;
     private final SimpleDateFormat dateFormat;
-    private final Context context;
+    private boolean restoredMappings;
 
     public BackupDataLoader(Context context) {
         this(context, AppDatabase.getDatabase(context));
     }
 
     BackupDataLoader(Context context, AppDatabase database) {
-        this.context = context;
         this.database = database;
-        this.executorService = Executors.newSingleThreadExecutor();
+        // How Date.toString() wrote dates before the current format
         this.dateFormat = new SimpleDateFormat("EEE MMM dd HH:mm:ss zzz yyyy", Locale.US);
     }
 
-    public void loadBackupData() {
-//        executorService.execute(() -> {
-//            try (BufferedReader reader = new BufferedReader(
-//                    new InputStreamReader(context.getResources().openRawResource(R.raw.local_backup_data)))) {
-//                String line;
-//                String currentSection = "";
-//                StringBuilder currentEntity = new StringBuilder();
-//
-//                while ((line = reader.readLine()) != null) {
-//                    if (line.startsWith("=== ")) {
-//                        // Process previous entity if exists
-//                        if (currentEntity.length() > 0) {
-//                            processEntity(currentSection, currentEntity.toString());
-//                            currentEntity = new StringBuilder();
-//                        }
-//                        currentSection = line.substring(4, line.length() - 4);
-//                        continue;
-//                    }
-//
-//                    if (line.equals("---")) {
-//                        // Process current entity
-//                        processEntity(currentSection, currentEntity.toString());
-//                        currentEntity = new StringBuilder();
-//                    } else {
-//                        currentEntity.append(line).append("\n");
-//                    }
-//                }
-//
-//                // Process last entity if exists
-//                if (currentEntity.length() > 0) {
-//                    processEntity(currentSection, currentEntity.toString());
-//                }
-//
-//            } catch (IOException e) {
-//                Log.e(TAG, "Error reading backup file from resources", e);
-//            }
-//        });
+    /****************************************************************************************************/
+    // Writing
+
+    /** The text of one backup file; {@link #loadSingleEntityFromFile} reads it back. */
+    static String entityText(String entityName, AppDatabase database) {
+        StringBuilder data = new StringBuilder(FORMAT_LINE).append("\n---\n");
+        switch (entityName) {
+            case "CATEGORIES":
+                for (Category c : database.categoryDao().getAllCategoriesSync()) {
+                    put(data, "ID", c.getId());
+                    put(data, "Name", c.getName());
+                    put(data, "Type", c.getType());
+                    put(data, "Is Default", c.isDefault());
+                    put(data, "Sort Order", c.getSortOrder());
+                    data.append("---\n");
+                }
+                break;
+            case "RECURRING PAYMENTS":
+                for (RecurringPayment p : database.recurringPaymentDao().getAllRecurringPaymentsSync()) {
+                    put(data, "ID", p.getId());
+                    put(data, "Name", p.getName());
+                    put(data, "Amount", p.getAmount());
+                    put(data, "Due Day", p.getDueDay());
+                    put(data, "Expiry Date", p.getExpiryDate());
+                    put(data, "Is Completed", p.isCompleted());
+                    put(data, "Last Completed Date", p.getLastCompletedDate());
+                    put(data, "From Account ID", p.getFromAccountId());
+                    put(data, "To Account ID", p.getToAccountId());
+                    data.append("---\n");
+                }
+                break;
+            case "ACCOUNTS":
+                for (Account a : database.accountDao().getAllAccountsSync()) {
+                    put(data, "ID", a.getId());
+                    put(data, "Name", a.getName());
+                    put(data, "Account Number", a.getAccountNumber());
+                    put(data, "Bank", a.getBank());
+                    put(data, "Expiry Date", a.getExpiryDate());
+                    put(data, "Description", a.getDescription());
+                    put(data, "Is Default", a.isDefault());
+                    put(data, "Account Type", a.getType());
+                    put(data, "Sort Order", a.getSortOrder());
+                    data.append("---\n");
+                }
+                break;
+            case "TRANSACTIONS":
+                for (Transaction t : database.transactionDao().getAllTransactionsSyncOrderByDateAsc()) {
+                    put(data, "ID", t.getId());
+                    put(data, "Amount", t.getAmount());
+                    put(data, "Description", t.getDescription());
+                    put(data, "Date", t.getDate());
+                    put(data, "Transaction Type", t.getTransactionType());
+                    put(data, "Receiver", t.getReceiverName());
+                    put(data, "Category", t.getCategory());
+                    put(data, "Is excluded from summary", t.isExcludedFromSummary());
+                    put(data, "Account id", t.getAccountId());
+                    put(data, "Real account id", t.getRealAccountId());
+                    put(data, "Linked Payment ID", t.getLinkedRecurringPaymentId());
+                    put(data, "SMS Body", t.getSmsBody());
+                    put(data, "SMS Sender", t.getSmsSender());
+                    put(data, "SMS Hash", t.getSmsHash());
+                    put(data, "Transfer Group", t.getTransferGroupId());
+                    put(data, "Needs Review", t.isNeedsReview());
+                    put(data, "Source", t.getSource());
+                    put(data, "Dedup Key", t.getDedupKey());
+                    put(data, "Match Key", t.getMatchKey());
+                    put(data, "Message Time", t.getMessageTime());
+                    data.append("---\n");
+                }
+                break;
+            case "COUNTERPARTY CATEGORIES":
+                // The category goes by name as well, so a mapping finds it whatever its id becomes
+                try (Cursor cursor = database.getOpenHelper().getReadableDatabase().query(
+                        "SELECT m.counterparty, m.transactionType, c.id, c.name, c.type FROM counterparty_categories m "
+                                + "JOIN categories c ON c.id = m.categoryId ORDER BY m.counterparty, m.transactionType")) {
+                    while (cursor.moveToNext()) {
+                        put(data, "Counterparty", cursor.getString(0));
+                        put(data, "Transaction Type", cursor.getString(1));
+                        put(data, "Category ID", cursor.getLong(2));
+                        put(data, "Category Name", cursor.getString(3));
+                        put(data, "Category Type", cursor.getString(4));
+                        data.append("---\n");
+                    }
+                }
+                break;
+        }
+        return data.toString();
     }
 
-    private void processEntity(String section, String entityData) {
+    private static void put(StringBuilder data, String key, Object value) {
+        data.append(key).append(": ").append(encode(value)).append('\n');
+    }
+
+    static String encode(Object value) {
+        if (value == null) {
+            return NULL;
+        }
+        if (value instanceof Date) {
+            return String.valueOf(((Date) value).getTime());
+        }
+        // Double.toString never depends on the phone's language, and keeps every digit
+        String text = value instanceof Double ? Double.toString((Double) value) : String.valueOf(value);
+        return text.replace("\\", "\\\\").replace("\n", "\\n").replace("\r", "\\r");
+    }
+
+    static String decode(String text) {
+        if (text.equals(NULL)) {
+            return null;
+        }
+        StringBuilder out = new StringBuilder(text.length());
+        for (int i = 0; i < text.length(); i++) {
+            char c = text.charAt(i);
+            if (c == '\\' && i + 1 < text.length()) {
+                char next = text.charAt(++i);
+                out.append(next == 'n' ? '\n' : next == 'r' ? '\r' : next);
+            } else {
+                out.append(c);
+            }
+        }
+        return out.toString();
+    }
+
+    /****************************************************************************************************/
+    // Reading
+
+    public void loadSingleEntityFromFile(File file, String sectionName) {
+        try {
+            load(file, sectionName);
+        } catch (IOException e) {
+            Log.e(TAG, "Error reading entity file " + sectionName, e);
+        }
+    }
+
+    private void load(File file, String section) throws IOException {
+        try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
+            String line = reader.readLine();
+            boolean escaped = FORMAT_LINE.equals(line);
+            if (escaped) {
+                line = reader.readLine(); // The "---" that closes the format record
+                line = reader.readLine();
+            }
+            List<String> record = new java.util.ArrayList<>();
+            for (; line != null; line = reader.readLine()) {
+                if (line.equals("---")) {
+                    processEntity(section, record, escaped);
+                    record = new java.util.ArrayList<>();
+                } else {
+                    record.add(line);
+                }
+            }
+            if (!record.isEmpty()) {
+                processEntity(section, record, escaped);
+            }
+        }
+    }
+
+    private void processEntity(String section, List<String> lines, boolean escaped) {
+        Record record = new Record(lines, escaped);
         try {
             switch (section) {
                 case "TRANSACTIONS":
-                    processTransaction(entityData);
+                    processTransaction(record);
                     break;
                 case "CATEGORIES":
-                    processCategory(entityData);
+                    processCategory(record);
                     break;
                 case "RECURRING PAYMENTS":
-                    processRecurringPayment(entityData);
+                    processRecurringPayment(record);
                     break;
                 case "ACCOUNTS":
-                    processAccount(entityData);
+                    processAccount(record);
+                    break;
+                case "COUNTERPARTY CATEGORIES":
+                    processCounterpartyCategory(record);
                     break;
             }
         } catch (Exception e) {
@@ -98,307 +243,337 @@ public class BackupDataLoader {
         }
     }
 
-    private void processTransaction(String data) {
-        try {
-            Transaction transaction = new Transaction();
-            boolean hasRealAccountLine = false;
-            String[] lines = data.split("\n");
+    /** One record's values. Older files wrote null as the word null and trimmed every value. */
+    private final class Record {
+        private final Map<String, String> values = new LinkedHashMap<>();
+        private final boolean escaped;
+
+        Record(List<String> lines, boolean escaped) {
+            this.escaped = escaped;
             for (String line : lines) {
                 String[] parts = line.split(": ", 2);
-                if (parts.length != 2)
+                if (parts.length != 2) {
                     continue;
-                String key = parts[0].trim();
-                String value = parts[1].trim();
-                Log.i("Transaction", "key:" + key + " val:" + value);
-                switch (key) {
-                    case "ID":
-                        transaction.setId(Long.parseLong(value));
-                        break;
-                    case "Amount":
-                        transaction.setAmount(Double.parseDouble(value));
-                        break;
-                    case "Description":
-                        transaction.setDescription(value);
-                        break;
-                    case "Date":
-                        transaction.setDate(dateFormat.parse(value));
-                        break;
-                    case "Transaction Type":
-                        if (value.trim().isEmpty()) {
-                            Log.i("Transaction", "Setting value as DEBIT for transaction type as it is empty");
-                            value = "DEBIT";
-                        }
-                        transaction.setTransactionType(value);
-                        break;
-                    case "Receiver":
-                        transaction.setReceiverName(value);
-                        break;
-                    case "Category":
-                        transaction.setCategory(value);
-                        break;
-                    case "Account id":
-                        if (!value.equalsIgnoreCase("null")) {
-                            Log.i("", "Account id is present for transaction id:" + transaction.getId());
-                            transaction.setAccountId(Long.parseLong(value));
-                            Log.i("", "Account id is " + transaction.getAccountId() + " for transaction id:"
-                                    + transaction.getId());
-                        }
-                        break;
-                    case "Real account id":
-                        hasRealAccountLine = true;
-                        if (!value.equalsIgnoreCase("null")) {
-                            transaction.setRealAccountId(Long.parseLong(value));
-                        }
-                        break;
-                    case "Is excluded from summary":
-                        if (!value.equals("null")) {
-                            transaction.setExcludedFromSummary(Boolean.parseBoolean(value));
-                        }
-                        break;
-                    case "Linked Payment ID":
-                        if (!value.equals("null")) {
-                            transaction.setLinkedRecurringPaymentId(Long.parseLong(value));
-                        }
-                        break;
-                    case "SMS Body":
-                        transaction.setSmsBody(value);
-                        break;
-                    case "SMS Sender":
-                        transaction.setSmsSender(value);
-                        break;
-                    case "Transfer Group":
-                        if (!value.equals("null")) {
-                            transaction.setTransferGroupId(value);
-                        }
-                        break;
-                    case "Needs Review":
-                        transaction.setNeedsReview(Boolean.parseBoolean(value));
-                        break;
-                    case "SMS Hash":
-                        transaction.setSmsHash(value);
-                        break;
                 }
+                String value = escaped ? decode(parts[1]) : parts[1].trim();
+                values.put(parts[0].trim(), !escaped && value.equalsIgnoreCase("null") ? null : value);
             }
+        }
 
+        boolean has(String key) {
+            return values.containsKey(key);
+        }
+
+        String text(String key) {
+            return values.get(key);
+        }
+
+        Long number(String key) {
+            String value = values.get(key);
+            return value == null || value.isEmpty() ? null : Long.parseLong(value);
+        }
+
+        int integer(String key, int fallback) {
+            Long value = number(key);
+            return value != null ? value.intValue() : fallback;
+        }
+
+        boolean flag(String key) {
+            return Boolean.parseBoolean(values.get(key));
+        }
+
+        double amount(String key) {
+            String value = values.get(key);
+            // Older backups formatted amounts in the phone's language, so 10.50 could be 10,50
+            return value == null ? 0 : Double.parseDouble(value.replace(',', '.'));
+        }
+
+        Date date(String key) throws ParseException {
+            String value = values.get(key);
+            if (value == null || value.isEmpty()) {
+                return null;
+            }
+            return escaped ? new Date(Long.parseLong(value)) : dateFormat.parse(value);
+        }
+    }
+
+    private void processTransaction(Record record) throws ParseException {
+        Transaction transaction = new Transaction();
+        if (record.has("ID")) {
+            transaction.setId(record.number("ID"));
+        }
+        transaction.setAmount(record.amount("Amount"));
+        transaction.setDescription(record.text("Description"));
+        transaction.setDate(record.date("Date"));
+        transaction.setTransactionType(record.text("Transaction Type"));
+        transaction.setReceiverName(record.text("Receiver"));
+        transaction.setCategory(record.text("Category"));
+        transaction.setAccountId(record.number("Account id"));
+        transaction.setRealAccountId(record.number("Real account id"));
+        transaction.setExcludedFromSummary(record.flag("Is excluded from summary"));
+        transaction.setLinkedRecurringPaymentId(record.number("Linked Payment ID"));
+        transaction.setSmsBody(record.text("SMS Body"));
+        transaction.setSmsSender(record.text("SMS Sender"));
+        transaction.setSmsHash(record.text("SMS Hash"));
+        transaction.setTransferGroupId(record.text("Transfer Group"));
+        transaction.setNeedsReview(record.flag("Needs Review"));
+
+        if (record.escaped) {
+            transaction.setSource(record.text("Source"));
+            transaction.setDedupKey(record.text("Dedup Key"));
+            transaction.setMatchKey(record.text("Match Key"));
+            transaction.setMessageTime(record.number("Message Time"));
+        } else {
             // Only older backups need this; a newer one comes back exactly as it was saved
-            if (transaction.getAccountId() == null && !hasRealAccountLine) {
-                Account defaultAccount = database.accountDao().getDefaultAccountSync();
-                Log.i("Transaction", "Account do not exist for transaction. Adding default account. Transaction Id:" + transaction.getId());
-                transaction.setAccountId(defaultAccount.getId());
+            if (transaction.getAccountId() == null && !record.has("Real account id")) {
+                transaction.setAccountId(database.accountDao().getDefaultAccountSync().getId());
             }
-
-            if (transaction.getTransactionType() == null) {
-                Log.i("Transaction",
-                        "Transaction type is null. Not inserting the transaction. Id:" + transaction.getId());
-            } else {
-                if (transaction.getReceiverName() == null) {
-                    transaction.setReceiverName("");
-                }
-                if (transaction.getDescription() == null) {
-                    transaction.setDescription("");
-                }
-                TransactionKeys.fillLegacyKeys(transaction);
-                database.transactionDao().insertTransaction(transaction);
+            if (transaction.getTransactionType() != null && transaction.getTransactionType().trim().isEmpty()) {
+                transaction.setTransactionType("DEBIT");
             }
-        } catch (ParseException e) {
-            Log.e(TAG, "Error parsing transaction date", e);
+            if (transaction.getReceiverName() == null) {
+                transaction.setReceiverName("");
+            }
+            if (transaction.getDescription() == null) {
+                transaction.setDescription("");
+            }
+            TransactionKeys.fillLegacyKeys(transaction);
         }
+
+        if (transaction.getTransactionType() == null) {
+            Log.i(TAG, "Skipping a transaction without a type");
+            return;
+        }
+        database.transactionDao().insertTransaction(transaction);
     }
 
-    private void processCategory(String data) {
-        try {
-            String[] lines = data.split("\n");
-            String name = "";
-            String type = "";
-            boolean isDefault = false;
-            int sortOrder = 0;
-
-            for (String line : lines) {
-                String[] parts = line.split(": ", 2);
-                if (parts.length != 2)
-                    continue;
-
-                String key = parts[0].trim();
-                String value = parts[1].trim();
-                Log.i("Category", "key:" + key + " val:" + value);
-                switch (key) {
-                    case "Name":
-                        name = value;
-                        break;
-                    case "Type":
-                        type = value;
-                        break;
-                    case "Is Default":
-                        isDefault = Boolean.parseBoolean(value);
-                        break;
-                    case "Sort Order":
-                        sortOrder = Integer.parseInt(value);
-                        break;
-                }
-            }
-
-            if (!name.isEmpty() && !type.isEmpty()) {
-                Category category = new Category(name, type);
-                category.setDefault(isDefault);
-                category.setSortOrder(sortOrder);
-                database.categoryDao().insertIfMissing(category);
-            }
-        } catch (Exception e) {
-            Log.e(TAG, "Error processing category", e);
+    private void processCategory(Record record) {
+        String name = record.text("Name");
+        String type = record.text("Type");
+        if (name == null || name.isEmpty() || type == null || type.isEmpty()) {
+            return;
         }
+        Category category = new Category(name, type);
+        category.setDefault(record.flag("Is Default"));
+        category.setSortOrder(record.integer("Sort Order", 0));
+        // Older backups did not keep category ids; nothing referred to them then
+        if (record.escaped && record.has("ID")) {
+            category.setId(record.number("ID"));
+        }
+        database.categoryDao().insertIfMissing(category);
     }
 
-    private void processRecurringPayment(String data) {
-        try {
-            RecurringPayment payment = new RecurringPayment("", 0.0, 1, new Date());
-
-            String[] lines = data.split("\n");
-            for (String line : lines) {
-                String[] parts = line.split(": ", 2);
-                if (parts.length != 2)
-                    continue;
-
-                String key = parts[0].trim();
-                String value = parts[1].trim();
-                Log.i("RecPayment", "key:" + key + " val:" + value);
-
-                switch (key) {
-                    case "ID":
-                        payment.setId(Long.parseLong(value));
-                        break;
-                    case "Name":
-                        payment.setName(value);
-                        break;
-                    case "Amount":
-                        payment.setAmount(Double.parseDouble(value));
-                        break;
-                    case "Due Day":
-                        payment.setDueDay(Integer.parseInt(value));
-                        break;
-                    case "Expiry Date":
-                        payment.setExpiryDate(dateFormat.parse(value));
-                        break;
-                    case "Is Completed":
-                        payment.setCompleted(Boolean.parseBoolean(value));
-                        break;
-                    case "Last Completed Date":
-                        if (!value.equals("null")) {
-                            payment.setLastCompletedDate(dateFormat.parse(value));
-                        }
-                        break;
-                    case "From Account ID":
-                        if (!value.equalsIgnoreCase("null") && !value.isEmpty()) {
-                            payment.setFromAccountId(Long.parseLong(value));
-                        }
-                        break;
-                    case "To Account ID":
-                        if (!value.equalsIgnoreCase("null") && !value.isEmpty()) {
-                            payment.setToAccountId(Long.parseLong(value));
-                        }
-                        break;
-                }
-            }
-
-            if (payment.getName() == null || payment.getName().trim().isEmpty()) {
-                // Do not insert
-            } else {
-                database.recurringPaymentDao().insert(payment);
-            }
-        } catch (ParseException e) {
-            Log.e(TAG, "Error parsing recurring payment date", e);
+    private void processRecurringPayment(Record record) throws ParseException {
+        String name = record.text("Name");
+        if (name == null || name.trim().isEmpty()) {
+            return;
         }
+        RecurringPayment payment = new RecurringPayment(name, record.amount("Amount"),
+                record.integer("Due Day", 1), record.date("Expiry Date"));
+        if (record.has("ID")) {
+            payment.setId(record.number("ID"));
+        }
+        payment.setCompleted(record.flag("Is Completed"));
+        payment.setLastCompletedDate(record.date("Last Completed Date"));
+        payment.setFromAccountId(record.number("From Account ID"));
+        payment.setToAccountId(record.number("To Account ID"));
+        database.recurringPaymentDao().insert(payment);
     }
 
-    private void processAccount(String data) {
-        try {
-            String[] lines = data.split("\n");
-            long originalId = -1;
-            String name = "";
-            String accountNumber = "";
-            String bank = "";
-            Date expiryDate = null;
-            String description = "";
-            boolean isDefault = false;
-            String type = Account.TYPE_VIRTUAL;
-            int sortOrder = 0;
+    private void processAccount(Record record) throws ParseException {
+        String name = record.text("Name");
+        if (name == null || name.isEmpty()) {
+            return;
+        }
+        Account account = new Account(name, orEmpty(record, "Account Number"), orEmpty(record, "Bank"),
+                record.date("Expiry Date"), orEmpty(record, "Description"));
+        account.setDefault(record.flag("Is Default"));
+        account.setType(Account.TYPE_REAL.equals(record.text("Account Type")) ? Account.TYPE_REAL : Account.TYPE_VIRTUAL);
+        account.setSortOrder(record.integer("Sort Order", 0));
 
-            for (String line : lines) {
-                String[] parts = line.split(": ", 2);
-                if (parts.length != 2)
-                    continue;
-
-                String key = parts[0].trim();
-                String value = parts[1].trim();
-                Log.i("Account", "key:" + key + " val:" + value);
-
-                switch (key) {
-                    case "ID":
-                        originalId = Long.parseLong(value);
-                        break;
-                    case "Name":
-                        name = value;
-                        break;
-                    case "Account Number":
-                        accountNumber = value;
-                        break;
-                    case "Bank":
-                        bank = value;
-                        break;
-                    case "Expiry Date":
-                        if (!value.equalsIgnoreCase("null")) {
-                            expiryDate = dateFormat.parse(value);
-                        }
-                        break;
-                    case "Description":
-                        description = value;
-                        break;
-                    case "Is Default":
-                        isDefault = Boolean.parseBoolean(value);
-                        break;
-                    case "Sort Order":
-                        sortOrder = Integer.parseInt(value);
-                        break;
-                    case "Account Type":
-                        type = Account.TYPE_REAL.equals(value) ? Account.TYPE_REAL : Account.TYPE_VIRTUAL;
-                        break;
+        // The original id keeps transactions and bills pointing at the right account
+        Long originalId = record.number("ID");
+        if (originalId != null) {
+            for (Account existing : database.accountDao().getAllAccountsSync()) {
+                if (existing.getId() == originalId) {
+                    Log.i(TAG, "Account with ID " + originalId + " already exists");
+                    return;
                 }
             }
+            account.setId(originalId);
+        }
+        database.accountDao().insert(account);
+    }
 
-            if (!name.isEmpty()) {
-                Account account = new Account(name, accountNumber, bank, expiryDate, description);
-                account.setDefault(isDefault);
-                account.setType(type);
-                account.setSortOrder(sortOrder);
+    private String orEmpty(Record record, String key) {
+        String value = record.text(key);
+        return record.escaped || value != null ? value : "";
+    }
 
-                // Set the original ID to preserve referential integrity
-                if (originalId != -1) {
-                    account.setId(originalId);
-                }
+    private void processCounterpartyCategory(Record record) {
+        String counterparty = record.text("Counterparty");
+        String type = record.text("Transaction Type");
+        if (counterparty == null || type == null) {
+            return;
+        }
+        Long categoryId = null;
+        try (Cursor cursor = database.getOpenHelper().getReadableDatabase().query(
+                "SELECT id FROM categories WHERE name = ? AND type = ?",
+                new Object[] { record.text("Category Name"), record.text("Category Type") })) {
+            if (cursor.moveToFirst()) {
+                categoryId = cursor.getLong(0);
+            }
+        }
+        if (categoryId == null) {
+            categoryId = record.number("Category ID");
+        }
+        if (categoryId == null) {
+            return;
+        }
+        database.getOpenHelper().getWritableDatabase().execSQL(
+                "INSERT OR REPLACE INTO counterparty_categories (counterparty, transactionType, categoryId) VALUES (?, ?, ?)",
+                new Object[] { counterparty, type, categoryId });
+        restoredMappings = true;
+    }
 
-                // Check if account with same ID already exists
-                List<Account> existingAccounts = database.accountDao().getAllAccountsSync();
-                boolean accountExists = false;
-                if (existingAccounts != null) {
-                    for (Account existingAccount : existingAccounts) {
-                        if (existingAccount.getId() == originalId) {
-                            accountExists = true;
-                            break;
-                        }
+    /****************************************************************************************************/
+    // Restoring
+
+    /**
+     * Replaces everything on the phone with the given files, keyed by section. It is one
+     * database transaction, so if anything fails the phone keeps the data it had.
+     */
+    void restore(Map<String, File> files) {
+        database.runInTransaction(() -> {
+            SupportSQLiteDatabase db = database.getOpenHelper().getWritableDatabase();
+            for (String table : TABLES) {
+                db.execSQL("DELETE FROM " + table);
+            }
+            restoredMappings = false;
+            for (String[] entry : FILES) {
+                File file = files.get(entry[0]);
+                if (file != null) {
+                    try {
+                        load(file, entry[0]);
+                    } catch (IOException e) {
+                        throw new UncheckedIOException(e);
                     }
                 }
-
-                if (!accountExists) {
-                    database.accountDao().insert(account);
-                    Log.i("Account", "Inserted account: " + name + " with ID: " + originalId);
-                } else {
-                    Log.i("Account", "Account with ID " + originalId + " already exists: " + name);
-                }
             }
-        } catch (ParseException e) {
-            Log.e(TAG, "Error parsing account date", e);
-        } catch (Exception e) {
-            Log.e(TAG, "Error processing account", e);
+            finishRestore(database, !restoredMappings);
+        });
+    }
+
+    /** Fills in what an older backup does not carry. */
+    static void finishRestore(AppDatabase restored) {
+        finishRestore(restored, true);
+    }
+
+    static void finishRestore(AppDatabase restored, boolean rebuildMappings) {
+        restored.runInTransaction(() -> {
+            SupportSQLiteDatabase db = restored.getOpenHelper().getWritableDatabase();
+            Category.ensureDefaults(db);
+            Account.ensureDefaultRealAccount(db);
+            Transfers.linkLegacyPairs(db);
+            // Backups from before the mappings file are rebuilt from the transactions
+            if (rebuildMappings) {
+                CounterpartyCategory.rebuildFromTransactions(db);
+            }
+        });
+    }
+
+    /****************************************************************************************************/
+    // Google Drive
+
+    /** Uploads every file, then a marker; a backup that stops partway is deleted, not left looking finished. */
+    public static void exportDatabaseDataToGoogleDrive(Context context, AppDatabase database,
+            GoogleDriveService.DriveCallback callback) {
+        new Thread(() -> {
+            GoogleDriveService driveService = new GoogleDriveService(context);
+            try {
+                GoogleSignInHelper signInHelper = new GoogleSignInHelper(context);
+                if (!signInHelper.isSignedIn()) {
+                    callback.onError("User not signed in to Google Drive");
+                    return;
+                }
+                driveService.initializeDriveService(signInHelper.getAccessToken());
+
+                String folderId = driveService.createBackupFolder();
+                try {
+                    for (String[] entry : FILES) {
+                        upload(context, driveService, folderId, entry[1], entityText(entry[0], database));
+                    }
+                    upload(context, driveService, folderId, GoogleDriveService.COMPLETE_MARKER,
+                            "Backup finished " + new Date() + "\n");
+                } catch (IOException | RuntimeException e) {
+                    try {
+                        driveService.delete(folderId);
+                    } catch (IOException deleteError) {
+                        Log.e(TAG, "Could not remove the unfinished backup", deleteError);
+                    }
+                    throw e;
+                }
+                callback.onSuccess("Backup completed successfully");
+            } catch (Exception e) {
+                Log.e(TAG, "Error backing up to Google Drive", e);
+                callback.onError("Backup failed: " + e.getMessage());
+            } finally {
+                driveService.shutdown();
+            }
+        }).start();
+    }
+
+    private static void upload(Context context, GoogleDriveService driveService, String folderId, String fileName,
+            String text) throws IOException {
+        File file = new File(context.getCacheDir(), fileName);
+        try {
+            try (FileWriter writer = new FileWriter(file)) {
+                writer.write(text);
+            }
+            driveService.uploadFile(folderId, file, "text/plain");
+        } finally {
+            file.delete();
         }
+    }
+
+    /** Downloads the newest finished backup in full before anything on the phone changes. */
+    public static void loadBackupDataFromGoogleDrive(Context context, GoogleDriveService.DriveCallback callback) {
+        new Thread(() -> {
+            GoogleDriveService driveService = new GoogleDriveService(context);
+            Map<String, File> files = new HashMap<>();
+            try {
+                GoogleSignInHelper signInHelper = new GoogleSignInHelper(context);
+                if (!signInHelper.isSignedIn()) {
+                    callback.onError("User not signed in to Google Drive");
+                    return;
+                }
+                driveService.initializeDriveService(signInHelper.getAccessToken());
+
+                GoogleDriveService.BackupFolder backup = driveService.findLatestBackup();
+                if (backup == null) {
+                    callback.onError("No complete backup found");
+                    return;
+                }
+                for (String[] entry : FILES) {
+                    String fileId = backup.files.get(entry[1]);
+                    if (fileId != null) {
+                        File file = new File(context.getCacheDir(), "restore_" + entry[1]);
+                        files.put(entry[0], file);
+                        driveService.downloadFile(fileId, file);
+                    }
+                }
+                new BackupDataLoader(context).restore(files);
+                callback.onSuccess("Restore completed successfully");
+            } catch (Exception e) {
+                Log.e(TAG, "Error restoring from Google Drive", e);
+                callback.onError("Restore failed, nothing was changed: " + e.getMessage());
+            } finally {
+                for (File file : files.values()) {
+                    file.delete();
+                }
+                driveService.shutdown();
+            }
+        }).start();
     }
 
     /** Earlier versions left a plain text copy of the database here on every start. */
@@ -409,277 +584,6 @@ public class BackupDataLoader {
                 export.delete();
             }
             new File(context.getFilesDir(), "database_exports").delete();
-        }
-    }
-
-    public static void exportDatabaseDataToGoogleDrive(Context context, AppDatabase database,
-            GoogleDriveService.DriveCallback callback) {
-        new Thread(() -> {
-            try {
-                GoogleDriveService driveService = new GoogleDriveService(context);
-                GoogleSignInHelper signInHelper = new GoogleSignInHelper(context);
-
-                if (!signInHelper.isSignedIn()) {
-                    callback.onError("User not signed in to Google Drive");
-                    return;
-                }
-
-                driveService.initializeDriveService(signInHelper.getAccessToken());
-
-                // Create folder
-                driveService.createDateSpecificBackupFolder(new GoogleDriveService.DriveCallback() {
-                    @Override
-                    public void onSuccess(String folderId) {
-                        try {
-                            uploadEntity(context, folderId, driveService, "CATEGORIES", database, "categories.txt");
-                            uploadEntity(context, folderId, driveService, "RECURRING PAYMENTS", database,
-                                    "recurring_payments.txt");
-                            uploadEntity(context, folderId, driveService, "ACCOUNTS", database, "accounts.txt");
-                            uploadEntity(context, folderId, driveService, "TRANSACTIONS", database, "transactions.txt");
-
-                            callback.onSuccess("Backup completed successfully");
-                        } catch (Exception e) {
-                            Log.e(TAG, "Error during multi-file upload", e);
-                            callback.onError("Backup failed: " + e.getMessage());
-                        }
-                    }
-
-                    @Override
-                    public void onError(String error) {
-                        callback.onError(error);
-                    }
-                });
-
-            } catch (Exception e) {
-                Log.e("DatabaseExport", "Error exporting data to Google Drive", e);
-                callback.onError("Error exporting data: " + e.getMessage());
-            }
-        }).start();
-    }
-
-    /** The text of one backup file; {@link #loadSingleEntityFromFile} reads it back. */
-    static String entityText(String entityName, AppDatabase database) {
-        StringBuilder data = new StringBuilder();
-        // Basic logic to get data based on entity name - Simplified for brevity, assume
-        // similar logic to before but separated
-        if (entityName.equals("CATEGORIES")) {
-            List<Category> categories = database.categoryDao().getAllCategoriesSync();
-            for (Category c : categories) {
-                data.append(String.format("ID: %d\nName: %s\nType: %s\nIs Default: %b\nSort Order: %d\n---\n", c.getId(), c.getName(),
-                        c.getType(), c.isDefault(), c.getSortOrder()));
-            }
-        } else if (entityName.equals("RECURRING PAYMENTS")) {
-            List<RecurringPayment> payments = database.recurringPaymentDao().getAllRecurringPaymentsSync();
-            for (RecurringPayment p : payments) {
-                data.append(String.format(
-                        "ID: %d\nName: %s\nAmount: %.2f\nDue Day: %d\nExpiry Date: %s\nIs Completed: %b\nLast Completed Date: %s\nFrom Account ID: %s\nTo Account ID: %s\n---\n",
-                        p.getId(), p.getName(), p.getAmount(), p.getDueDay(), p.getExpiryDate(), p.isCompleted(),
-                        p.getLastCompletedDate(), p.getFromAccountId(), p.getToAccountId()));
-            }
-        } else if (entityName.equals("ACCOUNTS")) {
-            List<Account> accounts = database.accountDao().getAllAccountsSync();
-            if (accounts != null) {
-                for (Account a : accounts) {
-                    data.append(String.format(
-                            "ID: %d\nName: %s\nAccount Number: %s\nBank: %s\nExpiry Date: %s\nDescription: %s\nIs Default: %b\nAccount Type: %s\nSort Order: %d\n---\n",
-                            a.getId(), a.getName(), a.getAccountNumber(), a.getBank(), a.getExpiryDate(),
-                            a.getDescription(), a.isDefault(), a.getType(), a.getSortOrder()));
-                }
-            }
-        } else if (entityName.equals("TRANSACTIONS")) {
-            Date twoMonthsAgo = new Date(System.currentTimeMillis() - (60L * 24 * 60 * 60 * 1000 * 60));
-            List<Transaction> transactions = database.transactionDao().getTransactionsBetweenSync(
-                    twoMonthsAgo, new Date());
-            for (Transaction t : transactions) {
-                data.append(String.format(
-                        "ID: %d\nAmount: %.2f\nDescription: %s\nDate: %s\nTransaction Type: %s\nReceiver: %s\nCategory: %s\nIs excluded from summary: %s\nAccount id: %s\nReal account id: %s\nLinked Payment ID: %s\nSMS Body: %s\nSMS Sender: %s\nSMS Hash: %s\nTransfer Group: %s\nNeeds Review: %b\n---\n",
-                        t.getId(), t.getAmount(), t.getDescription(), t.getDate(), t.getTransactionType(),
-                        t.getReceiverName(), t.getCategory(), t.isExcludedFromSummary(), t.getAccountId(),
-                        t.getRealAccountId(),
-                        t.getLinkedRecurringPaymentId(), t.getSmsBody(), t.getSmsSender(), t.getSmsHash(),
-                        t.getTransferGroupId(), t.isNeedsReview()));
-            }
-        }
-        return data.toString();
-    }
-
-    private static void uploadEntity(Context context, String folderId, GoogleDriveService driveService,
-            String entityName, AppDatabase database, String fileName) throws IOException {
-        File tempFile = new File(context.getCacheDir(), fileName);
-        try (FileWriter writer = new FileWriter(tempFile)) {
-            writer.write(entityText(entityName, database));
-        }
-
-        // We can't wait for the callback here easily in this structure without
-        // CountDownLatch or similar
-        // For simplicity in this agent environment, we will fire and forget the
-        // individual uploads or nest them
-        // BUT since we need to ensure all are done, let's use a simpler approach:
-        // We will just call the upload method. The service handles the thread.
-        // Realistically, we should chain these or use Futures.
-        // Given the complexity constraint, let's just trigger them.
-        driveService.uploadFileToFolder(folderId, tempFile, "text/plain", new GoogleDriveService.DriveCallback() {
-            @Override
-            public void onSuccess(String msg) {
-                if (tempFile.exists())
-                    tempFile.delete();
-            }
-
-            @Override
-            public void onError(String err) {
-                if (tempFile.exists())
-                    tempFile.delete();
-                Log.e(TAG, "Failed to upload " + fileName);
-            }
-        });
-    }
-
-    public static void loadBackupDataFromGoogleDrive(Context context, GoogleDriveService.DriveCallback callback) {
-        new Thread(() -> {
-            try {
-                GoogleDriveService driveService = new GoogleDriveService(context);
-                GoogleSignInHelper signInHelper = new GoogleSignInHelper(context);
-
-                if (!signInHelper.isSignedIn()) {
-                    callback.onError("User not signed in to Google Drive");
-                    return;
-                }
-
-                driveService.initializeDriveService(signInHelper.getAccessToken());
-
-                driveService.getLatestBackupFolderId(new GoogleDriveService.DriveFolderCallback() {
-                    @Override
-                    public void onSuccess(String folderId) {
-                        driveService.listFilesInFolder(folderId, new GoogleDriveService.DriveFileListCallback() {
-                            @Override
-                            public void onSuccess(List<com.google.api.services.drive.model.File> files) {
-                                try {
-                                    // Map files by name for easy access
-                                    java.util.Map<String, String> fileMap = new java.util.HashMap<>();
-                                    for (com.google.api.services.drive.model.File f : files) {
-                                        fileMap.put(f.getName(), f.getId());
-                                    }
-
-                                    BackupDataLoader loader = new BackupDataLoader(context);
-
-                                    Log.i(TAG, "Starting restore process...");
-                                    // Download and process in order
-                                    Log.i(TAG, "Clearing all tables...");
-                                    AppDatabase.getDatabase(context).clearAllTables();
-                                    Log.i(TAG, "Tables cleared.");
-
-                                    processFileIfExists(context, driveService, fileMap, "categories.txt", "CATEGORIES",
-                                            loader);
-                                    processFileIfExists(context, driveService, fileMap, "recurring_payments.txt",
-                                            "RECURRING PAYMENTS", loader);
-                                    processFileIfExists(context, driveService, fileMap, "accounts.txt", "ACCOUNTS",
-                                            loader);
-                                    processFileIfExists(context, driveService, fileMap, "transactions.txt",
-                                            "TRANSACTIONS", loader);
-
-                                    finishRestore(AppDatabase.getDatabase(context));
-                                    Log.i(TAG, "Restore process completed.");
-                                    callback.onSuccess("Restore completed successfully");
-                                } catch (Exception e) {
-                                    Log.e(TAG, "Error restoring data", e);
-                                    callback.onError("Restore failed: " + e.getMessage());
-                                }
-                            }
-
-                            @Override
-                            public void onError(String error) {
-                                callback.onError(error);
-                            }
-                        });
-                    }
-
-                    @Override
-                    public void onError(String error) {
-                        callback.onError(error);
-                    }
-                });
-
-            } catch (Exception e) {
-                Log.e("BackupDataLoader", "Error loading backup from Google Drive", e);
-                callback.onError("Error loading backup: " + e.getMessage());
-            }
-        }).start();
-    }
-
-    /** Fills in what an older backup does not carry, and rebuilds what no backup carries. */
-    static void finishRestore(AppDatabase restored) {
-        restored.runInTransaction(() -> {
-            Category.ensureDefaults(restored.getOpenHelper().getWritableDatabase());
-            Account.ensureDefaultRealAccount(restored.getOpenHelper().getWritableDatabase());
-            Transfers.linkLegacyPairs(restored.getOpenHelper().getWritableDatabase());
-            CounterpartyCategory.rebuildFromTransactions(restored.getOpenHelper().getWritableDatabase());
-        });
-    }
-
-    private static void processFileIfExists(Context context, GoogleDriveService driveService,
-            java.util.Map<String, String> fileMap, String fileName, String sectionName, BackupDataLoader loader) {
-        if (fileMap.containsKey(fileName)) {
-            Log.i(TAG, "Found file: " + fileName + ". Downloading...");
-            File tempFile = new File(context.getCacheDir(), "restore_" + fileName);
-            // This needs to be synchronous for the order to matter.
-            // But downloadFile is async. We need to handle this.
-            // Since we are already in a background thread in loadBackupDataFromGoogleDrive,
-            // we could make download synchronous or use a latch.
-            // However, `downloadFile` in service implementation uses
-            // executorService.execute.
-            // We should modify `GoogleDriveService` to have a synchronous download or wait
-            // here.
-            // MODIFYING STRATEGY: We will add a CountDownLatch-like behavior or nested
-            // callbacks?
-            // Nested callbacks is messy for 4 files.
-            // Let's assume for this specific agent task, we can't easily change the service
-            // signature to synchronous without more work.
-            // But wait, I can just use a CountDownLatch here since I am in a thread!
-
-            final java.util.concurrent.CountDownLatch latch = new java.util.concurrent.CountDownLatch(1);
-            driveService.downloadFile(fileMap.get(fileName), tempFile, new GoogleDriveService.DriveCallback() {
-                @Override
-                public void onSuccess(String msg) {
-                    loader.loadSingleEntityFromFile(tempFile, sectionName);
-                    if (tempFile.exists())
-                        tempFile.delete();
-                    Log.i(TAG, "Finished processing " + fileName);
-                    latch.countDown();
-                }
-
-                @Override
-                public void onError(String err) {
-                    if (tempFile.exists())
-                        tempFile.delete();
-                    latch.countDown(); // Continue even if one fails? Maybe log it.
-                }
-            });
-            try {
-                latch.await(30, java.util.concurrent.TimeUnit.SECONDS);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        } else {
-            Log.i(TAG, "File not found in backup: " + fileName);
-        }
-    }
-
-    public void loadSingleEntityFromFile(File file, String sectionName) {
-        try (BufferedReader reader = new BufferedReader(new java.io.FileReader(file))) {
-            String line;
-            StringBuilder currentEntity = new StringBuilder();
-            while ((line = reader.readLine()) != null) {
-                if (line.equals("---")) {
-                    processEntity(sectionName, currentEntity.toString());
-                    currentEntity = new StringBuilder();
-                } else {
-                    currentEntity.append(line).append("\n");
-                }
-            }
-            if (currentEntity.length() > 0)
-                processEntity(sectionName, currentEntity.toString());
-        } catch (IOException e) {
-            Log.e(TAG, "Error reading entity file " + sectionName, e);
         }
     }
 }
