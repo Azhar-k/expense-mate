@@ -59,6 +59,7 @@ public class LoanViewModel extends AndroidViewModel {
     /** A return that never showed up as a transaction, such as cash. */
     public void recordReturn(Loan loan, double amount) {
         loan.setReturnedManually(loan.getReturnedManually() + amount);
+        loan.setClosedDate(new Date());
         repository.update(loan);
     }
 
@@ -68,9 +69,9 @@ public class LoanViewModel extends AndroidViewModel {
         repository.update(loan);
     }
 
+    // Keeps the date, which may belong to a return recorded by hand
     public void reopen(Loan loan) {
         loan.setClosedManually(false);
-        loan.setClosedDate(null);
         repository.update(loan);
     }
 }

@@ -20,11 +20,12 @@ public final class LoanText {
         String lent = "lent " + date(summary.loan.getDate());
         if (summary.isCompleted()) {
             Date completed = summary.completedDate();
-            String when = completed != null ? "Returned " + date(completed) : "Returned";
             if (!summary.isFullyReturned()) {
-                when += ", " + Money.format(summary.returned) + " of " + Money.format(summary.loan.getAmount());
+                // Closed by hand with part of it, or none of it, back
+                return "Marked returned" + (completed != null ? " " + date(completed) : "") + " · "
+                        + Money.format(summary.returned) + " of " + Money.format(summary.loan.getAmount()) + " back";
             }
-            return when + " · " + lent;
+            return (completed != null ? "Returned " + date(completed) : "Returned") + " · " + lent;
         }
         if (summary.returned > 0) {
             return Money.format(summary.returned) + " of " + Money.format(summary.loan.getAmount()) + " back · " + lent;

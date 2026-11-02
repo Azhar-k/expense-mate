@@ -63,7 +63,7 @@ public class LoansFragment extends Fragment {
                 R.color.on_primary_container);
 
         fillList(binding.listOpen, open,
-                "Nothing lent right now. Add it here, or from a payment in Activity with Track as money lent.");
+                "Nothing lent right now. Add it here, or from a payment in Activity with Track as lent.");
         fillList(binding.listCompleted, completed, null);
         binding.headerCompleted.setVisibility(completed.isEmpty() ? View.GONE : View.VISIBLE);
     }

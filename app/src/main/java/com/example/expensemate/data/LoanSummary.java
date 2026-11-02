@@ -24,11 +24,12 @@ public class LoanSummary {
         return isCompleted() ? 0 : Math.max(0, loan.getAmount() - returned);
     }
 
-    /** When it was marked returned, or when the last of it came back. */
+    /** When the last of it came back, whether linked or recorded by hand, or when it was marked returned. */
     public Date completedDate() {
-        if (loan.isClosedManually() && loan.getClosedDate() != null) {
-            return loan.getClosedDate();
+        Date byHand = loan.getClosedDate();
+        if (byHand == null) {
+            return lastReturnDate;
         }
-        return lastReturnDate;
+        return lastReturnDate == null || byHand.after(lastReturnDate) ? byHand : lastReturnDate;
     }
 }

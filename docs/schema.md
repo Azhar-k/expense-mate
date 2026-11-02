@@ -25,7 +25,7 @@ erDiagram
         String note
         double returnedManually "Returns recorded by hand, such as cash"
         boolean closedManually "Marked as returned by hand"
-        long closedDate "Timestamp"
+        long closedDate "Last done by hand: marked returned, or a return recorded"
     }
 
     CATEGORY {

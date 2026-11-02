@@ -21,7 +21,7 @@ public class Loan {
     private String note;
     private double returnedManually; // Returns that never showed up as a transaction, such as cash
     private boolean closedManually; // Marked as returned by hand, whatever came back
-    private Date closedDate;
+    private Date closedDate; // Last done by hand: marked as returned, or a return recorded
 
     public long getId() { return id; }
     public void setId(long id) { this.id = id; }

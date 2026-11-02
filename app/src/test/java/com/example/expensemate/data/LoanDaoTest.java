@@ -96,6 +96,12 @@ public class LoanDaoTest {
         assertEquals(1000, only().returned, 0);
         assertTrue(only().isFullyReturned());
         assertTrue(only().isCompleted());
+        assertEquals(2000, only().completedDate().getTime());
+
+        // The last of it came back by hand after the linked return
+        loan.setClosedDate(new Date(9000));
+        loans.update(loan);
+        assertEquals(9000, only().completedDate().getTime());
     }
 
     @Test

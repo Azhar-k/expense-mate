@@ -90,7 +90,8 @@ public class MainActivity extends AppCompatActivity {
     private void applySystemBarInsets() {
         View statusBarBand = findViewById(R.id.status_bar_band);
         View root = findViewById(R.id.root);
-        View drawerView = findViewById(R.id.drawer_view);
+        View drawerHeader = ((NavigationView) findViewById(R.id.drawer_view)).getHeaderView(0);
+        int headerTop = drawerHeader.getPaddingTop();
         ViewCompat.setOnApplyWindowInsetsListener(drawerLayout, (drawer, insets) -> {
             Insets bars = insets.getInsets(WindowInsetsCompat.Type.systemBars()
                     | WindowInsetsCompat.Type.displayCutout() | WindowInsetsCompat.Type.ime());
@@ -98,8 +99,9 @@ public class MainActivity extends AppCompatActivity {
             ViewGroup.LayoutParams band = statusBarBand.getLayoutParams();
             band.height = bars.top;
             statusBarBand.setLayoutParams(band);
-            // The drawer pads itself, so it gets the insets as they came
-            ViewCompat.dispatchApplyWindowInsets(drawerView, insets);
+            // The drawer opens under the status bar too
+            drawerHeader.setPadding(drawerHeader.getPaddingLeft(), headerTop + bars.top,
+                    drawerHeader.getPaddingRight(), drawerHeader.getPaddingBottom());
             return WindowInsetsCompat.CONSUMED;
         });
     }

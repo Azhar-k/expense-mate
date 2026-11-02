@@ -94,7 +94,8 @@ public class LoanDetailsSheet extends ExpandedSheet {
         }
         boolean completed = summary.isCompleted();
         binding.tvPerson.setText(summary.loan.getPerson());
-        binding.tvStatus.setText(completed ? "Returned" : "To get back");
+        binding.tvStatus.setText(!completed ? "To get back"
+                : summary.isFullyReturned() ? "Returned" : "Lent, marked as returned");
         binding.tvAmount.setText(Money.format(completed ? summary.loan.getAmount() : summary.outstanding()));
 
         binding.details.removeAllViews();
