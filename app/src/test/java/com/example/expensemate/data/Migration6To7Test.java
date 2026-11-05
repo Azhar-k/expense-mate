@@ -70,7 +70,7 @@ public class Migration6To7Test {
             scanned.setMessageTime(T0 + 1000);
             scanned.setSource(TransactionKeys.SOURCE_SMS_SCAN);
             scanned.setDedupKey(TransactionKeys.bodyKey(BODY));
-            assertFalse(database.transactionDao().insertIfNew(scanned));
+            assertFalse(TestServices.over(database).capture().recordIfNew(scanned));
         } finally {
             database.close();
         }

@@ -10,6 +10,8 @@ import android.content.Context;
 import androidx.room.Room;
 import androidx.test.core.app.ApplicationProvider;
 
+import com.example.expensemate.domain.local.LocalServices;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -29,6 +31,7 @@ public class CounterpartyCategoryTest {
     private AppDatabase database;
     private TransactionDao dao;
     private CategoryDao categories;
+    private LocalServices services;
     private long nextTime = T0;
 
     @Before
@@ -39,7 +42,8 @@ public class CounterpartyCategoryTest {
                 .build();
         dao = database.transactionDao();
         categories = database.categoryDao();
-        categories.saveAsDefault(new Category("Default", "EXPENSE"));
+        services = TestServices.over(database);
+        services.categories().saveAsDefault(new Category("Default", "EXPENSE")).join();
         categories.insertCategory(new Category("Food", "EXPENSE"));
         categories.insertCategory(new Category("Fuel", "EXPENSE"));
         categories.insertCategory(new Category("Food", "INCOME"));
@@ -72,7 +76,7 @@ public class CounterpartyCategoryTest {
 
     private Transaction capture(String counterparty, String type) {
         Transaction row = captured(counterparty, type);
-        assertTrue(dao.insertIfNew(row));
+        assertTrue(services.capture().recordIfNew(row));
         return row;
     }
 
@@ -88,8 +92,8 @@ public class CounterpartyCategoryTest {
 
     @Test
     public void capturedPaymentGetsTheCategoryMarkedDefault() {
-        categories.saveAsDefault(find("Fuel", "EXPENSE"));
-        categories.saveAsDefault(find("Salary", "INCOME"));
+        defaults(find("Fuel", "EXPENSE"));
+        defaults(find("Salary", "INCOME"));
 
         Transaction debit = capture("SWIGGY", "DEBIT");
         assertEquals("Fuel", debit.getCategory());
@@ -99,23 +103,23 @@ public class CounterpartyCategoryTest {
 
     @Test
     public void rememberedCategoryBeatsTheDefault() {
-        categories.saveAsDefault(find("Fuel", "EXPENSE"));
-        dao.insertWithChosenCategory(chosen("SWIGGY", "DEBIT", "Food"));
+        defaults(find("Fuel", "EXPENSE"));
+        add(chosen("SWIGGY", "DEBIT", "Food"));
 
         assertEquals("Food", capture("SWIGGY", "DEBIT").getCategory());
     }
 
     @Test
     public void choosingTheMarkedDefaultIsNotRemembered() {
-        categories.saveAsDefault(find("Fuel", "EXPENSE"));
-        dao.insertWithChosenCategory(chosen("SWIGGY", "DEBIT", "Fuel"));
+        defaults(find("Fuel", "EXPENSE"));
+        add(chosen("SWIGGY", "DEBIT", "Fuel"));
 
         assertTrue(capture("SWIGGY", "DEBIT").isNeedsReview());
     }
 
     @Test
     public void capturedPaymentGetsTheChosenCategoryAndSkipsReview() {
-        dao.insertWithChosenCategory(chosen("SWIGGY", "DEBIT", "Food"));
+        add(chosen("SWIGGY", "DEBIT", "Food"));
 
         Transaction next = capture("SWIGGY", "DEBIT");
 
@@ -125,17 +129,17 @@ public class CounterpartyCategoryTest {
 
     @Test
     public void spacingCaseAndPunctuationAreTheSameCounterparty() {
-        dao.insertWithChosenCategory(chosen("Swiggy Ltd.", "DEBIT", "Food"));
+        add(chosen("Swiggy Ltd.", "DEBIT", "Food"));
 
         assertEquals("Food", capture("SWIGGY  LTD", "DEBIT").getCategory());
     }
 
     @Test
     public void paymentsInAndOutAreMappedSeparately() {
-        dao.insertWithChosenCategory(chosen("ACME", "DEBIT", "Food"));
+        add(chosen("ACME", "DEBIT", "Food"));
         assertWaitingForCategory(capture("ACME", "CREDIT"));
 
-        dao.insertWithChosenCategory(chosen("ACME", "CREDIT", "Salary"));
+        add(chosen("ACME", "CREDIT", "Salary"));
         assertEquals("Salary", capture("ACME", "CREDIT").getCategory());
         assertEquals("Food", capture("ACME", "DEBIT").getCategory());
     }
@@ -146,10 +150,10 @@ public class CounterpartyCategoryTest {
         first.setId(1);
         dao.insertTransaction(first);
 
-        dao.chooseCategory(first, "Food");
+        services.transactions().chooseCategory(first.getId(), "Food").join();
         assertEquals("Food", capture("SWIGGY", "DEBIT").getCategory());
 
-        dao.chooseCategory(first, "Fuel");
+        services.transactions().chooseCategory(first.getId(), "Fuel").join();
         assertEquals("Fuel", capture("SWIGGY", "DEBIT").getCategory());
     }
 
@@ -157,9 +161,9 @@ public class CounterpartyCategoryTest {
     public void choosingDefaultForgetsTheMapping() {
         Transaction first = chosen("SWIGGY", "DEBIT", "Food");
         first.setId(1);
-        dao.insertWithChosenCategory(first);
+        add(first);
 
-        dao.chooseCategory(first, "Default");
+        services.transactions().chooseCategory(first.getId(), "Default").join();
 
         assertWaitingForCategory(capture("SWIGGY", "DEBIT"));
     }
@@ -168,18 +172,18 @@ public class CounterpartyCategoryTest {
     public void editingAnOldRowWithoutChangingTheChoiceKeepsTheNewerMapping() {
         Transaction old = chosen("SWIGGY", "DEBIT", "Food");
         old.setId(1);
-        dao.insertWithChosenCategory(old);
-        dao.insertWithChosenCategory(chosen("SWIGGY", "DEBIT", "Fuel"));
+        add(old);
+        add(chosen("SWIGGY", "DEBIT", "Fuel"));
 
         Transaction edited = old.copy();
         edited.setDescription("a new note");
-        dao.updateWithChosenCategory(old, edited);
+        services.transactions().update(edited).join();
         assertEquals("Fuel", capture("SWIGGY", "DEBIT").getCategory());
 
         edited = old.copy();
         edited.setCategory("Food");
         edited.setReceiverName("ZOMATO");
-        dao.updateWithChosenCategory(old, edited);
+        services.transactions().update(edited).join();
         assertEquals("Food", capture("ZOMATO", "DEBIT").getCategory());
     }
 
@@ -192,14 +196,14 @@ public class CounterpartyCategoryTest {
         Transaction reviewed = waiting.copy();
         reviewed.setCategory("Food");
         reviewed.setNeedsReview(false);
-        dao.updateWithChosenCategory(waiting, reviewed);
+        services.transactions().update(reviewed).join();
 
         assertEquals("Food", capture("SWIGGY", "DEBIT").getCategory());
     }
 
     @Test
     public void renamedCategoryKeepsTheMapping() {
-        dao.insertWithChosenCategory(chosen("SWIGGY", "DEBIT", "Food"));
+        add(chosen("SWIGGY", "DEBIT", "Food"));
 
         Category food = find("Food", "EXPENSE");
         food.setName("Eating out");
@@ -210,7 +214,7 @@ public class CounterpartyCategoryTest {
 
     @Test
     public void deletedCategoryIsNotAssigned() {
-        dao.insertWithChosenCategory(chosen("SWIGGY", "DEBIT", "Food"));
+        add(chosen("SWIGGY", "DEBIT", "Food"));
 
         categories.deleteCategory(find("Food", "EXPENSE"));
 
@@ -220,24 +224,27 @@ public class CounterpartyCategoryTest {
     @Test
     public void transfersAndBlankNamesAreNotMapped() {
         Transaction[] legs = Transfers.newPair(100, 1, 2, new Date(T0), "");
-        dao.rememberCategory(legs[0]);
-        dao.insertWithChosenCategory(chosen("", "DEBIT", "Food"));
-        dao.insertWithChosenCategory(chosen("null", "DEBIT", "Food"));
+        legs[0].setReceiverName("MOVED");
+        legs[0].setCategory("Food");
+        add(legs[0]);
+        add(chosen("", "DEBIT", "Food"));
+        add(chosen("null", "DEBIT", "Food"));
 
+        assertWaitingForCategory(capture("MOVED", "DEBIT"));
         assertWaitingForCategory(capture("", "DEBIT"));
         assertWaitingForCategory(capture("null", "DEBIT"));
     }
 
     @Test
     public void duplicateIsStillRejected() {
-        dao.insertWithChosenCategory(chosen("SWIGGY", "DEBIT", "Food"));
+        add(chosen("SWIGGY", "DEBIT", "Food"));
         Transaction row = capture("SWIGGY", "DEBIT");
 
         Transaction again = captured("SWIGGY", "DEBIT");
         again.setDedupKey(row.getDedupKey());
         again.setMessageTime(row.getMessageTime());
 
-        assertFalse(dao.insertIfNew(again));
+        assertFalse(services.capture().recordIfNew(again));
     }
 
     @Test
@@ -263,6 +270,15 @@ public class CounterpartyCategoryTest {
         assertNull(TransactionKeys.counterpartyKey("  "));
         assertNull(TransactionKeys.counterpartyKey("null"));
         assertNull(TransactionKeys.counterpartyKey("--"));
+    }
+
+    private void defaults(Category category) {
+        services.categories().saveAsDefault(category).join();
+    }
+
+    /** Saved from the form, as a person's own choice. */
+    private void add(Transaction row) {
+        services.transactions().add(row).join();
     }
 
     private Category find(String name, String type) {

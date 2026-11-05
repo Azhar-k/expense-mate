@@ -90,7 +90,7 @@ public class SmsScanFragment extends Fragment {
             SmsScanner.Result result = null;
             String error = null;
             try {
-                result = SmsScanner.scan(resolver, range[0], range[1], viewModel);
+                result = SmsScanner.scan(resolver, range[0], range[1], viewModel.getCapture());
             } catch (SecurityException e) {
                 error = "Turn on SMS reading in Settings to scan messages.";
             } catch (Exception e) {
@@ -206,7 +206,7 @@ public class SmsScanFragment extends Fragment {
     private void processPasted(String body) {
         showStatus("Reading the message…");
         executorService.execute(() -> {
-            SmsTransactionHandler.TransactionResult result = SmsTransactionHandler.handleSms(body, "", viewModel,
+            SmsTransactionHandler.TransactionResult result = SmsTransactionHandler.handleSms(body, "", viewModel.getCapture(),
                     new Date(), TransactionKeys.SOURCE_PASTE);
             if (getActivity() == null) {
                 return;

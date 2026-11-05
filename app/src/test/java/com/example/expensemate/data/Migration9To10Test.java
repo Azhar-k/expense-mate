@@ -32,11 +32,11 @@ public class Migration9To10Test {
                 .allowMainThreadQueries()
                 .build();
         try {
-            TransactionDao dao = database.transactionDao();
-            assertEquals("Default", dao.getDefaultCategory("DEBIT"));
-            assertEquals("Default", dao.getDefaultCategory("CREDIT"));
+            CategoryDao dao = database.categoryDao();
+            assertEquals("Default", dao.getDefaultName("EXPENSE"));
+            assertEquals("Default", dao.getDefaultName("INCOME"));
             assertEquals(3, database.categoryDao().getAllCategoriesSync().size());
-            assertEquals("Food", dao.getCounterpartyCategory("KEEP", "DEBIT"));
+            assertEquals("Food", database.transactionDao().getCounterpartyCategory("KEEP", "DEBIT"));
         } finally {
             database.close();
         }

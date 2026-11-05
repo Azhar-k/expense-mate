@@ -10,6 +10,8 @@ import android.content.Context;
 import androidx.room.Room;
 import androidx.test.core.app.ApplicationProvider;
 
+import com.example.expensemate.domain.LoanService;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -24,12 +26,14 @@ import java.util.Date;
 public class LoanDaoTest {
     private AppDatabase database;
     private LoanDao loans;
+    private LoanService service;
 
     @Before
     public void setUp() {
         Context context = ApplicationProvider.getApplicationContext();
         database = Room.inMemoryDatabaseBuilder(context, AppDatabase.class).allowMainThreadQueries().build();
         loans = database.loanDao();
+        service = TestServices.over(database).loans();
     }
 
     @After
@@ -55,6 +59,10 @@ public class LoanDaoTest {
         return loan;
     }
 
+    private long lendFrom(Loan loan, long transactionId) {
+        return service.addFromTransaction(loan, transactionId).join();
+    }
+
     private LoanSummary only() {
         assertEquals(1, loans.getLoanSummariesSync().size());
         return loans.getLoanSummariesSync().get(0);
@@ -63,7 +71,7 @@ public class LoanDaoTest {
     @Test
     public void returnsAddUpUntilTheLoanIsBack() {
         long lent = transaction(1, "DEBIT", 5000, 1000);
-        long id = loans.insertFromTransaction(loan(5000), lent);
+        long id = lendFrom(loan(5000), lent);
 
         // The payment that lent the money is linked, but is not a return
         assertEquals(0, only().returned, 0);
@@ -122,10 +130,10 @@ public class LoanDaoTest {
     @Test
     public void deletingALoanKeepsItsTransactions() {
         long lent = transaction(1, "DEBIT", 500, 1000);
-        long id = loans.insertFromTransaction(loan(500), lent);
+        long id = lendFrom(loan(500), lent);
         loans.setLoan(transaction(2, "CREDIT", 200, 2000), id);
 
-        loans.delete(loans.getAllLoansSync().get(0));
+        service.delete(loans.getAllLoansSync().get(0)).join();
 
         assertTrue(loans.getAllLoansSync().isEmpty());
         assertEquals(2, database.transactionDao().getAllTransactionsSyncOrderByDateAsc().size());
@@ -136,7 +144,7 @@ public class LoanDaoTest {
 
     @Test
     public void editingATransactionKeepsItsLoan() {
-        long id = loans.insertFromTransaction(loan(500), transaction(1, "DEBIT", 500, 1000));
+        long id = lendFrom(loan(500), transaction(1, "DEBIT", 500, 1000));
         Transaction row = database.transactionDao().getAllTransactionsSyncOrderByDateAsc().get(0);
         row.setDescription("edited");
         database.transactionDao().updateRow(row);

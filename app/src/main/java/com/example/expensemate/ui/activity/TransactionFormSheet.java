@@ -448,16 +448,10 @@ public class TransactionFormSheet extends ExpandedSheet {
         row.setNeedsReview(false);
 
         RecurringPayment bill = selectedBill();
-        Long previousBill = row.getLinkedRecurringPaymentId();
         row.setLinkedRecurringPaymentId(bill != null ? bill.getId() : null);
-        if (bill != null && (previousBill == null || previousBill != bill.getId())) {
-            bill.setCompleted(true);
-            bill.setLastCompletedDate(date.getTime());
-            billsViewModel.update(bill);
-        }
 
         if (editing != null) {
-            viewModel.updateTransaction(editing, row);
+            viewModel.updateTransaction(row);
         } else {
             Bundle args = getArguments();
             if (args != null && args.getString(ARG_MESSAGE) != null) {

@@ -6,72 +6,65 @@ import androidx.annotation.NonNull;
 import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 
+import com.example.expensemate.AppServices;
 import com.example.expensemate.data.Loan;
 import com.example.expensemate.data.LoanSummary;
 import com.example.expensemate.data.Transaction;
-import com.example.expensemate.repository.LoanRepository;
+import com.example.expensemate.domain.LoanService;
 
-import java.util.Date;
 import java.util.List;
 
 /** Money lent to people, and the transactions that gave it out or brought it back. */
 public class LoanViewModel extends AndroidViewModel {
-    private final LoanRepository repository;
+    private static final String TAG = "LoanViewModel";
+    private final LoanService loans;
 
     public LoanViewModel(@NonNull Application application) {
         super(application);
-        repository = new LoanRepository(application);
+        loans = AppServices.get(application).loans();
     }
 
     public LiveData<List<LoanSummary>> getLoans() {
-        return repository.getLoans();
+        return loans.loans();
     }
 
     public LiveData<List<Transaction>> getLinkedTransactions(long loanId) {
-        return repository.getLinkedTransactions(loanId);
+        return loans.linkedTransactions(loanId);
     }
 
     public void add(Loan loan) {
-        repository.insert(loan);
+        Writes.log(TAG, "adding loan", loans.add(loan));
     }
 
-    /** The debit that sent the money stays linked, so the loan shows where it came from. */
     public void addFromTransaction(Loan loan, long transactionId) {
-        repository.insertFromTransaction(loan, transactionId);
+        Writes.log(TAG, "adding loan", loans.addFromTransaction(loan, transactionId));
     }
 
     public void update(Loan loan) {
-        repository.update(loan);
+        Writes.log(TAG, "updating loan", loans.update(loan));
     }
 
     public void delete(Loan loan) {
-        repository.delete(loan);
+        Writes.log(TAG, "deleting loan", loans.delete(loan));
     }
 
     public void link(long transactionId, long loanId) {
-        repository.setLoan(transactionId, loanId);
+        Writes.log(TAG, "linking loan", loans.link(transactionId, loanId));
     }
 
     public void unlink(long transactionId) {
-        repository.setLoan(transactionId, null);
+        Writes.log(TAG, "unlinking loan", loans.link(transactionId, null));
     }
 
-    /** A return that never showed up as a transaction, such as cash. */
     public void recordReturn(Loan loan, double amount) {
-        loan.setReturnedManually(loan.getReturnedManually() + amount);
-        loan.setClosedDate(new Date());
-        repository.update(loan);
+        Writes.log(TAG, "recording return", loans.recordReturn(loan, amount));
     }
 
     public void markReturned(Loan loan) {
-        loan.setClosedManually(true);
-        loan.setClosedDate(new Date());
-        repository.update(loan);
+        Writes.log(TAG, "closing loan", loans.markReturned(loan));
     }
 
-    // Keeps the date, which may belong to a return recorded by hand
     public void reopen(Loan loan) {
-        loan.setClosedManually(false);
-        repository.update(loan);
+        Writes.log(TAG, "reopening loan", loans.reopen(loan));
     }
 }

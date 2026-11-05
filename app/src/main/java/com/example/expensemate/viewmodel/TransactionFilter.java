@@ -1,5 +1,7 @@
 package com.example.expensemate.viewmodel;
 
+import com.example.expensemate.domain.TransactionQuery;
+
 import java.util.Calendar;
 
 /** What the Activity list is showing. A new instance replaces the old one on every change. */
@@ -59,6 +61,24 @@ public class TransactionFilter {
         copy.transfers = transfers;
         copy.needsReview = needsReview;
         return copy;
+    }
+
+    public TransactionQuery toQuery() {
+        TransactionQuery query = new TransactionQuery();
+        query.fromMillis = fromMillis;
+        query.toMillis = toMillis;
+        query.accountId = accountId;
+        query.search = search;
+        query.description = description;
+        query.receiver = receiver;
+        query.category = category;
+        query.amount = amount;
+        query.transactionType = transactionType;
+        query.excluded = excluded;
+        query.billId = billId;
+        query.transfers = transfers;
+        query.needsReview = needsReview;
+        return query;
     }
 
     /** True when any of the filters behind the "More" chip is on. */

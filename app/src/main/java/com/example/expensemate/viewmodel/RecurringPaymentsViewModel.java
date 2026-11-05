@@ -3,57 +3,54 @@ package com.example.expensemate.viewmodel;
 import android.app.Application;
 import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
+import com.example.expensemate.AppServices;
 import com.example.expensemate.data.RecurringPayment;
-import com.example.expensemate.repository.RecurringPaymentRepository;
+import com.example.expensemate.domain.BillService;
 import java.util.List;
-import java.util.Date;
 
 public class RecurringPaymentsViewModel extends AndroidViewModel {
-    private RecurringPaymentRepository repository;
-    private LiveData<List<RecurringPayment>> allRecurringPayments;
-    private LiveData<Double> totalAmount;
-    private LiveData<Double> remainingAmount;
+    private static final String TAG = "RecurringPaymentsViewModel";
+    private final BillService bills;
 
     public RecurringPaymentsViewModel(Application application) {
         super(application);
-        repository = new RecurringPaymentRepository(application);
-        allRecurringPayments = repository.getAllRecurringPayments();
-        totalAmount = repository.getTotalAmount();
-        remainingAmount = repository.getRemainingAmount();
+        bills = AppServices.get(application).bills();
     }
 
     public LiveData<List<RecurringPayment>> getRecurringPayments() {
-        return allRecurringPayments;
+        return bills.bills();
     }
 
     public LiveData<Double> getTotalAmount() {
-        return totalAmount;
+        return bills.totalAmount();
     }
 
     public LiveData<Double> getRemainingAmount() {
-        return remainingAmount;
+        return bills.remainingAmount();
     }
 
     public void insert(RecurringPayment payment) {
-        repository.insert(payment);
+        Writes.log(TAG, "adding bill", bills.add(payment));
     }
 
     public void update(RecurringPayment payment) {
-        repository.update(payment);
+        Writes.log(TAG, "updating bill", bills.update(payment));
     }
 
     public void delete(RecurringPayment payment) {
-        repository.delete(payment);
+        Writes.log(TAG, "deleting bill", bills.delete(payment));
     }
 
     public void markAsCompleted(RecurringPayment payment) {
-        payment.setCompleted(true);
-        payment.setLastCompletedDate(new Date());
-        repository.update(payment);
+        Writes.log(TAG, "marking bill paid", bills.markPaid(payment));
     }
 
     public void resetCompletionStatus(RecurringPayment payment) {
-        payment.setCompleted(false);
-        repository.update(payment);
+        Writes.log(TAG, "marking bill unpaid", bills.resetPaid(payment));
     }
-} 
+
+    /** Moves the bill's amount between its accounts and marks it paid. */
+    public void payByTransfer(RecurringPayment payment) {
+        Writes.log(TAG, "moving bill amount", bills.payByTransfer(payment));
+    }
+}

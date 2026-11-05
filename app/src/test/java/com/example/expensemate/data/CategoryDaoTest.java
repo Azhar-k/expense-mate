@@ -7,6 +7,8 @@ import android.content.Context;
 import androidx.room.Room;
 import androidx.test.core.app.ApplicationProvider;
 
+import com.example.expensemate.domain.CategoryService;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -53,9 +55,10 @@ public class CategoryDaoTest {
 
     @Test
     public void onlyOneDefaultPerType() {
-        dao.saveAsDefault(new Category("Default", "EXPENSE"));
-        dao.saveAsDefault(new Category("Default", "INCOME"));
-        dao.saveAsDefault(new Category("Food", "EXPENSE"));
+        CategoryService categories = TestServices.over(database).categories();
+        categories.saveAsDefault(new Category("Default", "EXPENSE")).join();
+        categories.saveAsDefault(new Category("Default", "INCOME")).join();
+        categories.saveAsDefault(new Category("Food", "EXPENSE")).join();
 
         int expenseDefaults = 0;
         for (Category category : dao.getAllCategoriesSync()) {
@@ -65,7 +68,7 @@ public class CategoryDaoTest {
             }
         }
         assertEquals(1, expenseDefaults);
-        assertEquals("Default", database.transactionDao().getDefaultCategory("CREDIT"));
-        assertEquals("Food", database.transactionDao().getDefaultCategory("DEBIT"));
+        assertEquals("Default", dao.getDefaultName("INCOME"));
+        assertEquals("Food", dao.getDefaultName("EXPENSE"));
     }
 }

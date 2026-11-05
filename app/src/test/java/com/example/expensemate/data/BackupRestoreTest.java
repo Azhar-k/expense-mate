@@ -104,9 +104,9 @@ public class BackupRestoreTest {
 
     @Test
     public void everyFlagSurvivesABackupAndRestore() throws Exception {
-        source.categoryDao().saveAsDefault(new Category("Fuel", "EXPENSE"));
+        TestServices.over(source).categories().saveAsDefault(new Category("Fuel", "EXPENSE")).join();
         source.categoryDao().insertCategory(new Category("Default", "EXPENSE"));
-        source.categoryDao().saveAsDefault(new Category("Salary", "INCOME"));
+        TestServices.over(source).categories().saveAsDefault(new Category("Salary", "INCOME")).join();
         account(1, "Daily", Account.TYPE_VIRTUAL, true);
         account(2, "Trip", Account.TYPE_VIRTUAL, false);
         account(3, "Bank", Account.TYPE_REAL, false);
@@ -123,15 +123,16 @@ public class BackupRestoreTest {
         Transaction credit = row(4, "CREDIT", 1L, 3L);
         debit.setTransferGroupId("group");
         credit.setTransferGroupId("group");
-        source.transactionDao().insertTransfer(debit, credit);
+        source.transactionDao().insertTransaction(debit);
+        source.transactionDao().insertTransaction(credit);
 
         for (String section : new String[] { "CATEGORIES", "ACCOUNTS", "TRANSACTIONS" }) {
             load(section, BackupDataLoader.entityText(section, source));
         }
         BackupDataLoader.finishRestore(restored);
 
-        assertEquals("Fuel", restored.transactionDao().getDefaultCategory("DEBIT"));
-        assertEquals("Salary", restored.transactionDao().getDefaultCategory("CREDIT"));
+        assertEquals("Fuel", restored.categoryDao().getDefaultName("EXPENSE"));
+        assertEquals("Salary", restored.categoryDao().getDefaultName("INCOME"));
 
         assertEquals(4, restored.accountDao().getAllAccountsSync().size());
         assertTrue(findAccount(restored, "Bank").isReal());
@@ -166,8 +167,8 @@ public class BackupRestoreTest {
         load("TRANSACTIONS", oldRow(1, "2") + oldRow(2, "null") + oldRow(3, "99"));
         BackupDataLoader.finishRestore(restored);
 
-        assertEquals("Default", restored.transactionDao().getDefaultCategory("DEBIT"));
-        assertEquals("Default", restored.transactionDao().getDefaultCategory("CREDIT"));
+        assertEquals("Default", restored.categoryDao().getDefaultName("EXPENSE"));
+        assertEquals("Default", restored.categoryDao().getDefaultName("INCOME"));
 
         assertFalse(findAccount(restored, "Daily").isReal());
         assertFalse(findAccount(restored, "Trip").isReal());
@@ -198,7 +199,7 @@ public class BackupRestoreTest {
 
     @Test
     public void everyValueComesBackExactly() throws Exception {
-        source.categoryDao().saveAsDefault(new Category("Default", "EXPENSE"));
+        TestServices.over(source).categories().saveAsDefault(new Category("Default", "EXPENSE")).join();
         source.categoryDao().insertCategory(new Category("Fuel", "EXPENSE"));
         account(1, "Daily", Account.TYPE_VIRTUAL, true);
         Account noDetails = new Account("Bare", null, null, null, null);

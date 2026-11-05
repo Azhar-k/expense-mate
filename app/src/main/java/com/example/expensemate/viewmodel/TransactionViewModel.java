@@ -3,31 +3,30 @@ package com.example.expensemate.viewmodel;
 import android.app.Application;
 import android.os.Handler;
 import android.os.Looper;
-import android.util.Log;
 import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MediatorLiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.Transformations;
-import com.example.expensemate.data.Account;
+import com.example.expensemate.AppServices;
 import com.example.expensemate.data.AccountBalance;
-import com.example.expensemate.data.AppDatabase;
 import com.example.expensemate.data.CategorySum;
 import com.example.expensemate.data.SummaryTotals;
 import com.example.expensemate.data.Transaction;
-import com.example.expensemate.data.TransactionDao;
+import com.example.expensemate.domain.AccountService;
+import com.example.expensemate.domain.CaptureService;
+import com.example.expensemate.domain.Services;
+import com.example.expensemate.domain.TransactionService;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.function.Consumer;
 
 public class TransactionViewModel extends AndroidViewModel {
     private static final String TAG = "TransactionViewModel";
-    private final TransactionDao transactionDao;
-    private final ExecutorService executorService;
-    private final AccountViewModel accountViewModel;
+    private final TransactionService transactions;
+    private final AccountService accounts;
+    private final CaptureService capture;
     private final Handler mainThread = new Handler(Looper.getMainLooper());
 
     private final MutableLiveData<TransactionFilter> filter = new MutableLiveData<>(TransactionFilter.lastDays(30));
@@ -55,29 +54,25 @@ public class TransactionViewModel extends AndroidViewModel {
 
     public TransactionViewModel(Application application) {
         super(application);
-        Log.d(TAG, "Initializing TransactionViewModel");
-        transactionDao = AppDatabase.getDatabase(application).transactionDao();
-        executorService = Executors.newSingleThreadExecutor();
-        accountViewModel = new AccountViewModel(application);
+        Services services = AppServices.get(application);
+        transactions = services.transactions();
+        accounts = services.accounts();
+        capture = services.capture();
 
         activityRows = Transformations.switchMap(filter, this::rowsFor);
 
         homePeriod = new MutableLiveData<>(periodOf(Calendar.getInstance(), null));
         homeTotals = Transformations.switchMap(homePeriod,
-                p -> transactionDao.getSummaryTotals(p.from, p.to, p.accountId));
+                p -> transactions.summary(p.from, p.to, p.accountId));
         homeExpenses = Transformations.switchMap(homePeriod,
-                p -> transactionDao.getCategorySums("DEBIT", p.from, p.to, p.accountId));
+                p -> transactions.categoryTotals("DEBIT", p.from, p.to, p.accountId));
         homeIncome = Transformations.switchMap(homePeriod,
-                p -> transactionDao.getCategorySums("CREDIT", p.from, p.to, p.accountId));
+                p -> transactions.categoryTotals("CREDIT", p.from, p.to, p.accountId));
     }
 
     private LiveData<List<ActivityRow>> rowsFor(TransactionFilter f) {
-        Date from = new Date(f.fromMillis);
-        Date to = new Date(f.toMillis);
-        return combine(
-                transactionDao.getFilteredTransactions(from, to, f.accountId, f.search, f.description, f.receiver,
-                        f.category, f.amount, f.transactionType, f.excluded, f.billId, f.transfers, f.needsReview),
-                transactionDao.getTransferLegsBetween(from, to));
+        return combine(transactions.find(f.toQuery()),
+                transactions.transferLegsBetween(new Date(f.fromMillis), new Date(f.toMillis)));
     }
 
     private static LiveData<List<ActivityRow>> combine(LiveData<List<Transaction>> transactions,
@@ -100,6 +95,11 @@ public class TransactionViewModel extends AndroidViewModel {
         Calendar end = (Calendar) start.clone();
         end.add(Calendar.MONTH, 1);
         return new HomePeriod(start.getTime(), end.getTime(), accountId);
+    }
+
+    /** For scans started from a screen; it blocks, so call it off the main thread. */
+    public CaptureService getCapture() {
+        return capture;
     }
 
     /****************************************************************************************************/
@@ -159,7 +159,7 @@ public class TransactionViewModel extends AndroidViewModel {
     }
 
     public LiveData<Integer> getNeedsReviewCount() {
-        return transactionDao.getNeedsReviewCount();
+        return transactions.needsReviewCount();
     }
 
     /** Points the Activity list at one category in the month Home is showing. */
@@ -206,143 +206,65 @@ public class TransactionViewModel extends AndroidViewModel {
     // Accounts
 
     public LiveData<List<AccountBalance>> getAccountBalances() {
-        return transactionDao.getAccountBalances();
+        return accounts.balances();
     }
 
     public LiveData<List<ActivityRow>> getRowsForAccount(long accountId, long fromMillis, long toMillis) {
         Date from = new Date(fromMillis);
         Date to = new Date(toMillis);
-        return combine(transactionDao.getTransactionsForAccountDetailsScreen(from, to, accountId),
-                transactionDao.getTransferLegsBetween(from, to));
+        return combine(transactions.findForAccount(accountId, from, to), transactions.transferLegsBetween(from, to));
     }
 
     /****************************************************************************************************/
     // Single transactions
 
     public LiveData<Transaction> getTransaction(long id) {
-        return transactionDao.getTransaction(id);
+        return transactions.get(id);
     }
 
     public LiveData<List<Transaction>> getTransferLegs(String groupId) {
-        return transactionDao.getTransferLegs(groupId);
+        return transactions.transferLegs(groupId);
     }
 
     public void insertTransaction(Transaction transaction) {
-        executorService.execute(() -> {
-            try {
-                fillDefaultAccounts(transaction);
-                transactionDao.insertWithChosenCategory(transaction);
-            } catch (Exception e) {
-                Log.e(TAG, "Error inserting transaction", e);
-            }
-        });
+        Writes.log(TAG, "inserting transaction", transactions.add(transaction));
     }
 
-    public void updateTransaction(Transaction before, Transaction after) {
-        executorService.execute(() -> {
-            try {
-                transactionDao.updateWithChosenCategory(before, after);
-            } catch (Exception e) {
-                Log.e(TAG, "Error updating transaction", e);
-            }
-        });
+    public void updateTransaction(Transaction edited) {
+        Writes.log(TAG, "updating transaction", transactions.update(edited));
     }
 
     public void setCategory(Transaction transaction, String category) {
-        executorService.execute(() -> transactionDao.chooseCategory(transaction, category));
+        Writes.log(TAG, "choosing category", transactions.chooseCategory(transaction.getId(), category));
     }
 
     public void setAccount(long id, long accountId) {
-        executorService.execute(() -> transactionDao.setAccount(id, accountId));
+        Writes.log(TAG, "moving transaction", transactions.setAccount(id, accountId));
     }
 
     public void setRealAccount(long id, long accountId) {
-        executorService.execute(() -> transactionDao.setRealAccount(id, accountId));
+        Writes.log(TAG, "moving transaction", transactions.setRealAccount(id, accountId));
     }
 
     public void setExcludedFromSummary(long id, boolean excluded) {
-        executorService.execute(() -> transactionDao.setExcludedFromSummary(id, excluded));
+        Writes.log(TAG, "excluding transaction", transactions.setExcludedFromSummary(id, excluded));
     }
 
     /** Deletes the row, or both sides if it is a transfer, and reports what went so it can be restored. */
     public void delete(Transaction transaction, Consumer<List<Transaction>> onDeleted) {
-        executorService.execute(() -> {
-            try {
-                List<Transaction> removed;
-                if (transaction.isTransfer()) {
-                    removed = transactionDao.getTransferLegsSync(transaction.getTransferGroupId());
-                    transactionDao.deleteTransfer(transaction.getTransferGroupId());
-                } else {
-                    removed = java.util.Collections.singletonList(transaction);
-                    transactionDao.deleteTransaction(transaction);
-                }
-                mainThread.post(() -> onDeleted.accept(removed));
-            } catch (Exception e) {
-                Log.e(TAG, "Error deleting transaction", e);
-            }
-        });
+        Writes.log(TAG, "deleting transaction", transactions.delete(transaction.getId())
+                .thenAccept(removed -> mainThread.post(() -> onDeleted.accept(removed))));
     }
 
-    public void restore(List<Transaction> transactions) {
-        executorService.execute(() -> {
-            for (Transaction transaction : transactions) {
-                transactionDao.insertTransaction(transaction);
-            }
-        });
+    public void restore(List<Transaction> removed) {
+        Writes.log(TAG, "restoring transaction", transactions.restore(removed));
     }
 
     public void insertTransfer(Transaction debit, Transaction credit) {
-        executorService.execute(() -> {
-            try {
-                fillDefaultAccounts(debit);
-                fillDefaultAccounts(credit);
-                transactionDao.insertTransfer(debit, credit);
-            } catch (Exception e) {
-                Log.e(TAG, "Error saving transfer", e);
-            }
-        });
+        Writes.log(TAG, "saving transfer", transactions.addTransfer(debit, credit));
     }
 
     public void updateTransfer(Transaction debit, Transaction credit) {
-        executorService.execute(() -> {
-            try {
-                transactionDao.updateTransfer(debit, credit);
-            } catch (Exception e) {
-                Log.e(TAG, "Error updating transfer", e);
-            }
-        });
-    }
-
-    /**
-     * Saves a message-derived transaction unless it is already recorded.
-     * Runs on the calling thread so the result is known on return; do not call from the main thread.
-     *
-     * @return true if a row was inserted
-     */
-    public boolean insertIfNew(Transaction transaction) {
-        fillDefaultAccounts(transaction);
-        return transactionDao.insertIfNew(transaction);
-    }
-
-    /** A transaction always has both accounts, so whichever is missing goes to its default. */
-    private void fillDefaultAccounts(Transaction transaction) {
-        if (transaction.getAccountId() == null) {
-            Account defaultAccount = accountViewModel.getDefaultAccountSync();
-            if (defaultAccount != null) {
-                transaction.setAccountId(defaultAccount.getId());
-            }
-        }
-        if (transaction.getRealAccountId() == null) {
-            Account defaultReal = accountViewModel.getDefaultRealAccountSync();
-            if (defaultReal != null) {
-                transaction.setRealAccountId(defaultReal.getId());
-            }
-        }
-    }
-
-    @Override
-    protected void onCleared() {
-        super.onCleared();
-        executorService.shutdown();
+        Writes.log(TAG, "updating transfer", transactions.updateTransfer(debit, credit));
     }
 }

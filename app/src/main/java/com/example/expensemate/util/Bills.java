@@ -67,6 +67,19 @@ public final class Bills {
         return days <= DUE_SOON_DAYS ? Status.DUE_SOON : Status.UPCOMING;
     }
 
+    /** Planned transfers still to be made this month. */
+    public static List<RecurringPayment> pendingTransfers(List<RecurringPayment> bills, Calendar today) {
+        List<RecurringPayment> pending = new ArrayList<>();
+        for (RecurringPayment bill : bills) {
+            Status status = statusOf(bill, today);
+            if (isTransfer(bill) && status != Status.PAID && status != Status.ENDED
+                    && !bill.getFromAccountId().equals(bill.getToAccountId())) {
+                pending.add(bill);
+            }
+        }
+        return pending;
+    }
+
     /** Most urgent first: late, then by due date, with paid and ended items last. */
     public static List<RecurringPayment> sortByUrgency(List<RecurringPayment> payments, Calendar today) {
         List<RecurringPayment> sorted = new ArrayList<>(payments);

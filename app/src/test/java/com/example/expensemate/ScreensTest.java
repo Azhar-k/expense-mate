@@ -91,6 +91,10 @@ public class ScreensTest {
         Field instance = AppDatabase.class.getDeclaredField("INSTANCE");
         instance.setAccessible(true);
         instance.set(null, null);
+        // The services hold the closed database, so the next test builds them again
+        Field services = AppServices.class.getDeclaredField("INSTANCE");
+        services.setAccessible(true);
+        services.set(null, null);
     }
 
     private void settle() throws InterruptedException {
@@ -155,9 +159,11 @@ public class ScreensTest {
             insert(2000, "DEBIT", "Charity", household, daysAgo(4, 12), "Food bank", false, null);
 
             Transaction[] transfer = Transfers.newPair(5000, household, savings, daysAgo(0, 15), "");
-            database.transactionDao().insertTransfer(transfer[0], transfer[1]);
+            database.transactionDao().insertTransaction(transfer[0]);
+            database.transactionDao().insertTransaction(transfer[1]);
             Transaction[] start = Transfers.newPair(245000, salaryId, savings, daysAgo(5, 9), "Opening");
-            database.transactionDao().insertTransfer(start[0], start[1]);
+            database.transactionDao().insertTransaction(start[0]);
+            database.transactionDao().insertTransaction(start[1]);
             insert(290000, "CREDIT", "Salary", salaryId, daysAgo(40, 9), "Opening balance", false, null);
             insert(25000, "CREDIT", "Business", household, daysAgo(40, 9), "Opening balance", false, null);
 

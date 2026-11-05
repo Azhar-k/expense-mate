@@ -7,6 +7,9 @@ import android.content.Context;
 import androidx.room.Room;
 import androidx.test.core.app.ApplicationProvider;
 
+import com.example.expensemate.domain.CategoryService;
+import com.example.expensemate.domain.local.LocalServices;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -41,10 +44,14 @@ public class SortOrderTest {
         return Room.inMemoryDatabaseBuilder(context, AppDatabase.class).allowMainThreadQueries().build();
     }
 
+    private LocalServices services() {
+        return TestServices.over(database);
+    }
+
     private void account(AppDatabase db, String name, String type) {
         Account account = new Account(name, "", "", null, "");
         account.setType(type);
-        db.accountDao().insertAtEnd(account);
+        TestServices.over(db).accounts().add(account).join();
     }
 
     private static List<String> accountNames(AppDatabase db) {
@@ -89,7 +96,7 @@ public class SortOrderTest {
         account(database, "Bank", Account.TYPE_REAL);
         assertEquals(Arrays.asList("Daily", "Trip", "Bank", "Wallet"), accountNames(database));
 
-        database.accountDao().saveOrder(Arrays.asList(accountId(database, "Trip"), accountId(database, "Daily")));
+        services().accounts().reorder(Arrays.asList(accountId(database, "Trip"), accountId(database, "Daily"))).join();
         // Virtual still comes first, and the real ones keep their own order
         assertEquals(Arrays.asList("Trip", "Daily", "Bank", "Wallet"), accountNames(database));
 
@@ -101,13 +108,13 @@ public class SortOrderTest {
 
     @Test
     public void categoriesFollowTheSavedOrder() {
-        CategoryDao dao = database.categoryDao();
-        dao.insertAtEnd(new Category("Food", "EXPENSE"));
-        dao.insertAtEnd(new Category("Fuel", "EXPENSE"));
-        dao.insertAtEnd(new Category("Bills", "EXPENSE"));
-        dao.saveOrder(Arrays.asList(categoryId(database, "Fuel"), categoryId(database, "Food"),
-                categoryId(database, "Bills")));
-        dao.saveAsDefault(new Category("Rent", "EXPENSE"));
+        CategoryService categories = services().categories();
+        categories.add(new Category("Food", "EXPENSE")).join();
+        categories.add(new Category("Fuel", "EXPENSE")).join();
+        categories.add(new Category("Bills", "EXPENSE")).join();
+        categories.reorder(Arrays.asList(categoryId(database, "Fuel"), categoryId(database, "Food"),
+                categoryId(database, "Bills"))).join();
+        categories.saveAsDefault(new Category("Rent", "EXPENSE")).join();
 
         assertEquals(Arrays.asList("Fuel", "Food", "Bills", "Rent"), categoryNames(database));
     }
@@ -116,10 +123,11 @@ public class SortOrderTest {
     public void theOrderSurvivesABackupAndAnOlderBackupStaysAlphabetical() throws Exception {
         account(database, "Daily", Account.TYPE_VIRTUAL);
         account(database, "Trip", Account.TYPE_VIRTUAL);
-        database.accountDao().saveOrder(Arrays.asList(accountId(database, "Trip"), accountId(database, "Daily")));
-        database.categoryDao().insertAtEnd(new Category("Food", "EXPENSE"));
-        database.categoryDao().insertAtEnd(new Category("Fuel", "EXPENSE"));
-        database.categoryDao().saveOrder(Arrays.asList(categoryId(database, "Fuel"), categoryId(database, "Food")));
+        services().accounts().reorder(Arrays.asList(accountId(database, "Trip"), accountId(database, "Daily"))).join();
+        services().categories().add(new Category("Food", "EXPENSE")).join();
+        services().categories().add(new Category("Fuel", "EXPENSE")).join();
+        services().categories().reorder(Arrays.asList(categoryId(database, "Fuel"), categoryId(database, "Food")))
+                .join();
 
         AppDatabase restored = newDatabase();
         try {

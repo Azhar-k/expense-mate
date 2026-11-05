@@ -3,7 +3,7 @@ package com.example.expensemate.util;
 import android.util.Log;
 import com.example.expensemate.data.Transaction;
 import com.example.expensemate.data.TransactionKeys;
-import com.example.expensemate.viewmodel.TransactionViewModel;
+import com.example.expensemate.domain.CaptureService;
 import java.util.Date;
 import java.util.Locale;
 import java.util.regex.Pattern;
@@ -563,13 +563,13 @@ public class SmsTransactionHandler {
      *
      * @param smsBody   The SMS message body
      * @param sender    The SMS sender
-     * @param viewModel The TransactionViewModel to use for database operations
+     * @param capture   Saves the transaction unless it is already recorded
      * @param date      Optional date to set for the transaction (null for current
      *                  date)
      * @param source    The entry path, one of the TransactionKeys.SOURCE_ values
      * @return TransactionResult containing the result of processing
      */
-    public static TransactionResult handleSms(String smsBody, String sender, TransactionViewModel viewModel,
+    public static TransactionResult handleSms(String smsBody, String sender, CaptureService capture,
             Date date, String source) {
         Log.d(TAG, "Processing SMS from: " + sender + " via " + source);
         Log.d(TAG, "SMS body length: " + (smsBody != null ? smsBody.length() : 0));
@@ -587,7 +587,7 @@ public class SmsTransactionHandler {
                 applyKeys(transaction, source);
                 transaction.setDedupKey(TransactionKeys.bodyKey(smsBody));
 
-                if (viewModel.insertIfNew(transaction)) {
+                if (capture.recordIfNew(transaction)) {
                     return TransactionResult.success(transaction);
                 } else {
                     Log.d(TAG, "Duplicate transaction detected, skipping insertion");
@@ -609,7 +609,7 @@ public class SmsTransactionHandler {
      * debit. That is right for SBI card spends; anything else is labelled for review.
      */
     public static TransactionResult handleTruecallerAlert(double amount, String merchant, String alertText,
-            String sender, TransactionViewModel viewModel, Date date) {
+            String sender, CaptureService capture, Date date) {
         try {
             boolean sbiCard = sender.toUpperCase(Locale.ROOT).contains("SBI");
             Transaction transaction = new Transaction(
@@ -622,7 +622,7 @@ public class SmsTransactionHandler {
                     sender);
             applyKeys(transaction, TransactionKeys.SOURCE_TRUECALLER);
 
-            if (viewModel.insertIfNew(transaction)) {
+            if (capture.recordIfNew(transaction)) {
                 return TransactionResult.success(transaction);
             }
             return TransactionResult.duplicateTransaction();

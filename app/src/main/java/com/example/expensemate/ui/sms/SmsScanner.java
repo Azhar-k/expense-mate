@@ -10,7 +10,7 @@ import com.example.expensemate.data.TransactionKeys;
 import com.example.expensemate.util.MmsReader;
 import com.example.expensemate.util.ScanTriage;
 import com.example.expensemate.util.SmsTransactionHandler;
-import com.example.expensemate.viewmodel.TransactionViewModel;
+import com.example.expensemate.domain.CaptureService;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -46,17 +46,17 @@ final class SmsScanner {
     }
 
     /** Runs on the calling thread; do not call from the main thread. */
-    static Result scan(ContentResolver resolver, long fromMillis, long toMillis, TransactionViewModel viewModel) {
+    static Result scan(ContentResolver resolver, long fromMillis, long toMillis, CaptureService capture) {
         Result result = new Result();
-        scanRcs(resolver, fromMillis, toMillis, viewModel, result);
-        scanSms(resolver, fromMillis, toMillis, viewModel, result);
+        scanRcs(resolver, fromMillis, toMillis, capture, result);
+        scanSms(resolver, fromMillis, toMillis, capture, result);
         Log.i(TAG, "Scan finished. Added " + result.added + ", already recorded " + result.existing
                 + ", not understood " + result.notUnderstood.size() + ", failed " + result.failed);
         return result;
     }
 
     private static void scanRcs(ContentResolver resolver, long fromMillis, long toMillis,
-            TransactionViewModel viewModel, Result result) {
+            CaptureService capture, Result result) {
         // RCS business messages are stored with m_type 132; dates are in seconds here
         String selection = "m_type = ? AND msg_box = ? AND date >= ? AND date <= ?";
         String[] args = { "132", "1", String.valueOf(fromMillis / 1000), String.valueOf(toMillis / 1000) };
@@ -71,7 +71,7 @@ final class SmsScanner {
                 String body = MmsReader.getText(resolver, id);
                 if (body != null && !body.isEmpty()) {
                     handle(new Message(body, MmsReader.getSender(resolver, id), date),
-                            TransactionKeys.SOURCE_MMS_SCAN, viewModel, result);
+                            TransactionKeys.SOURCE_MMS_SCAN, capture, result);
                 }
             }
         } catch (SecurityException e) {
@@ -82,7 +82,7 @@ final class SmsScanner {
     }
 
     private static void scanSms(ContentResolver resolver, long fromMillis, long toMillis,
-            TransactionViewModel viewModel, Result result) {
+            CaptureService capture, Result result) {
         String[] projection = { Telephony.Sms.ADDRESS, Telephony.Sms.BODY, Telephony.Sms.DATE };
         String selection = Telephony.Sms.TYPE + " = ? AND " + Telephony.Sms.DATE + " >= ? AND "
                 + Telephony.Sms.DATE + " <= ?";
@@ -95,14 +95,14 @@ final class SmsScanner {
             }
             while (cursor.moveToNext()) {
                 handle(new Message(cursor.getString(1), cursor.getString(0), new Date(cursor.getLong(2))),
-                        TransactionKeys.SOURCE_SMS_SCAN, viewModel, result);
+                        TransactionKeys.SOURCE_SMS_SCAN, capture, result);
             }
         }
     }
 
-    private static void handle(Message message, String source, TransactionViewModel viewModel, Result result) {
+    private static void handle(Message message, String source, CaptureService capture, Result result) {
         SmsTransactionHandler.TransactionResult outcome = SmsTransactionHandler.handleSms(message.body,
-                message.sender, viewModel, message.date, source);
+                message.sender, capture, message.date, source);
         if (outcome.success) {
             result.added++;
         } else if (DUPLICATE.equals(outcome.reason)) {

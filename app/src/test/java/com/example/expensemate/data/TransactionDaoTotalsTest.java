@@ -81,7 +81,8 @@ public class TransactionDaoTotalsTest {
         dao.insertTransaction(row(1000, "DEBIT", CHECKING, MID_OCT, "Food"));
         dao.insertTransaction(row(5000, "CREDIT", CHECKING, MID_OCT, "Salary"));
         Transaction[] transfer = Transfers.newPair(2000, CHECKING, SAVINGS, MID_OCT, "");
-        dao.insertTransfer(transfer[0], transfer[1]);
+        dao.insertTransaction(transfer[0]);
+        dao.insertTransaction(transfer[1]);
 
         SummaryTotals all = read(dao.getSummaryTotals(OCT, NOV, null));
         assertEquals(1000, all.expense, 0.001);
@@ -103,7 +104,8 @@ public class TransactionDaoTotalsTest {
     public void transfersStayOutOfTheCategoryBreakdown() throws Exception {
         dao.insertTransaction(row(1000, "DEBIT", CHECKING, MID_OCT, "Food"));
         Transaction[] transfer = Transfers.newPair(2000, CHECKING, SAVINGS, MID_OCT, "");
-        dao.insertTransfer(transfer[0], transfer[1]);
+        dao.insertTransaction(transfer[0]);
+        dao.insertTransaction(transfer[1]);
 
         List<CategorySum> sums = read(dao.getCategorySums("DEBIT", OCT, NOV, null));
         assertEquals(1, sums.size());
@@ -115,7 +117,8 @@ public class TransactionDaoTotalsTest {
         dao.insertTransaction(row(5000, "CREDIT", CHECKING, MID_OCT, "Salary"));
         dao.insertTransaction(row(1000, "DEBIT", CHECKING, MID_OCT, "Food"));
         Transaction[] transfer = Transfers.newPair(2000, CHECKING, SAVINGS, MID_OCT, "");
-        dao.insertTransfer(transfer[0], transfer[1]);
+        dao.insertTransaction(transfer[0]);
+        dao.insertTransaction(transfer[1]);
 
         assertEquals(4000, read(dao.getNetBalance()), 0.001);
         double checking = 0;
@@ -200,7 +203,8 @@ public class TransactionDaoTotalsTest {
     @Test
     public void deletingOneSideOfATransferRemovesBothAndRestoreBringsThemBack() throws Exception {
         Transaction[] transfer = Transfers.newPair(2000, CHECKING, SAVINGS, MID_OCT, "");
-        dao.insertTransfer(transfer[0], transfer[1]);
+        dao.insertTransaction(transfer[0]);
+        dao.insertTransaction(transfer[1]);
         String group = transfer[0].getTransferGroupId();
         List<Transaction> legs = dao.getTransferLegsSync(group);
         assertEquals(2, legs.size());
@@ -217,7 +221,8 @@ public class TransactionDaoTotalsTest {
     @Test
     public void updatingATransferChangesBothSidesAndKeepsTheLink() throws Exception {
         Transaction[] transfer = Transfers.newPair(2000, CHECKING, SAVINGS, MID_OCT, "");
-        dao.insertTransfer(transfer[0], transfer[1]);
+        dao.insertTransaction(transfer[0]);
+        dao.insertTransaction(transfer[1]);
         String group = transfer[0].getTransferGroupId();
         List<Transaction> legs = dao.getTransferLegsSync(group);
 
@@ -225,7 +230,8 @@ public class TransactionDaoTotalsTest {
         Transaction credit = legs.get(1).copy();
         debit.setAmount(3000);
         credit.setAmount(3000);
-        dao.updateTransfer(debit, credit);
+        dao.updateRow(debit);
+        dao.updateRow(credit);
 
         for (Transaction leg : dao.getTransferLegsSync(group)) {
             assertEquals(3000, leg.getAmount(), 0.001);
@@ -237,7 +243,8 @@ public class TransactionDaoTotalsTest {
     public void filtersFindTransfersAndNormalRowsSeparately() throws Exception {
         dao.insertTransaction(row(1000, "DEBIT", CHECKING, MID_OCT, "Food"));
         Transaction[] transfer = Transfers.newPair(2000, CHECKING, SAVINGS, MID_OCT, "");
-        dao.insertTransfer(transfer[0], transfer[1]);
+        dao.insertTransaction(transfer[0]);
+        dao.insertTransaction(transfer[1]);
 
         assertEquals(2, read(dao.getFilteredTransactions(OCT, NOV, null, null, null, null, null, null, null, null, null,
                 true, null)).size());

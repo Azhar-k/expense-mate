@@ -47,7 +47,7 @@ public class Migration8To9Test {
             next.setMessageTime(T0 + 500000);
             next.setDedupKey(TransactionKeys.bodyKey("x"));
             next.setNeedsReview(true);
-            assertTrue(dao.insertIfNew(next));
+            assertTrue(TestServices.over(database).capture().recordIfNew(next));
             assertEquals("Food", next.getCategory());
         } finally {
             database.close();

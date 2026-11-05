@@ -8,7 +8,8 @@ import android.util.Log;
 
 import com.example.expensemate.data.TransactionKeys;
 import com.example.expensemate.util.SmsTransactionHandler;
-import com.example.expensemate.viewmodel.TransactionViewModel;
+import com.example.expensemate.AppServices;
+import com.example.expensemate.domain.CaptureService;
 
 import java.util.Date;
 import java.util.concurrent.ExecutorService;
@@ -28,14 +29,14 @@ import java.util.concurrent.Executors;
 public class RcsNotificationListenerService extends NotificationListenerService {
     private static final String TAG = "RcsNotifListener";
 
-    private TransactionViewModel transactionViewModel;
+    private CaptureService capture;
     private ExecutorService executorService;
 
     @Override
     public void onCreate() {
         super.onCreate();
         Log.d(TAG, "=== RcsNotificationListenerService CREATED ===");
-        transactionViewModel = new TransactionViewModel(getApplication());
+        capture = AppServices.get(this).capture();
         executorService = Executors.newSingleThreadExecutor();
     }
 
@@ -123,14 +124,14 @@ public class RcsNotificationListenerService extends NotificationListenerService 
         if (merchant.isEmpty()) merchant = sender;
 
         SmsTransactionHandler.TransactionResult result = SmsTransactionHandler.handleTruecallerAlert(
-                amount, merchant, text, sender, transactionViewModel, new Date(messageTime));
+                amount, merchant, text, sender, capture, new Date(messageTime));
         Log.d(TAG, "Truecaller RCS: " + result.reason);
     }
 
     private void processBody(String body, String sender, Date date) {
         if (body == null || body.trim().isEmpty()) return;
         SmsTransactionHandler.TransactionResult result = SmsTransactionHandler.handleSms(
-                body, sender, transactionViewModel, date, TransactionKeys.SOURCE_NOTIFICATION);
+                body, sender, capture, date, TransactionKeys.SOURCE_NOTIFICATION);
         if (result.success) {
             Log.d(TAG, "✓ Transaction created from full message body");
         } else {

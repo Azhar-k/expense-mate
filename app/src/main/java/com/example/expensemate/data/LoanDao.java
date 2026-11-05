@@ -42,18 +42,4 @@ public interface LoanDao {
 
     @Query("UPDATE transactions SET loanId = NULL WHERE loanId = :loanId")
     void unlinkAll(long loanId);
-
-    @androidx.room.Transaction
-    default long insertFromTransaction(Loan loan, long transactionId) {
-        long id = insert(loan);
-        setLoan(transactionId, id);
-        return id;
-    }
-
-    /** The transactions stay in the history, just no longer linked. */
-    @androidx.room.Transaction
-    default void delete(Loan loan) {
-        unlinkAll(loan.getId());
-        deleteById(loan.getId());
-    }
 }

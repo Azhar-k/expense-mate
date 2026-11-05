@@ -9,6 +9,8 @@ import android.content.Context;
 import androidx.room.Room;
 import androidx.test.core.app.ApplicationProvider;
 
+import com.example.expensemate.domain.CaptureService;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -34,6 +36,7 @@ public class TransactionDaoDedupTest {
 
     private AppDatabase database;
     private TransactionDao dao;
+    private CaptureService capture;
 
     @Before
     public void setUp() {
@@ -42,6 +45,7 @@ public class TransactionDaoDedupTest {
                 .allowMainThreadQueries()
                 .build();
         dao = database.transactionDao();
+        capture = TestServices.over(database).capture();
     }
 
     @After
@@ -79,75 +83,75 @@ public class TransactionDaoDedupTest {
     @Test
     public void sameMessageAcrossMinuteBoundary_isOneRow() {
         long endOfMinute = T0 - T0 % MINUTE + 59_000;
-        assertTrue(dao.insertIfNew(message(BODY, "AX-ICICIT-S", endOfMinute, TransactionKeys.SOURCE_SMS_BROADCAST)));
-        assertFalse(dao.insertIfNew(message(BODY, "AX-ICICIT-S", endOfMinute + 3_000, TransactionKeys.SOURCE_NOTIFICATION)));
+        assertTrue(capture.recordIfNew(message(BODY, "AX-ICICIT-S", endOfMinute, TransactionKeys.SOURCE_SMS_BROADCAST)));
+        assertFalse(capture.recordIfNew(message(BODY, "AX-ICICIT-S", endOfMinute + 3_000, TransactionKeys.SOURCE_NOTIFICATION)));
         assertEquals(1, rows());
     }
 
     @Test
     public void bankResendFromAnotherSenderId_isOneRow() {
-        assertTrue(dao.insertIfNew(message(BODY, "JM-Pluxee-S", T0, TransactionKeys.SOURCE_SMS_BROADCAST)));
-        assertFalse(dao.insertIfNew(message(BODY, "JD-Pluxee-S", T0 + 50_000, TransactionKeys.SOURCE_SMS_BROADCAST)));
+        assertTrue(capture.recordIfNew(message(BODY, "JM-Pluxee-S", T0, TransactionKeys.SOURCE_SMS_BROADCAST)));
+        assertFalse(capture.recordIfNew(message(BODY, "JD-Pluxee-S", T0 + 50_000, TransactionKeys.SOURCE_SMS_BROADCAST)));
         assertEquals(1, rows());
     }
 
     @Test
     public void identicalTextOutsideTheWindow_isANewRow() {
-        assertTrue(dao.insertIfNew(message(BODY, "AX-ICICIT-S", T0, TransactionKeys.SOURCE_SMS_BROADCAST)));
-        assertTrue(dao.insertIfNew(message(BODY, "AX-ICICIT-S", T0 + 16 * MINUTE, TransactionKeys.SOURCE_SMS_BROADCAST)));
+        assertTrue(capture.recordIfNew(message(BODY, "AX-ICICIT-S", T0, TransactionKeys.SOURCE_SMS_BROADCAST)));
+        assertTrue(capture.recordIfNew(message(BODY, "AX-ICICIT-S", T0 + 16 * MINUTE, TransactionKeys.SOURCE_SMS_BROADCAST)));
         assertEquals(2, rows());
     }
 
     @Test
     public void scanMatchesRowWhoseDateWasEdited() {
-        assertTrue(dao.insertIfNew(message(BODY, "AX-ICICIT-S", T0, TransactionKeys.SOURCE_SMS_BROADCAST)));
+        assertTrue(capture.recordIfNew(message(BODY, "AX-ICICIT-S", T0, TransactionKeys.SOURCE_SMS_BROADCAST)));
         Transaction saved = dao.getAllTransactionsSyncOrderByDateAsc().get(0);
         dao.updateTransaction(saved.getId(), saved.getAmount(), saved.getDescription(), new Date(T0 + 3 * 24 * 60 * MINUTE),
                 saved.getTransactionType(), saved.getReceiverName(), saved.getSmsBody(), saved.getSmsSender(),
                 saved.getCategory(), saved.getLinkedRecurringPaymentId(), saved.getAccountId(), saved.getRealAccountId(),
                 saved.isExcludedFromSummary(), saved.isNeedsReview());
 
-        assertFalse(dao.insertIfNew(message(BODY, "AX-ICICIT-S", T0 + 30_000, TransactionKeys.SOURCE_SMS_SCAN)));
+        assertFalse(capture.recordIfNew(message(BODY, "AX-ICICIT-S", T0 + 30_000, TransactionKeys.SOURCE_SMS_SCAN)));
         assertEquals(1, rows());
     }
 
     @Test
     public void truecallerAlertThenFullText_isOneRow() {
         String full = "Rs.55.00 spent on your SBI Credit Card ending with 2222 at CornerCafe on 09-10-26 via UPI (Ref No. 1).";
-        assertTrue(dao.insertIfNew(truecaller(55, "Cornercafe", T0)));
+        assertTrue(capture.recordIfNew(truecaller(55, "Cornercafe", T0)));
         Transaction fullText = keyed(new Transaction(55, full, new Date(T0 + 307_000), "DEBIT", "CornerCafe", full,
                 "sbi_cards_abc_agent@rbm.goog"), TransactionKeys.SOURCE_MMS_OBSERVER, T0 + 307_000);
-        assertFalse(dao.insertIfNew(fullText));
+        assertFalse(capture.recordIfNew(fullText));
         assertEquals(1, rows());
     }
 
     @Test
     public void fullTextThenTruecallerAlert_isOneRow() {
         String full = "Rs.55.00 spent on your SBI Credit Card ending with 2222 at CornerCafe on 09-10-26 via UPI (Ref No. 1).";
-        assertTrue(dao.insertIfNew(keyed(new Transaction(55, full, new Date(T0), "DEBIT", "CornerCafe", full, "agent"),
+        assertTrue(capture.recordIfNew(keyed(new Transaction(55, full, new Date(T0), "DEBIT", "CornerCafe", full, "agent"),
                 TransactionKeys.SOURCE_MMS_OBSERVER, T0)));
-        assertFalse(dao.insertIfNew(truecaller(55, "Cornercafe", T0 + 60_000)));
+        assertFalse(capture.recordIfNew(truecaller(55, "Cornercafe", T0 + 60_000)));
         assertEquals(1, rows());
     }
 
     @Test
     public void repostedTruecallerAlert_isOneRow() {
-        assertTrue(dao.insertIfNew(truecaller(55, "Shop", T0)));
-        assertFalse(dao.insertIfNew(truecaller(55, "Shop", T0 + 45_000)));
+        assertTrue(capture.recordIfNew(truecaller(55, "Shop", T0)));
+        assertFalse(capture.recordIfNew(truecaller(55, "Shop", T0 + 45_000)));
         assertEquals(1, rows());
     }
 
     @Test
     public void truecallerAlertsForDifferentAmounts_areSeparateRows() {
-        assertTrue(dao.insertIfNew(truecaller(100, "Bakery", T0)));
-        assertTrue(dao.insertIfNew(truecaller(88, "Bakery", T0 + 30_000)));
+        assertTrue(capture.recordIfNew(truecaller(100, "Bakery", T0)));
+        assertTrue(capture.recordIfNew(truecaller(88, "Bakery", T0 + 30_000)));
         assertEquals(2, rows());
     }
 
     @Test
     public void differentFullTextMessagesWithSameAmountAndMerchant_areSeparateRows() {
-        assertTrue(dao.insertIfNew(message(BODY + " Ref 1", "AX-ICICIT-S", T0, TransactionKeys.SOURCE_SMS_BROADCAST)));
-        assertTrue(dao.insertIfNew(message(BODY + " Ref 2", "AX-ICICIT-S", T0 + MINUTE, TransactionKeys.SOURCE_SMS_BROADCAST)));
+        assertTrue(capture.recordIfNew(message(BODY + " Ref 1", "AX-ICICIT-S", T0, TransactionKeys.SOURCE_SMS_BROADCAST)));
+        assertTrue(capture.recordIfNew(message(BODY + " Ref 2", "AX-ICICIT-S", T0 + MINUTE, TransactionKeys.SOURCE_SMS_BROADCAST)));
         assertEquals(2, rows());
     }
 
@@ -169,7 +173,7 @@ public class TransactionDaoDedupTest {
         for (int i = 0; i < threads; i++) {
             Callable<Boolean> attempt = () -> {
                 start.await();
-                return dao.insertIfNew(message(BODY, "AX-ICICIT-S", T0, TransactionKeys.SOURCE_SMS_BROADCAST));
+                return capture.recordIfNew(message(BODY, "AX-ICICIT-S", T0, TransactionKeys.SOURCE_SMS_BROADCAST));
             };
             results.add(pool.submit(attempt));
         }

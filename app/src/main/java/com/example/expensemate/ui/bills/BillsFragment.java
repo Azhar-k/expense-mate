@@ -149,7 +149,7 @@ public class BillsFragment extends Fragment {
         fillList(binding.listEnded, ended, today, null);
         binding.headerEnded.setVisibility(ended.isEmpty() ? View.GONE : View.VISIBLE);
 
-        List<RecurringPayment> pending = BillActions.pendingTransfers(allBills, today);
+        List<RecurringPayment> pending = Bills.pendingTransfers(allBills, today);
         double pendingTotal = 0;
         for (RecurringPayment bill : pending) {
             pendingTotal += bill.getAmount();

@@ -96,7 +96,7 @@ public class AccountTypesTest {
     @Test
     public void eachTypeKeepsItsOwnDefault() {
         Account walletAccount = find("Wallet");
-        accounts.makeDefault(walletAccount);
+        TestServices.over(database).accounts().makeDefault(walletAccount).join();
 
         assertEquals(wallet, accounts.getDefaultRealAccountSync().getId());
         assertEquals(daily, accounts.getDefaultAccountSync().getId());
@@ -161,7 +161,7 @@ public class AccountTypesTest {
         row.setTransactionType("DEBIT");
         dao.insertTransaction(row);
 
-        dao.setAccount(50, trip);
+        TestServices.over(database).transactions().setAccount(50, trip).join();
 
         Transaction saved = dao.getAllTransactionsSyncOrderByDateAsc().get(0);
         assertEquals(Long.valueOf(trip), saved.getAccountId());
@@ -173,7 +173,7 @@ public class AccountTypesTest {
         insert(10, "DEBIT", daily, wallet);
         long id = dao.getAllTransactionsSyncOrderByDateAsc().get(0).getId();
 
-        dao.setAccount(id, trip);
+        TestServices.over(database).transactions().setAccount(id, trip).join();
 
         assertEquals(Long.valueOf(wallet), dao.getAllTransactionsSyncOrderByDateAsc().get(0).getRealAccountId());
     }
