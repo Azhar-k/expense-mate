@@ -36,6 +36,11 @@ final class RoomBillStore implements BillStore {
     }
 
     @Override
+    public List<RecurringPayment> findAll() {
+        return dao.getAllRecurringPaymentsSync();
+    }
+
+    @Override
     public void insert(RecurringPayment bill) {
         dao.insert(bill);
     }

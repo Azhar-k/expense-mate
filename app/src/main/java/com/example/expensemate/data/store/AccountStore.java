@@ -14,6 +14,8 @@ public interface AccountStore {
     /** @param type Account.TYPE_VIRTUAL or Account.TYPE_REAL */
     Account findDefault(String type);
 
+    List<Account> findAll();
+
     void insert(Account account);
 
     void update(Account account);

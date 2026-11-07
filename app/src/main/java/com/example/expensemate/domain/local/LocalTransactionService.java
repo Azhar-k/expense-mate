@@ -68,6 +68,11 @@ final class LocalTransactionService implements TransactionService {
     }
 
     @Override
+    public CompletableFuture<Long> suggestBill(Transaction transaction) {
+        return writer.call(() -> rules.suggestBill(transaction));
+    }
+
+    @Override
     public CompletableFuture<Void> add(Transaction transaction) {
         return writer.run(() -> {
             rules.fillDefaultAccounts(transaction);

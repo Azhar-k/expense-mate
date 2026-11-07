@@ -29,6 +29,9 @@ public interface TransactionService {
 
     LiveData<Integer> needsReviewCount();
 
+    /** The id of the unpaid bill this payment most likely pays, or null. Links nothing. */
+    CompletableFuture<Long> suggestBill(Transaction transaction);
+
     /** Fills in missing accounts, remembers the category for the counterparty, and marks a newly linked bill paid. */
     CompletableFuture<Void> add(Transaction transaction);
 

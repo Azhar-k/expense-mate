@@ -24,7 +24,7 @@ public final class LocalServices implements Services {
     public LocalServices(Stores stores, Executor executor) {
         Writer writer = new Writer(stores.unitOfWork(), executor);
         TransactionRules rules = new TransactionRules(stores.accounts(), stores.categories(),
-                stores.counterpartyCategories(), stores.bills());
+                stores.counterpartyCategories(), stores.bills(), stores.transactions());
         transactions = new LocalTransactionService(stores.transactions(), rules, writer);
         capture = new LocalCaptureService(stores.transactions(), rules, stores.unitOfWork());
         accounts = new LocalAccountService(stores.accounts(), stores.transactions(), writer);

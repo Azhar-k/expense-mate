@@ -31,6 +31,11 @@ final class RoomAccountStore implements AccountStore {
     }
 
     @Override
+    public List<Account> findAll() {
+        return dao.getAllAccountsSync();
+    }
+
+    @Override
     public void insert(Account account) {
         dao.insert(account);
     }

@@ -63,6 +63,9 @@ public class TransactionFormSheet extends ExpandedSheet {
     private List<Category> categories = new ArrayList<>();
     private List<RecurringPayment> bills = new ArrayList<>();
     private String selectedCategory;
+    // Guessed from past transactions for a row still waiting for review; shown picked, saved only if kept
+    private String suggestedCategory;
+    private Long suggestedBillId;
     private Transaction editing;
     private Transaction editingDebit;
     private Transaction editingCredit;
@@ -256,10 +259,20 @@ public class TransactionFormSheet extends ExpandedSheet {
                     ? R.id.btnIncome : R.id.btnExpense);
             if (!transaction.isNeedsReview()) {
                 selectedCategory = transaction.getCategory();
+            } else {
+                suggestedCategory = transaction.getCategory();
             }
             buildCategoryChips();
             fillAccountsForEdit();
             fillBillForEdit();
+            if (transaction.isNeedsReview() && transaction.getLinkedRecurringPaymentId() == null) {
+                viewModel.suggestBill(transaction, billId -> {
+                    if (binding != null && editing == transaction) {
+                        suggestedBillId = billId;
+                        fillBillForEdit();
+                    }
+                });
+            }
         }
     }
 
@@ -281,11 +294,19 @@ public class TransactionFormSheet extends ExpandedSheet {
     }
 
     private void fillBillForEdit() {
-        if (editing == null || editing.getLinkedRecurringPaymentId() == null) {
+        if (editing == null) {
+            return;
+        }
+        Long billId = editing.getLinkedRecurringPaymentId();
+        // A suggestion never replaces a bill someone already picked
+        if (billId == null && selectedBill() == null) {
+            billId = suggestedBillId;
+        }
+        if (billId == null) {
             return;
         }
         for (RecurringPayment bill : bills) {
-            if (bill.getId() == editing.getLinkedRecurringPaymentId()) {
+            if (bill.getId() == billId) {
                 binding.etBill.setText(bill.getName(), false);
             }
         }
@@ -329,6 +350,16 @@ public class TransactionFormSheet extends ExpandedSheet {
     private void buildCategoryChips() {
         binding.pickCategory.chips.removeAllViews();
         String type = isIncomeMode() ? "INCOME" : "EXPENSE";
+        // Waits for the list so the default category, which nobody guessed, is never shown as picked
+        if (suggestedCategory != null && selectedCategory == null && !categories.isEmpty()) {
+            for (Category category : categories) {
+                if (category.getName().equals(suggestedCategory) && category.getType().equals(type)
+                        && !category.isDefault()) {
+                    selectedCategory = suggestedCategory;
+                }
+            }
+            suggestedCategory = null;
+        }
         Set<String> names = new LinkedHashSet<>();
         for (Category category : categories) {
             if (category.getType().equals(type)) {

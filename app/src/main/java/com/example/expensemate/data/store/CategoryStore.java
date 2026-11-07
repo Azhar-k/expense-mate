@@ -21,6 +21,8 @@ public interface CategoryStore {
     /** @return the name of the default category of this type, or null if there is none */
     String findDefaultName(String type);
 
+    List<String> findNames(String type);
+
     int lastSortOrder(String type);
 
     void setSortOrder(long id, int sortOrder);

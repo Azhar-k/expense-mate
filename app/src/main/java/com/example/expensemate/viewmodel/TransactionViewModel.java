@@ -256,6 +256,12 @@ public class TransactionViewModel extends AndroidViewModel {
                 .thenAccept(removed -> mainThread.post(() -> onDeleted.accept(removed))));
     }
 
+    /** Reports the bill the payment most likely pays, or null, on the main thread. */
+    public void suggestBill(Transaction transaction, Consumer<Long> onSuggested) {
+        Writes.log(TAG, "suggesting bill", transactions.suggestBill(transaction)
+                .thenAccept(billId -> mainThread.post(() -> onSuggested.accept(billId))));
+    }
+
     public void restore(List<Transaction> removed) {
         Writes.log(TAG, "restoring transaction", transactions.restore(removed));
     }

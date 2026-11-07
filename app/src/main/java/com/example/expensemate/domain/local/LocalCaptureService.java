@@ -1,10 +1,13 @@
 package com.example.expensemate.domain.local;
 
+import com.example.expensemate.data.PastTransaction;
 import com.example.expensemate.data.Transaction;
 import com.example.expensemate.data.TransactionKeys;
 import com.example.expensemate.data.store.TransactionStore;
 import com.example.expensemate.data.store.UnitOfWork;
 import com.example.expensemate.domain.CaptureService;
+
+import java.util.List;
 
 final class LocalCaptureService implements CaptureService {
     private final TransactionStore store;
@@ -24,9 +27,12 @@ final class LocalCaptureService implements CaptureService {
             if (isDuplicate(parsed)) {
                 return false;
             }
+            List<PastTransaction> history = rules.recentHistory();
+            rules.suggestAccounts(parsed, history);
             rules.fillDefaultAccounts(parsed);
             rules.applyDefaultCategory(parsed);
             rules.applyRememberedCategory(parsed);
+            rules.suggestCategory(parsed, history);
             store.insert(parsed);
             return true;
         });

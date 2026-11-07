@@ -23,6 +23,9 @@ public interface CategoryDao {
     @Query("SELECT name FROM categories WHERE isDefault = 1 AND type = :type LIMIT 1")
     String getDefaultName(String type);
 
+    @Query("SELECT name FROM categories WHERE type = :type")
+    List<String> getNames(String type);
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     long insertCategory(Category category);
 

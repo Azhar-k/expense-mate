@@ -15,6 +15,8 @@ public interface BillStore {
 
     RecurringPayment findById(long id);
 
+    List<RecurringPayment> findAll();
+
     void insert(RecurringPayment bill);
 
     void update(RecurringPayment bill);

@@ -197,4 +197,10 @@ public interface TransactionDao {
 
         @Query("SELECT * FROM transactions ORDER BY date DESC")
         List<Transaction> getAllTransactionsSyncOrderByDateAsc();
+
+        // Transfers are left out: they say nothing about where a payment goes or what it was for.
+        @Query("SELECT id, receiverName, smsSender, transactionType, category, needsReview, accountId, " +
+                        "realAccountId, linkedRecurringPaymentId FROM transactions WHERE transferGroupId IS NULL " +
+                        "ORDER BY date DESC LIMIT :limit")
+        List<PastTransaction> getHistory(int limit);
 }

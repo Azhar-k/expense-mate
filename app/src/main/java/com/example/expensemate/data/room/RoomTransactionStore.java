@@ -4,6 +4,7 @@ import androidx.lifecycle.LiveData;
 
 import com.example.expensemate.data.AccountBalance;
 import com.example.expensemate.data.CategorySum;
+import com.example.expensemate.data.PastTransaction;
 import com.example.expensemate.data.SummaryTotals;
 import com.example.expensemate.data.Transaction;
 import com.example.expensemate.data.TransactionDao;
@@ -105,6 +106,11 @@ final class RoomTransactionStore implements TransactionStore {
     @Override
     public void moveRealAccount(long fromAccountId, long toAccountId) {
         dao.moveToRealAccount(fromAccountId, toAccountId);
+    }
+
+    @Override
+    public List<PastTransaction> findHistory(int limit) {
+        return dao.getHistory(limit);
     }
 
     @Override

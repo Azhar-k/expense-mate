@@ -4,6 +4,7 @@ import androidx.lifecycle.LiveData;
 
 import com.example.expensemate.data.AccountBalance;
 import com.example.expensemate.data.CategorySum;
+import com.example.expensemate.data.PastTransaction;
 import com.example.expensemate.data.SummaryTotals;
 import com.example.expensemate.data.Transaction;
 import com.example.expensemate.domain.TransactionQuery;
@@ -53,6 +54,9 @@ public interface TransactionStore {
     void moveAccount(long fromAccountId, long toAccountId);
 
     void moveRealAccount(long fromAccountId, long toAccountId);
+
+    /** The latest rows that are not transfers, newest first. */
+    List<PastTransaction> findHistory(int limit);
 
     int countBySmsHash(String smsHash);
 

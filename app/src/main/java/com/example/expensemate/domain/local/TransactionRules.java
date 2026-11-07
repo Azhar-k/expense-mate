@@ -1,6 +1,7 @@
 package com.example.expensemate.domain.local;
 
 import com.example.expensemate.data.Account;
+import com.example.expensemate.data.PastTransaction;
 import com.example.expensemate.data.RecurringPayment;
 import com.example.expensemate.data.Transaction;
 import com.example.expensemate.data.TransactionKeys;
@@ -8,8 +9,12 @@ import com.example.expensemate.data.store.AccountStore;
 import com.example.expensemate.data.store.BillStore;
 import com.example.expensemate.data.store.CategoryStore;
 import com.example.expensemate.data.store.CounterpartyCategoryStore;
+import com.example.expensemate.data.store.TransactionStore;
 
+import java.util.HashSet;
+import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 /** What a transaction gets filled in with on its way into the store. Call these inside a unit of work. */
 final class TransactionRules {
@@ -17,9 +22,11 @@ final class TransactionRules {
     private final CategoryStore categories;
     private final CounterpartyCategoryStore counterparties;
     private final BillStore bills;
+    private final TransactionStore transactions;
 
     TransactionRules(AccountStore accounts, CategoryStore categories, CounterpartyCategoryStore counterparties,
-            BillStore bills) {
+            BillStore bills, TransactionStore transactions) {
+        this.transactions = transactions;
         this.accounts = accounts;
         this.categories = categories;
         this.counterparties = counterparties;
@@ -63,6 +70,46 @@ final class TransactionRules {
             transaction.setCategory(category);
             transaction.setNeedsReview(false);
         }
+    }
+
+    List<PastTransaction> recentHistory() {
+        return transactions.findHistory(Suggestions.HISTORY_LIMIT);
+    }
+
+    /**
+     * Picks the accounts a captured payment most likely belongs to: the real account from the number
+     * the message shows, or else where that bank's earlier messages went, and the account where
+     * earlier payments with this payee went. Whatever stays unknown is left for the defaults.
+     */
+    void suggestAccounts(Transaction transaction, List<PastTransaction> history) {
+        if (transaction.getRealAccountId() == null) {
+            Long real = Suggestions.realAccountFromMessage(transaction.getSmsBody(), accounts.findAll());
+            transaction.setRealAccountId(real != null ? real
+                    : Suggestions.realAccountFromSender(transaction.getSmsSender(), history));
+        }
+        if (transaction.getAccountId() == null) {
+            transaction.setAccountId(Suggestions.accountFromPayee(transaction.getReceiverName(), history));
+        }
+    }
+
+    /** A category guessed from similar payees. The row stays marked for review until someone confirms it. */
+    void suggestCategory(Transaction transaction, List<PastTransaction> history) {
+        if (!transaction.isNeedsReview()) {
+            return;
+        }
+        String type = categoryTypeOf(transaction.getTransactionType());
+        Set<String> choosable = new HashSet<>(categories.findNames(type));
+        choosable.remove(categories.findDefaultName(type));
+        String category = Suggestions.category(transaction.getReceiverName(), transaction.getTransactionType(),
+                choosable, history);
+        if (category != null) {
+            transaction.setCategory(category);
+        }
+    }
+
+    /** The unpaid bill this payment most likely pays, or null. Nothing is linked until someone saves it. */
+    Long suggestBill(Transaction transaction) {
+        return Suggestions.bill(transaction, bills.findAll(), recentHistory());
     }
 
     void rememberCategory(Transaction row) {

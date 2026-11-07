@@ -46,6 +46,11 @@ final class RoomCategoryStore implements CategoryStore {
     }
 
     @Override
+    public List<String> findNames(String type) {
+        return dao.getNames(type);
+    }
+
+    @Override
     public int lastSortOrder(String type) {
         return dao.lastSortOrder(type);
     }
