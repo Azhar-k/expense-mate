@@ -1,0 +1,2 @@
+# Bash refuses scripts with CRLF line endings, so keep them LF on every checkout
+*.sh text eol=lf
