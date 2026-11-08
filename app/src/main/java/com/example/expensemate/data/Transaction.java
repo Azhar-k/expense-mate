@@ -12,7 +12,9 @@ import android.util.Log;
         @Index(value = {"dedupKey", "messageTime"}),
         @Index(value = {"matchKey", "messageTime"}),
         @Index(value = {"transferGroupId"}),
-        @Index(value = {"loanId"})
+        @Index(value = {"loanId"}),
+        @Index(value = {"date"}),
+        @Index(value = {"smsHash"})
 })
 public class Transaction {
     @PrimaryKey(autoGenerate = true)

@@ -18,92 +18,10 @@ import java.util.List;
 
 import androidx.annotation.NonNull;
 
-@Database(entities = {Transaction.class, Category.class, RecurringPayment.class, Account.class, CounterpartyCategory.class, Loan.class}, version = 13, exportSchema = false)
+@Database(entities = {Transaction.class, Category.class, RecurringPayment.class, Account.class, CounterpartyCategory.class, Loan.class}, version = 14, exportSchema = false)
 @TypeConverters(Converters.class)
 public abstract class AppDatabase extends RoomDatabase {
     private static volatile AppDatabase INSTANCE;
-
-    // Single migration that sets up all tables and indexes
-    private static final Migration INITIAL_MIGRATION = new Migration(0, 1) {
-        @Override
-        public void migrate(SupportSQLiteDatabase database) {
-            // Create transactions table
-            database.execSQL(
-                "CREATE TABLE IF NOT EXISTS `transactions` (" +
-                "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
-                "`amount` REAL NOT NULL, " +
-                "`description` TEXT, " +
-                "`date` INTEGER, " +
-                "`transactionType` TEXT, " +
-                "`receiverName` TEXT, " +
-                "`smsBody` TEXT, " +
-                "`smsSender` TEXT, " +
-                "`category` TEXT, " +
-                "`linkedRecurringPaymentId` INTEGER, " +
-                "`smsHash` TEXT" +
-                ")");
-
-            // Create categories table
-            database.execSQL(
-                "CREATE TABLE IF NOT EXISTS `categories` (" +
-                "`id` INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, " +
-                "`name` TEXT NOT NULL, " +
-                "`type` TEXT NOT NULL" +
-                ")");
-
-            // Create recurring_payments table
-            database.execSQL(
-                "CREATE TABLE IF NOT EXISTS `recurring_payments` (" +
-                "`id` INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, " +
-                "`name` TEXT, " +
-                "`amount` REAL NOT NULL, " +
-                "`dueDay` INTEGER NOT NULL, " +
-                "`expiryDate` INTEGER, " +
-                "`isCompleted` INTEGER NOT NULL DEFAULT 0, " +
-                "`lastCompletedDate` INTEGER" +
-                ")");
-
-            // Create all necessary indexes
-            // Transaction indexes
-            database.execSQL(
-                "CREATE INDEX IF NOT EXISTS `index_transactions_category_month_year` " +
-                "ON `transactions` (`category`, `transactionType`, `linkedRecurringPaymentId`, `date`)");
-
-            database.execSQL(
-                "CREATE INDEX IF NOT EXISTS `index_transactions_expense_month_year` " +
-                "ON `transactions` (`transactionType`, `linkedRecurringPaymentId`, `date`)");
-
-            database.execSQL(
-                "CREATE INDEX IF NOT EXISTS `index_transactions_income_month_year` " +
-                "ON `transactions` (`transactionType`, `date`)");
-
-            database.execSQL(
-                "CREATE INDEX IF NOT EXISTS `index_transactions_date` " +
-                "ON `transactions` (`date`)");
-
-            database.execSQL(
-                "CREATE INDEX IF NOT EXISTS `index_transactions_smsHash` " +
-                "ON `transactions` (`smsHash`)");
-
-            // Category indexes
-            database.execSQL(
-                "CREATE INDEX IF NOT EXISTS `index_categories_name` " +
-                "ON `categories` (`name`)");
-
-            database.execSQL(
-                "CREATE INDEX IF NOT EXISTS `index_categories_type` " +
-                "ON `categories` (`type`)");
-
-            // Recurring payment indexes
-            database.execSQL(
-                "CREATE INDEX IF NOT EXISTS `index_recurring_payments_isCompleted_dueDay` " +
-                "ON `recurring_payments` (`isCompleted`, `dueDay`)");
-
-            database.execSQL(
-                "CREATE INDEX IF NOT EXISTS `index_recurring_payments_amount` " +
-                "ON `recurring_payments` (`amount`)");
-        }
-    };
 
     private static final Migration MIGRATION_1_2 = new Migration(1, 2) {
         @Override
@@ -118,11 +36,6 @@ public abstract class AppDatabase extends RoomDatabase {
                             "`expiryDate` INTEGER, " +
                             "`description` TEXT" +
                             ")");
-
-            // Account indexes
-            database.execSQL(
-                    "CREATE INDEX IF NOT EXISTS `index_accounts_name` " +
-                            "ON `accounts` (`name`)");
         }
     };
 
@@ -274,6 +187,22 @@ public abstract class AppDatabase extends RoomDatabase {
         }
     };
 
+    // Date ranges and newest-first lists are on every screen, and each captured message is checked
+    // against smsHash. The dropped indexes came from early migrations and no query used them.
+    static final Migration MIGRATION_13_14 = new Migration(13, 14) {
+        @Override
+        public void migrate(SupportSQLiteDatabase database) {
+            for (String unused : new String[] { "index_transactions_category_month_year",
+                    "index_transactions_expense_month_year", "index_transactions_income_month_year",
+                    "index_categories_name", "index_categories_type", "index_recurring_payments_isCompleted_dueDay",
+                    "index_recurring_payments_amount", "index_accounts_name" }) {
+                database.execSQL("DROP INDEX IF EXISTS `" + unused + "`");
+            }
+            database.execSQL("CREATE INDEX IF NOT EXISTS `index_transactions_date` ON `transactions` (`date`)");
+            database.execSQL("CREATE INDEX IF NOT EXISTS `index_transactions_smsHash` ON `transactions` (`smsHash`)");
+        }
+    };
+
     private static final long REVIEW_BACKFILL_MS = 30L * 24 * 60 * 60 * 1000;
 
     public abstract TransactionDao transactionDao();
@@ -325,7 +254,7 @@ public abstract class AppDatabase extends RoomDatabase {
                 if (INSTANCE == null) {
                     INSTANCE = Room.databaseBuilder(context.getApplicationContext(),
                             AppDatabase.class, "expense_mate_database")
-                            .addMigrations(INITIAL_MIGRATION, MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13)
+                            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14)
                             .addCallback(new RoomDatabase.Callback() {
                                 @Override
                                 public void onCreate(@NonNull SupportSQLiteDatabase db) {
