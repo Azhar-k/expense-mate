@@ -40,6 +40,10 @@
                 <include
                     android:id="@+id/rowScan"
                     layout="@layout/item_settings_row" />
+
+                <include
+                    android:id="@+id/rowPatterns"
+                    layout="@layout/item_settings_row" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 

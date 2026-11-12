@@ -14,5 +14,7 @@ public interface Stores {
 
     BillStore bills();
 
+    PatternStore patterns();
+
     UnitOfWork unitOfWork();
 }

@@ -19,7 +19,7 @@ import java.util.List;
 import androidx.annotation.NonNull;
 import com.example.expensemate.util.Currencies;
 
-@Database(entities = {Transaction.class, Category.class, RecurringPayment.class, Account.class, CounterpartyCategory.class, Loan.class}, version = 15, exportSchema = false)
+@Database(entities = {Transaction.class, Category.class, RecurringPayment.class, Account.class, CounterpartyCategory.class, Loan.class, MessagePattern.class}, version = 16, exportSchema = false)
 @TypeConverters(Converters.class)
 public abstract class AppDatabase extends RoomDatabase {
     private static volatile AppDatabase INSTANCE;
@@ -219,6 +219,17 @@ public abstract class AppDatabase extends RoomDatabase {
         }
     };
 
+    // Message patterns move from code into the database, so the user can edit them and add their own.
+    // Every phone starts with the set the app read until now, in the same order.
+    static final Migration MIGRATION_15_16 = new Migration(15, 16) {
+        @Override
+        public void migrate(SupportSQLiteDatabase database) {
+            database.execSQL(MessagePattern.CREATE_TABLE);
+            database.execSQL(MessagePattern.CREATE_INDEX);
+            MessagePattern.ensureBuiltIns(database);
+        }
+    };
+
     private static final long REVIEW_BACKFILL_MS = 30L * 24 * 60 * 60 * 1000;
 
     public abstract TransactionDao transactionDao();
@@ -226,6 +237,7 @@ public abstract class AppDatabase extends RoomDatabase {
     public abstract RecurringPaymentDao recurringPaymentDao();
     public abstract AccountDao accountDao();
     public abstract LoanDao loanDao();
+    public abstract MessagePatternDao messagePatternDao();
 
     private static void insertDefaultCategories(CategoryDao categoryDao) {
         // Insert default expense categories
@@ -271,11 +283,13 @@ public abstract class AppDatabase extends RoomDatabase {
                 if (INSTANCE == null) {
                     INSTANCE = Room.databaseBuilder(context.getApplicationContext(),
                             AppDatabase.class, "expense_mate_database")
-                            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15)
+                            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16)
                             .addCallback(new RoomDatabase.Callback() {
                                 @Override
                                 public void onCreate(@NonNull SupportSQLiteDatabase db) {
                                     super.onCreate(db);
+                                    // Right away, not on the thread below, so the first message can be read
+                                    MessagePattern.ensureBuiltIns(db);
                                     // Insert default data when database is created
                                     new Thread(() -> {
                                         insertDefaultCategories(INSTANCE.categoryDao());

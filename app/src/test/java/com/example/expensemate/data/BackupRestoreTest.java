@@ -336,6 +336,45 @@ public class BackupRestoreTest {
     }
 
     @Test
+    public void messagePatternsComeBackAsTheyWere() throws Exception {
+        MessagePattern mine = new MessagePattern("My bank", "CREDIT", "(?i)got (?<amount>\\d+)\nfrom (?<merchant>\\w+)");
+        mine.setCounterparty("Bank: {merchant}");
+        mine.setExcludeFromSummary(true);
+        mine.setSortOrder(-10);
+        source.messagePatternDao().insert(mine);
+        MessagePattern shipped = new MessagePattern("Off one", "DEBIT", "x(?<amount>\\d+)");
+        shipped.setBuiltinKey("icici_debit");
+        shipped.setActive(false);
+        shipped.setSortOrder(10);
+        source.messagePatternDao().insert(shipped);
+
+        new BackupDataLoader(context, restored).restore(backupFiles());
+
+        java.util.List<MessagePattern> back = restored.messagePatternDao().getAllSync();
+        assertEquals(2, back.size()); // The shipped set is not added on top of a backup that has patterns
+        assertEquals("My bank", back.get(0).getName());
+        assertEquals(mine.getPattern(), back.get(0).getPattern());
+        assertEquals("CREDIT", back.get(0).getTransactionType());
+        assertEquals("Bank: {merchant}", back.get(0).getCounterparty());
+        assertTrue(back.get(0).isExcludeFromSummary());
+        assertTrue(back.get(0).isActive());
+        assertNull(back.get(0).getBuiltinKey());
+        assertFalse(back.get(1).isActive());
+        assertEquals("icici_debit", back.get(1).getBuiltinKey());
+    }
+
+    @Test
+    public void aBackupWithoutPatternsGetsTheShippedOnes() throws Exception {
+        account(1, "Daily", Account.TYPE_VIRTUAL, true);
+        Map<String, File> files = backupFiles();
+        files.remove("MESSAGE PATTERNS");
+
+        new BackupDataLoader(context, restored).restore(files);
+
+        assertEquals(DefaultMessagePatterns.all().size(), restored.messagePatternDao().getActiveSync().size());
+    }
+
+    @Test
     public void aBackupWithoutLoansStillRestores() throws Exception {
         account(1, "Daily", Account.TYPE_VIRTUAL, true);
         source.transactionDao().insertTransaction(row(1, "DEBIT", 1L, null));

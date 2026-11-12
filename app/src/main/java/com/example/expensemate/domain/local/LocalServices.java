@@ -6,6 +6,7 @@ import com.example.expensemate.domain.BillService;
 import com.example.expensemate.domain.CaptureService;
 import com.example.expensemate.domain.CategoryService;
 import com.example.expensemate.domain.LoanService;
+import com.example.expensemate.domain.PatternService;
 import com.example.expensemate.domain.Services;
 import com.example.expensemate.domain.TransactionService;
 
@@ -19,6 +20,7 @@ public final class LocalServices implements Services {
     private final CategoryService categories;
     private final LoanService loans;
     private final BillService bills;
+    private final PatternService patterns;
 
     /** @param executor runs the writes; pass a direct executor to finish them on the calling thread */
     public LocalServices(Stores stores, Executor executor) {
@@ -26,7 +28,8 @@ public final class LocalServices implements Services {
         TransactionRules rules = new TransactionRules(stores.accounts(), stores.categories(),
                 stores.counterpartyCategories(), stores.bills(), stores.transactions());
         transactions = new LocalTransactionService(stores.transactions(), rules, writer);
-        capture = new LocalCaptureService(stores.transactions(), rules, stores.unitOfWork());
+        patterns = new LocalPatternService(stores.patterns(), writer);
+        capture = new LocalCaptureService(stores.transactions(), rules, stores.unitOfWork(), patterns);
         accounts = new LocalAccountService(stores.accounts(), stores.transactions(), writer);
         categories = new LocalCategoryService(stores.categories(), writer);
         loans = new LocalLoanService(stores.loans(), writer);
@@ -61,5 +64,10 @@ public final class LocalServices implements Services {
     @Override
     public BillService bills() {
         return bills;
+    }
+
+    @Override
+    public PatternService patterns() {
+        return patterns;
     }
 }

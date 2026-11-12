@@ -18,7 +18,7 @@ Sources read:
 | # | Walleto feature | Expense Mate | Status |
 |---|---|---|---|
 | 1 | Multiple currencies per account | Was ₹ only | **Done** on branch `multi-currency` (see §5) |
-| 2 | Message patterns stored per user, editable (`/api/regex`) | About 20 Indian patterns hardcoded in `util/SmsTransactionHandler.java` | Missing |
+| 2 | Message patterns stored per user, editable (`/api/regex`) | Was 25 Indian patterns hardcoded in `util/SmsTransactionHandler.java` | **Done** on branch `message-patterns` (see §5a) |
 | 3 | Receipt attachments on a transaction | None | Missing |
 | 4 | Audit log of every create, update and delete, searchable | None | Missing |
 | 5 | Accounts, sign-in, roles (usermanagement) | Google sign-in for Drive backup only | Missing |
@@ -175,6 +175,25 @@ Branch `multi-currency`, database version 15. It is designed differently from Wa
 - The upgrade labels all existing data INR. Backups carry the currency, and older backups restore as INR.
 - Not done: foreign spends (the original amount and currency kept alongside the charged amount), reading the
   currency from message text, exchange rates and a converted total, and locale-specific separators.
+
+## 5a. Message patterns in Expense Mate (gap #2, done)
+
+Branch `message-patterns`, database version 16.
+
+- Table `message_patterns`: name, regex, type, an optional counterparty template (`{merchant}` stands for the
+  captured merchant), leave out of totals, on/off, sort order, and `builtinKey` for the shipped ones.
+- The 25 shipped patterns live in `DefaultMessagePatterns` and are copied in once: by `MIGRATION_15_16` on upgrade,
+  and by `onCreate` on a new install. Both use `INSERT OR IGNORE` on `builtinKey`. To change a shipped pattern
+  later, update it by key only where its text is still the shipped one.
+- Groups are named `(?<amount>…)` and `(?<merchant>…)`. A pattern without names falls back to Walleto's
+  classification by shape.
+- Settings → Message patterns lists, edits, reorders and turns patterns off. New ones go first. The editor makes a
+  draft pattern from a pasted or shared message once the user marks the amount and merchant, and checks it live
+  against that message.
+- Messages that no pattern matches are not stored. The user copies the message, or uses Share → "Add message
+  pattern", to add a pattern.
+- Backups carry the patterns. Older backups restore with the shipped set.
+- Not done: a sender filter per pattern, reading the date or currency from the message, and per-region sets.
 
 ---
 

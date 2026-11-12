@@ -16,4 +16,6 @@ public interface Services {
     LoanService loans();
 
     BillService bills();
+
+    PatternService patterns();
 }

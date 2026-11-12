@@ -33,7 +33,9 @@ import com.example.expensemate.service.GoogleDriveService;
 import com.example.expensemate.service.GoogleSignInHelper;
 import com.example.expensemate.ui.common.AppTheme;
 import com.example.expensemate.ui.common.Ui;
+import com.example.expensemate.data.MessagePattern;
 import com.example.expensemate.viewmodel.CategoryViewModel;
+import com.example.expensemate.viewmodel.PatternViewModel;
 import com.google.android.gms.auth.api.signin.GoogleSignIn;
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
 import com.google.android.gms.common.api.ApiException;
@@ -80,6 +82,20 @@ public class SettingsFragment extends Fragment {
         configureRow(binding.rowScan, R.drawable.ic_search, "Scan messages", "Find past transactions");
         binding.rowScan.getRoot().setOnClickListener(
                 v -> NavHostFragment.findNavController(this).navigate(R.id.navigation_sms_scan));
+
+        configureRow(binding.rowPatterns, R.drawable.ic_sms, "Message patterns", "");
+        binding.rowPatterns.getRoot().setOnClickListener(
+                v -> NavHostFragment.findNavController(this).navigate(R.id.navigation_patterns));
+        new ViewModelProvider(requireActivity()).get(PatternViewModel.class).getPatterns()
+                .observe(getViewLifecycleOwner(), patterns -> {
+                    int on = 0;
+                    for (MessagePattern pattern : patterns) {
+                        if (pattern.isActive()) {
+                            on++;
+                        }
+                    }
+                    binding.rowPatterns.tvSubtitle.setText(on + " on · add your bank");
+                });
 
         configureRow(binding.rowCategories, R.drawable.ic_tag, "Categories", "");
         binding.rowCategories.getRoot().setOnClickListener(

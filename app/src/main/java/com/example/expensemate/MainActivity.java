@@ -31,6 +31,7 @@ import com.example.expensemate.data.LoanSummary;
 import com.example.expensemate.service.RcsNotificationListenerService;
 import com.example.expensemate.service.MmsChangeJob;
 import com.example.expensemate.ui.common.AppTheme;
+import com.example.expensemate.ui.patterns.PatternsFragment;
 import com.example.expensemate.util.CurrencyTotals;
 import com.example.expensemate.viewmodel.LoanViewModel;
 import com.google.android.material.appbar.MaterialToolbar;
@@ -83,7 +84,31 @@ public class MainActivity extends AppCompatActivity {
         });
 
         applySystemBarInsets();
+        if (savedInstanceState == null && openSharedMessage(getIntent())) {
+            return; // Sharing a message is not the moment to ask for permissions
+        }
         startCaptureSetup();
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        openSharedMessage(intent);
+    }
+
+    // A message shared from another app opens a new pattern with it as the sample
+    private boolean openSharedMessage(Intent intent) {
+        if (intent == null || !Intent.ACTION_SEND.equals(intent.getAction())) {
+            return false;
+        }
+        CharSequence text = intent.getCharSequenceExtra(Intent.EXTRA_TEXT);
+        if (text == null || text.toString().trim().isEmpty()) {
+            return false;
+        }
+        Bundle args = new Bundle();
+        args.putString(PatternsFragment.ARG_SHARED_TEXT, text.toString());
+        navController.navigate(R.id.navigation_patterns, args);
+        return true;
     }
 
     // From Android 15 the app draws behind the system bars, so it has to leave room for them

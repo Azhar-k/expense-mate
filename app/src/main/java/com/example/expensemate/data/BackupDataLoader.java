@@ -46,13 +46,16 @@ public class BackupDataLoader {
             { "LOANS", "loans.txt" },
             { "TRANSACTIONS", "transactions.txt" },
             { "COUNTERPARTY CATEGORIES", "counterparty_categories.txt" },
+            { "MESSAGE PATTERNS", "message_patterns.txt" },
     };
     private static final String[] TABLES = {
-            "transactions", "categories", "recurring_payments", "accounts", "counterparty_categories", "loans" };
+            "transactions", "categories", "recurring_payments", "accounts", "counterparty_categories", "loans",
+            "message_patterns" };
 
     private final AppDatabase database;
     private final SimpleDateFormat dateFormat;
     private boolean restoredMappings;
+    private boolean restoredPatterns;
 
     public BackupDataLoader(Context context) {
         this(context, AppDatabase.getDatabase(context));
@@ -167,6 +170,19 @@ public class BackupDataLoader {
                     }
                 }
                 break;
+            case "MESSAGE PATTERNS":
+                for (MessagePattern p : database.messagePatternDao().getAllSync()) {
+                    put(data, "Name", p.getName());
+                    put(data, "Pattern", p.getPattern());
+                    put(data, "Transaction Type", p.getTransactionType());
+                    put(data, "Counterparty", p.getCounterparty());
+                    put(data, "Exclude From Summary", p.isExcludeFromSummary());
+                    put(data, "Active", p.isActive());
+                    put(data, "Sort Order", p.getSortOrder());
+                    put(data, "Builtin Key", p.getBuiltinKey());
+                    data.append("---\n");
+                }
+                break;
         }
         return data.toString();
     }
@@ -259,6 +275,9 @@ public class BackupDataLoader {
                     break;
                 case "LOANS":
                     processLoan(record);
+                    break;
+                case "MESSAGE PATTERNS":
+                    processPattern(record);
                     break;
             }
         } catch (Exception e) {
@@ -490,6 +509,23 @@ public class BackupDataLoader {
         restoredMappings = true;
     }
 
+    private void processPattern(Record record) {
+        String name = record.text("Name");
+        String regex = record.text("Pattern");
+        String type = record.text("Transaction Type");
+        if (name == null || regex == null || type == null) {
+            return;
+        }
+        MessagePattern pattern = new MessagePattern(name, type, regex);
+        pattern.setCounterparty(record.text("Counterparty"));
+        pattern.setExcludeFromSummary(record.flag("Exclude From Summary"));
+        pattern.setActive(record.flag("Active"));
+        pattern.setSortOrder(record.integer("Sort Order", 0));
+        pattern.setBuiltinKey(record.text("Builtin Key"));
+        database.messagePatternDao().insert(pattern);
+        restoredPatterns = true;
+    }
+
     /****************************************************************************************************/
     // Restoring
 
@@ -504,6 +540,7 @@ public class BackupDataLoader {
                 db.execSQL("DELETE FROM " + table);
             }
             restoredMappings = false;
+            restoredPatterns = false;
             for (String[] entry : FILES) {
                 File file = files.get(entry[0]);
                 if (file != null) {
@@ -514,18 +551,22 @@ public class BackupDataLoader {
                     }
                 }
             }
-            finishRestore(database, !restoredMappings);
+            finishRestore(database, !restoredMappings, !restoredPatterns);
         });
     }
 
     /** Fills in what an older backup does not carry. */
     static void finishRestore(AppDatabase restored) {
-        finishRestore(restored, true);
+        finishRestore(restored, true, true);
     }
 
-    static void finishRestore(AppDatabase restored, boolean rebuildMappings) {
+    static void finishRestore(AppDatabase restored, boolean rebuildMappings, boolean addBuiltInPatterns) {
         restored.runInTransaction(() -> {
             SupportSQLiteDatabase db = restored.getOpenHelper().getWritableDatabase();
+            // Backups from before patterns were stored read messages with the shipped set
+            if (addBuiltInPatterns) {
+                MessagePattern.ensureBuiltIns(db);
+            }
             Category.ensureDefaults(db);
             Account.ensureDefaultRealAccount(db);
             Account.ensureRealAccountCurrencies(db, Currencies.LEGACY);

@@ -6,15 +6,20 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import com.example.expensemate.data.DefaultMessagePatterns;
+import com.example.expensemate.data.MessagePattern;
 import com.example.expensemate.data.Transaction;
 
 import org.junit.Test;
 
+import java.util.List;
+
 /** Message shapes come from real bank messages, with the personal details changed. */
 public class SmsTransactionHandlerParserTest {
+    private static final List<MessagePattern> PATTERNS = DefaultMessagePatterns.all();
 
     private static void assertParsed(String body, double amount, String type, String receiver) {
-        Transaction transaction = SmsTransactionHandler.extractTransactionDetails(body, "AX-TESTBK-S");
+        Transaction transaction = SmsTransactionHandler.extractTransactionDetails(body, "AX-TESTBK-S", PATTERNS);
         assertNotNull("No parser matched: " + body, transaction);
         assertEquals(amount, transaction.getAmount(), 0.001);
         assertEquals(type, transaction.getTransactionType());
@@ -23,7 +28,7 @@ public class SmsTransactionHandlerParserTest {
 
     private static void assertNotParsed(String body) {
         assertNull("Should not create a transaction: " + body,
-                SmsTransactionHandler.extractTransactionDetails(body, "AX-TESTBK-S"));
+                SmsTransactionHandler.extractTransactionDetails(body, "AX-TESTBK-S", PATTERNS));
     }
 
     @Test
@@ -112,11 +117,11 @@ public class SmsTransactionHandlerParserTest {
 
     @Test
     public void unknownFormats_stillFallBackToTheGeneralPatterns() {
-        Transaction debit = SmsTransactionHandler.extractTransactionDetails("Rs 40.00 paid to TEST VENDOR", "AX-TESTBK-S");
+        Transaction debit = SmsTransactionHandler.extractTransactionDetails("Rs 40.00 paid to TEST VENDOR", "AX-TESTBK-S", PATTERNS);
         assertEquals(40.00, debit.getAmount(), 0.001);
         assertEquals("DEBIT", debit.getTransactionType());
 
-        Transaction credit = SmsTransactionHandler.extractTransactionDetails("Received Rs 75.00 from TEST FRIEND.", "AX-TESTBK-S");
+        Transaction credit = SmsTransactionHandler.extractTransactionDetails("Received Rs 75.00 from TEST FRIEND.", "AX-TESTBK-S", PATTERNS);
         assertEquals(75.00, credit.getAmount(), 0.001);
         assertEquals("CREDIT", credit.getTransactionType());
     }
@@ -126,7 +131,7 @@ public class SmsTransactionHandlerParserTest {
         String body = "DEAR HDFCBANK CARDMEMBER, PAYMENT OF Rs. 4000.00 RECEIVED TOWARDS YOUR CREDIT CARD "
                 + "ENDING WITH 1111 ON 1-10-2026.YOUR AVAILABLE LIMIT IS RS. 50000.00";
         assertParsed(body, 4000.00, "CREDIT", "Credit card payment");
-        assertTrue(SmsTransactionHandler.extractTransactionDetails(body, "JM-HDFCBK-S").isExcludedFromSummary());
+        assertTrue(SmsTransactionHandler.extractTransactionDetails(body, "JM-HDFCBK-S", PATTERNS).isExcludedFromSummary());
     }
 
     @Test
@@ -134,7 +139,7 @@ public class SmsTransactionHandlerParserTest {
         String body = "Dear Customer, Payment of INR 1,25,500.75 has been received on your ICICI Bank Credit "
                 + "Card Account 4xxx3333 on 20-OCT-26.Thank you.";
         assertParsed(body, 125500.75, "CREDIT", "Credit card payment");
-        assertTrue(SmsTransactionHandler.extractTransactionDetails(body, "JD-ICICIT-S").isExcludedFromSummary());
+        assertTrue(SmsTransactionHandler.extractTransactionDetails(body, "JD-ICICIT-S", PATTERNS).isExcludedFromSummary());
     }
 
     @Test
@@ -149,7 +154,7 @@ public class SmsTransactionHandlerParserTest {
         assertParsed("ICICI Bank Account XX444 credited:Rs. 1,20,000.50 on 30-Oct-26. Info NEFT-TESTREF123-TEST EMPLOYER.",
                 120000.50, "CREDIT", "NEFT-TESTREF123");
         assertFalse(SmsTransactionHandler.extractTransactionDetails(
-                "ICICI Bank Acct XX444 debited for Rs 250.00 on 12-Oct-26; TEST SHOP credited.", "AX-ICICIT-S")
+                "ICICI Bank Acct XX444 debited for Rs 250.00 on 12-Oct-26; TEST SHOP credited.", "AX-ICICIT-S", PATTERNS)
                 .isExcludedFromSummary());
     }
 

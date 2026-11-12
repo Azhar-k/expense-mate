@@ -1,11 +1,13 @@
 package com.example.expensemate.domain.local;
 
+import com.example.expensemate.data.MessagePattern;
 import com.example.expensemate.data.PastTransaction;
 import com.example.expensemate.data.Transaction;
 import com.example.expensemate.data.TransactionKeys;
 import com.example.expensemate.data.store.TransactionStore;
 import com.example.expensemate.data.store.UnitOfWork;
 import com.example.expensemate.domain.CaptureService;
+import com.example.expensemate.domain.PatternService;
 
 import java.util.List;
 
@@ -13,11 +15,19 @@ final class LocalCaptureService implements CaptureService {
     private final TransactionStore store;
     private final TransactionRules rules;
     private final UnitOfWork unitOfWork;
+    private final PatternService patterns;
 
-    LocalCaptureService(TransactionStore store, TransactionRules rules, UnitOfWork unitOfWork) {
+    LocalCaptureService(TransactionStore store, TransactionRules rules, UnitOfWork unitOfWork,
+            PatternService patterns) {
         this.store = store;
         this.rules = rules;
         this.unitOfWork = unitOfWork;
+        this.patterns = patterns;
+    }
+
+    @Override
+    public List<MessagePattern> patterns() {
+        return patterns.active();
     }
 
     // The check and the insert share one unit of work, so two entry paths cannot both pass.

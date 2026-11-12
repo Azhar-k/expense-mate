@@ -6,6 +6,7 @@ import com.example.expensemate.data.store.BillStore;
 import com.example.expensemate.data.store.CategoryStore;
 import com.example.expensemate.data.store.CounterpartyCategoryStore;
 import com.example.expensemate.data.store.LoanStore;
+import com.example.expensemate.data.store.PatternStore;
 import com.example.expensemate.data.store.Stores;
 import com.example.expensemate.data.store.TransactionStore;
 import com.example.expensemate.data.store.UnitOfWork;
@@ -20,6 +21,7 @@ public final class RoomStores implements Stores {
     private final CounterpartyCategoryStore counterpartyCategories;
     private final LoanStore loans;
     private final BillStore bills;
+    private final PatternStore patterns;
     private final UnitOfWork unitOfWork;
 
     public RoomStores(AppDatabase database) {
@@ -29,6 +31,7 @@ public final class RoomStores implements Stores {
         counterpartyCategories = new RoomCounterpartyCategoryStore(database.transactionDao());
         loans = new RoomLoanStore(database.loanDao());
         bills = new RoomBillStore(database.recurringPaymentDao());
+        patterns = new RoomPatternStore(database.messagePatternDao());
         unitOfWork = new UnitOfWork() {
             @Override
             public void run(Runnable work) {
@@ -70,6 +73,11 @@ public final class RoomStores implements Stores {
     @Override
     public BillStore bills() {
         return bills;
+    }
+
+    @Override
+    public PatternStore patterns() {
+        return patterns;
     }
 
     @Override
