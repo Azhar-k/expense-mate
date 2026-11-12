@@ -53,13 +53,14 @@ final class LocalTransactionService implements TransactionService {
     }
 
     @Override
-    public LiveData<SummaryTotals> summary(Date from, Date to, Long accountId) {
+    public LiveData<List<SummaryTotals>> summary(Date from, Date to, Long accountId) {
         return store.observeSummary(from, to, accountId);
     }
 
     @Override
-    public LiveData<List<CategorySum>> categoryTotals(String transactionType, Date from, Date to, Long accountId) {
-        return store.observeCategorySums(transactionType, from, to, accountId);
+    public LiveData<List<CategorySum>> categoryTotals(String transactionType, String currency, Date from, Date to,
+            Long accountId) {
+        return store.observeCategorySums(transactionType, currency, from, to, accountId);
     }
 
     @Override
@@ -76,6 +77,7 @@ final class LocalTransactionService implements TransactionService {
     public CompletableFuture<Void> add(Transaction transaction) {
         return writer.run(() -> {
             rules.fillDefaultAccounts(transaction);
+            rules.applyCurrency(transaction);
             store.insert(transaction);
             rules.rememberCategory(transaction);
             rules.markLinkedBillPaid(transaction, null);
@@ -86,6 +88,7 @@ final class LocalTransactionService implements TransactionService {
     public CompletableFuture<Void> update(Transaction edited) {
         return writer.run(() -> {
             Transaction before = store.findById(edited.getId());
+            rules.applyCurrency(edited);
             store.update(edited);
             // Editing an old row's note is not a new choice, and must not undo a newer one.
             if (before == null || !sameChoice(before, edited)) {
@@ -170,6 +173,8 @@ final class LocalTransactionService implements TransactionService {
         return writer.run(() -> {
             rules.fillDefaultAccounts(debit);
             rules.fillDefaultAccounts(credit);
+            rules.applyCurrency(debit);
+            rules.applyCurrency(credit);
             store.insert(debit);
             store.insert(credit);
         });
@@ -178,6 +183,8 @@ final class LocalTransactionService implements TransactionService {
     @Override
     public CompletableFuture<Void> updateTransfer(Transaction debit, Transaction credit) {
         return writer.run(() -> {
+            rules.applyCurrency(debit);
+            rules.applyCurrency(credit);
             store.update(debit);
             store.update(credit);
         });

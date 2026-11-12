@@ -14,7 +14,9 @@ import com.example.expensemate.data.RecurringPayment;
 import com.example.expensemate.databinding.SheetFiltersBinding;
 import com.example.expensemate.ui.common.ExpandedSheet;
 import com.example.expensemate.ui.common.Ui;
+import com.example.expensemate.util.Currencies;
 import com.example.expensemate.util.Money;
+import com.example.expensemate.viewmodel.AccountViewModel;
 import com.example.expensemate.viewmodel.RecurringPaymentsViewModel;
 import com.example.expensemate.viewmodel.TransactionFilter;
 import com.example.expensemate.viewmodel.TransactionViewModel;
@@ -25,6 +27,7 @@ import java.util.List;
 /** The filters used less often than search, date, account and category. */
 public class FilterSheet extends ExpandedSheet {
     private static final String ANY_BILL = "Any";
+    private static final String ANY_CURRENCY = "Any";
 
     private SheetFiltersBinding binding;
     private TransactionViewModel viewModel;
@@ -61,6 +64,18 @@ public class FilterSheet extends ExpandedSheet {
         binding.switchExcluded.setChecked(Boolean.TRUE.equals(current.excluded));
         binding.etBill.setText(ANY_BILL, false);
 
+        binding.etCurrency.setText(current.currency != null ? current.currency : ANY_CURRENCY, false);
+        provider.get(AccountViewModel.class).getAllAccounts().observe(getViewLifecycleOwner(), accounts -> {
+            List<String> codes = new ArrayList<>(Currencies.inUse(accounts));
+            if (current.currency != null && !codes.contains(current.currency)) {
+                codes.add(current.currency);
+            }
+            codes.sort(Currencies.mainFirst(Currencies.main(accounts)));
+            binding.tilCurrency.setVisibility(codes.size() > 1 ? View.VISIBLE : View.GONE);
+            codes.add(0, ANY_CURRENCY);
+            Ui.setDropdownItems(binding.etCurrency, codes);
+        });
+
         provider.get(RecurringPaymentsViewModel.class).getRecurringPayments().observe(getViewLifecycleOwner(), list -> {
             bills = list;
             List<String> names = new ArrayList<>();
@@ -93,6 +108,7 @@ public class FilterSheet extends ExpandedSheet {
         TransactionFilter updated = current.copy();
         clearMore(updated);
         updated.amount = amount;
+        updated.currency = Currencies.normalize(binding.etCurrency.getText().toString());
         updated.receiver = blankToNull(binding.etReceiver.getText().toString());
         updated.description = blankToNull(binding.etDescription.getText().toString());
         updated.excluded = binding.switchExcluded.isChecked() ? Boolean.TRUE : null;
@@ -120,6 +136,7 @@ public class FilterSheet extends ExpandedSheet {
 
     private static void clearMore(TransactionFilter filter) {
         filter.amount = null;
+        filter.currency = null;
         filter.receiver = null;
         filter.description = null;
         filter.excluded = null;

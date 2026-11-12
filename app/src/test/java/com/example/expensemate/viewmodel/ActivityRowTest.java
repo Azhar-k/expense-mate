@@ -50,11 +50,11 @@ public class ActivityRowTest {
         assertEquals(8, built.size());
         assertTrue(built.get(0).isHeader());
         assertEquals("Today", built.get(0).dayLabel);
-        assertEquals(-1240, built.get(0).dayNet, 0.001);
+        assertEquals(-1240, built.get(0).dayNet.get("INR"), 0.001);
         assertEquals("Yesterday", built.get(4).dayLabel);
-        assertEquals(85000, built.get(4).dayNet, 0.001);
+        assertEquals(85000, built.get(4).dayNet.get("INR"), 0.001);
         assertEquals("9 October", built.get(6).dayLabel);
-        assertEquals(-450, built.get(6).dayNet, 0.001);
+        assertEquals(-450, built.get(6).dayNet.get("INR"), 0.001);
     }
 
     @Test

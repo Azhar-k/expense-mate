@@ -24,6 +24,7 @@ import com.example.expensemate.databinding.SheetTransactionFormBinding;
 import com.example.expensemate.ui.common.ExpandedSheet;
 import com.example.expensemate.ui.common.Pickers;
 import com.example.expensemate.ui.common.Ui;
+import com.example.expensemate.util.Currencies;
 import com.example.expensemate.util.Money;
 import com.example.expensemate.viewmodel.AccountViewModel;
 import com.example.expensemate.viewmodel.CategoryViewModel;
@@ -34,9 +35,11 @@ import com.google.android.material.chip.Chip;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 
 /** The one place to add or edit an expense, an income or a transfer. */
@@ -69,6 +72,8 @@ public class TransactionFormSheet extends ExpandedSheet {
     private Transaction editing;
     private Transaction editingDebit;
     private Transaction editingCredit;
+    private final Map<Long, Account> accountsById = new HashMap<>();
+    private String mainCurrency = Currencies.fromLocale();
 
     public static void showAdd(FragmentActivity activity) {
         new TransactionFormSheet().show(activity.getSupportFragmentManager(), "transaction_form");
@@ -118,6 +123,24 @@ public class TransactionFormSheet extends ExpandedSheet {
         to = new AccountChips(binding.pickTo, "To virtual");
         fromReal = new AccountChips(binding.pickFromReal, "From real");
         toReal = new AccountChips(binding.pickToReal, "To real");
+        realAccount.setOnChange(this::onCurrencyChanged);
+        fromReal.setOnChange(this::onCurrencyChanged);
+        toReal.setOnChange(this::onCurrencyChanged);
+        binding.etReceived.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+                binding.tilReceived.setError(null);
+                updateSaveLabel();
+            }
+        });
         binding.pickCategory.tvLabel.setText("Category");
         // A category can be left empty, so tapping the chosen one clears it
         binding.pickCategory.chips.setSelectionRequired(false);
@@ -165,8 +188,10 @@ public class TransactionFormSheet extends ExpandedSheet {
             List<Account> virtual = new ArrayList<>();
             List<Account> real = new ArrayList<>();
             for (Account each : list) {
+                accountsById.put(each.getId(), each);
                 (each.isReal() ? real : virtual).add(each);
             }
+            mainCurrency = Currencies.main(list);
             boolean firstFill = account.selectedId() == null && realAccount.selectedId() == null;
             account.setAccounts(virtual);
             from.setAccounts(virtual);
@@ -187,6 +212,7 @@ public class TransactionFormSheet extends ExpandedSheet {
                 }
             }
             fillAccountsForEdit();
+            onCurrencyChanged();
         });
         categoryViewModel.getAllCategories().observe(getViewLifecycleOwner(), list -> {
             categories = list;
@@ -252,7 +278,16 @@ public class TransactionFormSheet extends ExpandedSheet {
                         editingCredit = leg;
                     }
                 }
+                // The amount is what left; the row tapped may be the side that arrived, in another currency
+                if (editingDebit != null) {
+                    binding.etAmount.setText(Money.plain(editingDebit.getAmount()));
+                }
+                if (editingCredit != null && editingDebit != null
+                        && !editingCredit.getCurrency().equals(editingDebit.getCurrency())) {
+                    binding.etReceived.setText(Money.plain(editingCredit.getAmount()));
+                }
                 fillAccountsForEdit();
+                onCurrencyChanged();
             });
         } else {
             binding.typeToggle.check("CREDIT".equals(transaction.getTransactionType())
@@ -330,6 +365,38 @@ public class TransactionFormSheet extends ExpandedSheet {
         binding.tilReceiver.setHint(isIncomeMode() ? "Received from" : "Paid to");
         selectedCategoryStillValid();
         buildCategoryChips();
+        onCurrencyChanged();
+    }
+
+    /** What a real account holds, or the main currency when none is picked or it has none. */
+    private String currencyOf(Long realAccountId) {
+        Account real = realAccountId != null ? accountsById.get(realAccountId) : null;
+        String currency = Currencies.of(real);
+        return currency != null ? currency : mainCurrency;
+    }
+
+    /** The amount is in the currency of the real account it comes from. */
+    private String amountCurrency() {
+        return currencyOf(isTransferMode() ? fromReal.selectedId() : realAccount.selectedId());
+    }
+
+    /** A transfer between real accounts in different currencies arrives as a different amount. */
+    private boolean crossCurrency() {
+        return isTransferMode() && !currencyOf(fromReal.selectedId()).equals(currencyOf(toReal.selectedId()));
+    }
+
+    private void onCurrencyChanged() {
+        if (binding == null) {
+            return;
+        }
+        binding.tvCurrency.setText(Money.symbol(amountCurrency()));
+        boolean cross = crossCurrency();
+        binding.tilReceived.setVisibility(cross ? View.VISIBLE : View.GONE);
+        if (cross) {
+            String to = currencyOf(toReal.selectedId());
+            binding.tilReceived.setHint("Amount received, in " + to);
+            binding.tilReceived.setPrefixText(Money.symbol(to));
+        }
         updateSaveLabel();
     }
 
@@ -393,7 +460,7 @@ public class TransactionFormSheet extends ExpandedSheet {
     private void updateSaveLabel() {
         Double amount = Money.parse(binding.etAmount.getText().toString());
         if (isTransferMode() && !isEditing() && amount != null) {
-            binding.btnSave.setText("Move " + Money.format(amount));
+            binding.btnSave.setText("Move " + Money.format(amount, amountCurrency()));
         } else {
             binding.btnSave.setText("Save");
         }
@@ -427,17 +494,27 @@ public class TransactionFormSheet extends ExpandedSheet {
         if (fromId == null || toId == null || fromRealId == null || toRealId == null || nothingMoves) {
             return;
         }
+        double received = amount;
+        if (crossCurrency()) {
+            Double typed = Money.parse(binding.etReceived.getText() == null ? null : binding.etReceived.getText().toString());
+            binding.tilReceived.setError(typed == null ? "Enter what arrived" : null);
+            if (typed == null) {
+                return;
+            }
+            received = typed;
+        }
         String note = binding.etNote.getText().toString().trim();
         if (editing != null) {
             if (editingDebit == null || editingCredit == null) {
                 return;
             }
             viewModel.updateTransfer(updatedLeg(editingDebit, amount, fromId, fromRealId, note),
-                    updatedLeg(editingCredit, amount, toId, toRealId, note));
+                    updatedLeg(editingCredit, received, toId, toRealId, note));
         } else {
             Transaction[] legs = Transfers.newPair(amount, fromId, toId, date.getTime(), note);
             legs[0].setRealAccountId(fromRealId);
             legs[1].setRealAccountId(toRealId);
+            legs[1].setAmount(received);
             viewModel.insertTransfer(legs[0], legs[1]);
         }
         dismiss();

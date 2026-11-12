@@ -76,6 +76,71 @@ public class TransactionDaoTotalsTest {
         return value[0];
     }
 
+    /** The totals of the only currency there is, or zeros when there is nothing. */
+    private static SummaryTotals only(List<SummaryTotals> perCurrency) {
+        assertTrue("one currency at most", perCurrency.size() <= 1);
+        return perCurrency.isEmpty() ? new SummaryTotals() : perCurrency.get(0);
+    }
+
+    private static double net(List<AccountBalance> perCurrency) {
+        assertTrue("one currency at most", perCurrency.size() <= 1);
+        return perCurrency.isEmpty() ? 0 : perCurrency.get(0).balance;
+    }
+
+    private static Transaction row(double amount, String type, long accountId, Date date, String category,
+            String currency) {
+        Transaction transaction = row(amount, type, accountId, date, category);
+        transaction.setCurrency(currency);
+        return transaction;
+    }
+
+    @Test
+    public void totalsComeOnePerCurrencyAndAreNeverAddedTogether() throws Exception {
+        dao.insertTransaction(row(1000, "DEBIT", CHECKING, MID_OCT, "Food", "INR"));
+        dao.insertTransaction(row(5000, "CREDIT", CHECKING, MID_OCT, "Salary", "INR"));
+        dao.insertTransaction(row(40, "DEBIT", CHECKING, MID_OCT, "Food", "AED"));
+
+        List<SummaryTotals> totals = read(dao.getSummaryTotals(OCT, NOV, null));
+        assertEquals(2, totals.size());
+        assertEquals("AED", totals.get(0).currency);
+        assertEquals(40, totals.get(0).expense, 0.001);
+        assertEquals(0, totals.get(0).income, 0.001);
+        assertEquals("INR", totals.get(1).currency);
+        assertEquals(1000, totals.get(1).expense, 0.001);
+        assertEquals(5000, totals.get(1).income, 0.001);
+
+        List<CategorySum> aed = read(dao.getCategorySums("DEBIT", "AED", OCT, NOV, null));
+        assertEquals(1, aed.size());
+        assertEquals(40, aed.get(0).getTotal(), 0.001);
+        assertEquals(1000, read(dao.getCategorySums("DEBIT", "INR", OCT, NOV, null)).get(0).getTotal(), 0.001);
+    }
+
+    @Test
+    public void aVirtualAccountGetsABalanceForEachCurrencyItHolds() throws Exception {
+        dao.insertTransaction(row(5000, "CREDIT", CHECKING, MID_OCT, "Salary", "INR"));
+        dao.insertTransaction(row(300, "CREDIT", CHECKING, MID_OCT, "Salary", "AED"));
+        dao.insertTransaction(row(100, "DEBIT", CHECKING, MID_OCT, "Food", "AED"));
+
+        List<AccountBalance> balances = read(dao.getAccountBalances());
+        assertEquals(2, balances.size());
+        assertEquals("AED", balances.get(0).currency);
+        assertEquals(200, balances.get(0).balance, 0.001);
+        assertEquals("INR", balances.get(1).currency);
+        assertEquals(5000, balances.get(1).balance, 0.001);
+        assertEquals(2, read(dao.getNetBalances()).size());
+    }
+
+    @Test
+    public void filterFindsOneCurrency() throws Exception {
+        dao.insertTransaction(row(1000, "DEBIT", CHECKING, MID_OCT, "Food", "INR"));
+        dao.insertTransaction(row(40, "DEBIT", CHECKING, MID_OCT, "Food", "AED"));
+
+        List<Transaction> aed = read(dao.getFilteredTransactions(OCT, NOV, null, null, null, null, null, null, "AED",
+                null, null, null, null, null));
+        assertEquals(1, aed.size());
+        assertEquals(40, aed.get(0).getAmount(), 0.001);
+    }
+
     @Test
     public void transfersStayOutOfIncomeAndSpendingButAreReportedSeparately() throws Exception {
         dao.insertTransaction(row(1000, "DEBIT", CHECKING, MID_OCT, "Food"));
@@ -84,18 +149,18 @@ public class TransactionDaoTotalsTest {
         dao.insertTransaction(transfer[0]);
         dao.insertTransaction(transfer[1]);
 
-        SummaryTotals all = read(dao.getSummaryTotals(OCT, NOV, null));
+        SummaryTotals all = only(read(dao.getSummaryTotals(OCT, NOV, null)));
         assertEquals(1000, all.expense, 0.001);
         assertEquals(5000, all.income, 0.001);
         assertEquals(4000, all.left(), 0.001);
 
-        SummaryTotals checking = read(dao.getSummaryTotals(OCT, NOV, CHECKING));
+        SummaryTotals checking = only(read(dao.getSummaryTotals(OCT, NOV, CHECKING)));
         assertEquals(1000, checking.expense, 0.001);
         assertEquals(2000, checking.movedOut, 0.001);
         assertEquals("What is really left in the account", 2000, checking.left(), 0.001);
         assertEquals(0, checking.movedIn, 0.001);
 
-        SummaryTotals savings = read(dao.getSummaryTotals(OCT, NOV, SAVINGS));
+        SummaryTotals savings = only(read(dao.getSummaryTotals(OCT, NOV, SAVINGS)));
         assertEquals(0, savings.income, 0.001);
         assertEquals(2000, savings.movedIn, 0.001);
     }
@@ -107,7 +172,7 @@ public class TransactionDaoTotalsTest {
         dao.insertTransaction(transfer[0]);
         dao.insertTransaction(transfer[1]);
 
-        List<CategorySum> sums = read(dao.getCategorySums("DEBIT", OCT, NOV, null));
+        List<CategorySum> sums = read(dao.getCategorySums("DEBIT", "INR", OCT, NOV, null));
         assertEquals(1, sums.size());
         assertEquals("Food", sums.get(0).getCategory());
     }
@@ -120,7 +185,7 @@ public class TransactionDaoTotalsTest {
         dao.insertTransaction(transfer[0]);
         dao.insertTransaction(transfer[1]);
 
-        assertEquals(4000, read(dao.getNetBalance()), 0.001);
+        assertEquals(4000, net(read(dao.getNetBalances())), 0.001);
         double checking = 0;
         double savings = 0;
         for (AccountBalance balance : read(dao.getAccountBalances())) {
@@ -140,8 +205,8 @@ public class TransactionDaoTotalsTest {
         excluded.setExcludedFromSummary(true);
         dao.insertTransaction(excluded);
 
-        assertEquals(0, read(dao.getSummaryTotals(OCT, NOV, null)).expense, 0.001);
-        assertEquals(0, read(dao.getNetBalance()), 0.001);
+        assertEquals(0, only(read(dao.getSummaryTotals(OCT, NOV, null))).expense, 0.001);
+        assertEquals(0, net(read(dao.getNetBalances())), 0.001);
     }
 
     @Test
@@ -155,8 +220,8 @@ public class TransactionDaoTotalsTest {
             Calendar octStart = new GregorianCalendar(2026, Calendar.OCTOBER, 1);
             dao.insertTransaction(row(100, "DEBIT", CHECKING, justAfterMidnight.getTime(), "Food"));
 
-            assertEquals(100, read(dao.getSummaryTotals(start.getTime(), end.getTime(), null)).expense, 0.001);
-            assertEquals(0, read(dao.getSummaryTotals(octStart.getTime(), start.getTime(), null)).expense, 0.001);
+            assertEquals(100, only(read(dao.getSummaryTotals(start.getTime(), end.getTime(), null))).expense, 0.001);
+            assertEquals(0, only(read(dao.getSummaryTotals(octStart.getTime(), start.getTime(), null))).expense, 0.001);
         } finally {
             TimeZone.setDefault(original);
         }
@@ -246,11 +311,11 @@ public class TransactionDaoTotalsTest {
         dao.insertTransaction(transfer[0]);
         dao.insertTransaction(transfer[1]);
 
-        assertEquals(2, read(dao.getFilteredTransactions(OCT, NOV, null, null, null, null, null, null, null, null, null,
+        assertEquals(2, read(dao.getFilteredTransactions(OCT, NOV, null, null, null, null, null, null, null, null, null, null,
                 true, null)).size());
-        assertEquals(1, read(dao.getFilteredTransactions(OCT, NOV, null, null, null, null, null, null, "DEBIT", null,
+        assertEquals(1, read(dao.getFilteredTransactions(OCT, NOV, null, null, null, null, null, null, null, "DEBIT", null,
                 null, false, null)).size());
-        assertEquals(3, read(dao.getFilteredTransactions(OCT, NOV, null, null, null, null, null, null, null, null, null,
+        assertEquals(3, read(dao.getFilteredTransactions(OCT, NOV, null, null, null, null, null, null, null, null, null, null,
                 null, null)).size());
     }
 
@@ -264,7 +329,7 @@ public class TransactionDaoTotalsTest {
 
         for (String search : new String[] { "corner", "weekly", "1240" }) {
             assertEquals(search, 1, read(dao.getFilteredTransactions(OCT, NOV, null, search, null, null, null, null,
-                    null, null, null, null, null)).size());
+                    null, null, null, null, null, null)).size());
         }
     }
 }

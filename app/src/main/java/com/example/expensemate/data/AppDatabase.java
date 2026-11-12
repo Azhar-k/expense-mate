@@ -17,8 +17,9 @@ import java.util.Date;
 import java.util.List;
 
 import androidx.annotation.NonNull;
+import com.example.expensemate.util.Currencies;
 
-@Database(entities = {Transaction.class, Category.class, RecurringPayment.class, Account.class, CounterpartyCategory.class, Loan.class}, version = 14, exportSchema = false)
+@Database(entities = {Transaction.class, Category.class, RecurringPayment.class, Account.class, CounterpartyCategory.class, Loan.class}, version = 15, exportSchema = false)
 @TypeConverters(Converters.class)
 public abstract class AppDatabase extends RoomDatabase {
     private static volatile AppDatabase INSTANCE;
@@ -203,6 +204,21 @@ public abstract class AppDatabase extends RoomDatabase {
         }
     };
 
+    // Every amount so far was in rupees. Virtual accounts get no currency: they can hold money in any.
+    static final Migration MIGRATION_14_15 = new Migration(14, 15) {
+        @Override
+        public void migrate(SupportSQLiteDatabase database) {
+            database.execSQL("ALTER TABLE accounts ADD COLUMN currency TEXT");
+            Account.ensureRealAccountCurrencies(database, Currencies.LEGACY);
+            database.execSQL("ALTER TABLE transactions ADD COLUMN currency TEXT NOT NULL DEFAULT '"
+                    + Currencies.LEGACY + "'");
+            database.execSQL("ALTER TABLE loans ADD COLUMN currency TEXT NOT NULL DEFAULT '"
+                    + Currencies.LEGACY + "'");
+            database.execSQL("ALTER TABLE recurring_payments ADD COLUMN currency TEXT NOT NULL DEFAULT '"
+                    + Currencies.LEGACY + "'");
+        }
+    };
+
     private static final long REVIEW_BACKFILL_MS = 30L * 24 * 60 * 60 * 1000;
 
     public abstract TransactionDao transactionDao();
@@ -244,6 +260,7 @@ public abstract class AppDatabase extends RoomDatabase {
 
         Account realAccount = new Account(Account.DEFAULT_REAL_NAME, "", "", null, "");
         realAccount.setType(Account.TYPE_REAL);
+        realAccount.setCurrency(Currencies.fromLocale());
         realAccount.setDefault(true);
         accountDao.insert(realAccount);
     }
@@ -254,7 +271,7 @@ public abstract class AppDatabase extends RoomDatabase {
                 if (INSTANCE == null) {
                     INSTANCE = Room.databaseBuilder(context.getApplicationContext(),
                             AppDatabase.class, "expense_mate_database")
-                            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14)
+                            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15)
                             .addCallback(new RoomDatabase.Callback() {
                                 @Override
                                 public void onCreate(@NonNull SupportSQLiteDatabase db) {

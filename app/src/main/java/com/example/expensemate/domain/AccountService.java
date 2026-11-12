@@ -19,6 +19,7 @@ public interface AccountService {
     /** A new account goes to the end of a list the user has ordered, or into the alphabetical one. */
     CompletableFuture<Void> add(Account account);
 
+    /** Changing a real account's currency relabels its transactions; amounts are not converted. */
     CompletableFuture<Void> update(Account account);
 
     /** Numbers the accounts from one in the order given. */
@@ -27,6 +28,9 @@ public interface AccountService {
     /** Replaces the default of this account's type only. */
     CompletableFuture<Void> makeDefault(Account account);
 
-    /** A default account stays. Any other's transactions move to the default of its type. */
+    /**
+     * A default account stays. Any other's transactions move to the default of its type, and from a real
+     * account they take on that account's currency.
+     */
     CompletableFuture<Void> delete(Account account);
 }

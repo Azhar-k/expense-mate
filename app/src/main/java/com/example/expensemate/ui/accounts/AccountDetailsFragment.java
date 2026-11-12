@@ -30,7 +30,8 @@ import com.example.expensemate.ui.common.ActivityAdapter;
 import com.example.expensemate.ui.common.Pickers;
 import com.example.expensemate.ui.common.RowSwipe;
 import com.example.expensemate.ui.common.Ui;
-import com.example.expensemate.util.Money;
+import com.example.expensemate.util.Currencies;
+import com.example.expensemate.util.CurrencyTotals;
 import com.example.expensemate.viewmodel.AccountViewModel;
 import com.example.expensemate.viewmodel.ActivityRow;
 import com.example.expensemate.viewmodel.TransactionFilter;
@@ -53,6 +54,8 @@ public class AccountDetailsFragment extends Fragment {
     private final MutableLiveData<TransactionFilter> range = new MutableLiveData<>(TransactionFilter.lastDays(30));
     private long accountId;
     private Account account;
+    private List<Account> allAccounts = new java.util.ArrayList<>();
+    private List<AccountBalance> lastBalances = new java.util.ArrayList<>();
     private TransactionFilter shownRange;
 
     @Nullable
@@ -121,12 +124,14 @@ public class AccountDetailsFragment extends Fragment {
         binding.chipRange.setOnClickListener(v -> chooseRange());
         accountViewModel.getAllAccounts().observe(getViewLifecycleOwner(), accounts -> {
             adapter.setAccounts(accounts);
+            allAccounts = accounts;
             for (Account candidate : accounts) {
                 if (candidate.getId() == accountId) {
                     account = candidate;
                     updateHeader();
                 }
             }
+            renderBalance(lastBalances);
         });
         transactionViewModel.getAccountBalances().observe(getViewLifecycleOwner(), this::renderBalance);
 
@@ -159,14 +164,21 @@ public class AccountDetailsFragment extends Fragment {
     }
 
     private void renderBalance(List<AccountBalance> balances) {
-        double value = 0;
+        lastBalances = balances;
+        if (account == null) {
+            return;
+        }
+        CurrencyTotals value = new CurrencyTotals();
         for (AccountBalance balance : balances) {
             if (balance.accountId == accountId) {
-                value = balance.balance;
+                value.add(balance.currency, balance.balance);
             }
         }
-        binding.tvBalance.setText(Money.format(value));
-        binding.tvBalance.setTextColor(requireContext().getColor(value < 0 ? R.color.alert : R.color.on_surface));
+        // A real account is in its own currency; a virtual one shows each currency it holds
+        String main = Currencies.main(allAccounts);
+        String own = account.isReal() && account.getCurrency() != null ? account.getCurrency() : main;
+        binding.tvBalance.setText(value.format(own, own));
+        binding.tvBalance.setTextColor(requireContext().getColor(value.allNegative() ? R.color.alert : R.color.on_surface));
     }
 
     private void chooseRange() {

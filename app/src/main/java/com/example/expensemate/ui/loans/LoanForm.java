@@ -10,10 +10,14 @@ import androidx.lifecycle.ViewModelProvider;
 import com.example.expensemate.data.Loan;
 import com.example.expensemate.data.Transaction;
 import com.example.expensemate.databinding.DialogLoanFormBinding;
+import com.example.expensemate.ui.common.CurrencyField;
 import com.example.expensemate.ui.common.FormSheet;
 import com.example.expensemate.ui.common.Pickers;
 import com.example.expensemate.ui.common.TransactionText;
+import com.example.expensemate.ui.common.Ui;
+import com.example.expensemate.util.Currencies;
 import com.example.expensemate.util.Money;
+import com.example.expensemate.viewmodel.AccountViewModel;
 import com.example.expensemate.viewmodel.LoanViewModel;
 
 import java.util.Calendar;
@@ -54,8 +58,19 @@ public final class LoanForm {
             form.etAmount.setText(Money.plain(from.getAmount()));
             when.setTime(from.getDate());
             form.tvLinked.setVisibility(View.VISIBLE);
-            form.tvLinked.setText("Linked to the payment of " + Money.format(from.getAmount()) + " on "
+            form.tvLinked.setText("Linked to the payment of " + Money.format(from.getAmount(), from.getCurrency()) + " on "
                     + LoanText.date(from.getDate()) + ".");
+        }
+        // Lent through a payment, it is in that payment's currency
+        if (from != null) {
+            form.tilCurrency.setVisibility(View.GONE);
+        } else {
+            Ui.observeOnce(new ViewModelProvider(activity).get(AccountViewModel.class).getAllAccounts(), activity,
+                    list -> {
+                        String main = Currencies.main(list);
+                        CurrencyField.setUp(form.etCurrency, editing != null ? editing.getCurrency() : main, main,
+                                Currencies.inUse(list));
+                    });
         }
         form.etDate.setText(LoanText.date(when.getTime()));
         form.etDate.setOnClickListener(v -> Pickers.pickDate(activity.getSupportFragmentManager(), "Lent on", when,
@@ -66,15 +81,18 @@ public final class LoanForm {
         sheet.onSave(() -> {
             String person = form.etPerson.getText().toString().trim();
             Double amount = Money.parse(form.etAmount.getText().toString());
+            String currency = from != null ? from.getCurrency() : CurrencyField.read(form.etCurrency);
+            form.tilCurrency.setError(currency == null ? "Pick a currency" : null);
             form.tilPerson.setError(person.isEmpty() ? "Who did you lend it to?" : null);
             form.tilAmount.setError(amount == null ? "Enter an amount" : null);
-            if (person.isEmpty() || amount == null) {
+            if (person.isEmpty() || amount == null || currency == null) {
                 return;
             }
 
             Loan loan = editing != null ? editing : new Loan();
             loan.setPerson(person);
             loan.setAmount(amount);
+            loan.setCurrency(currency);
             loan.setDate(when.getTime());
             String note = form.etNote.getText().toString().trim();
             loan.setNote(note.isEmpty() ? null : note);

@@ -30,6 +30,7 @@ import com.example.expensemate.databinding.ItemComingUpBinding;
 import com.example.expensemate.ui.activity.TransactionFormSheet;
 import com.example.expensemate.ui.bills.BillText;
 import com.example.expensemate.util.Bills;
+import com.example.expensemate.util.Currencies;
 import com.example.expensemate.util.Money;
 import com.example.expensemate.viewmodel.AccountViewModel;
 import com.example.expensemate.viewmodel.RecurringPaymentsViewModel;
@@ -52,6 +53,7 @@ public class HomeFragment extends Fragment {
     private List<CategorySum> income = new ArrayList<>();
     private List<RecurringPayment> bills = new ArrayList<>();
     private List<Account> accounts = new ArrayList<>();
+    private List<SummaryTotals> currencyTotals = new ArrayList<>();
     private final SimpleDateFormat monthFormat = new SimpleDateFormat("MMMM yyyy", Locale.getDefault());
     private Menu menu;
 
@@ -112,6 +114,7 @@ public class HomeFragment extends Fragment {
         accountViewModel.getAllAccounts().observe(getViewLifecycleOwner(), list -> {
             accounts = list;
             buildAccountChips();
+            renderTotals(currencyTotals);
         });
         accountViewModel.getDefaultAccount().observe(getViewLifecycleOwner(), account -> {
             if (account != null) {
@@ -119,7 +122,7 @@ public class HomeFragment extends Fragment {
                 buildAccountChips();
             }
         });
-        viewModel.getHomeTotals().observe(getViewLifecycleOwner(), this::renderTotals);
+        viewModel.getHomeTotals().observe(getViewLifecycleOwner(), list -> renderTotals(list != null ? list : new ArrayList<>()));
         viewModel.getHomeExpenses().observe(getViewLifecycleOwner(), list -> {
             expenses = list;
             renderBreakdown();
@@ -202,16 +205,22 @@ public class HomeFragment extends Fragment {
         binding.chipsAccount.addView(chip);
     }
 
-    private void renderTotals(SummaryTotals totals) {
-        if (totals == null) {
-            return;
+    private void renderTotals(List<SummaryTotals> perCurrency) {
+        currencyTotals = perCurrency;
+        String currency = pickCurrency(perCurrency);
+        SummaryTotals totals = new SummaryTotals();
+        totals.currency = currency;
+        for (SummaryTotals each : perCurrency) {
+            if (currency.equals(each.currency)) {
+                totals = each;
+            }
         }
         double left = totals.left();
         boolean singleAccount = viewModel.getHomeAccountId() != null;
         String month = showingCurrentMonth() ? "this month"
                 : "in " + new SimpleDateFormat("MMMM", Locale.getDefault()).format(viewModel.getHomeMonth().getTime());
         binding.tvLeftLabel.setText((left >= 0 ? "Left " : singleAccount ? "Down " : "Overspent ") + month);
-        binding.tvLeft.setText(Money.format(Math.abs(left)));
+        binding.tvLeft.setText(Money.format(Math.abs(left), currency));
         binding.tvLeft.setTextColor(requireContext().getColor(left < 0 ? R.color.alert : R.color.on_surface));
 
         double moneyIn = totals.income + totals.movedIn;
@@ -219,14 +228,57 @@ public class HomeFragment extends Fragment {
         int percent = moneyIn > 0 ? (int) Math.min(100, Math.round(moneyOut * 100 / moneyIn)) : moneyOut > 0 ? 100 : 0;
         binding.progressSpent.setProgress(percent);
         binding.progressSpent.setIndicatorColor(requireContext().getColor(left < 0 ? R.color.alert : R.color.primary));
-        binding.tvSpent.setText("Spent " + Money.format(totals.expense));
-        binding.tvIncome.setText("Income " + Money.format(totals.income));
+        binding.tvSpent.setText("Spent " + Money.format(totals.expense, currency));
+        binding.tvIncome.setText("Income " + Money.format(totals.income, currency));
 
         // A single account's balance also changes through transfers, so say how much moved
         boolean showMoved = singleAccount && (totals.movedIn > 0 || totals.movedOut > 0);
         binding.tvMoved.setVisibility(showMoved ? View.VISIBLE : View.GONE);
-        binding.tvMoved.setText("Moved in " + Money.format(totals.movedIn) + " · Moved out "
-                + Money.format(totals.movedOut));
+        binding.tvMoved.setText("Moved in " + Money.format(totals.movedIn, currency) + " · Moved out "
+                + Money.format(totals.movedOut, currency));
+    }
+
+    /**
+     * The currency the summary card shows: the one picked before while it still has money this month,
+     * else the main currency, else whichever has money. More than one gets a row of chips to switch.
+     */
+    private String pickCurrency(List<SummaryTotals> perCurrency) {
+        String main = Currencies.main(accounts);
+        List<String> codes = new ArrayList<>();
+        for (SummaryTotals each : perCurrency) {
+            if (each.currency != null) {
+                codes.add(each.currency);
+            }
+        }
+        codes.sort(Currencies.mainFirst(main));
+        String shown = viewModel.getHomeCurrency();
+        if (shown == null || !codes.contains(shown)) {
+            shown = codes.isEmpty() || codes.contains(main) ? main : codes.get(0);
+        }
+        viewModel.setHomeCurrency(shown);
+        buildCurrencyChips(codes, shown);
+        return shown;
+    }
+
+    private void buildCurrencyChips(List<String> codes, String shown) {
+        binding.chipsCurrency.removeAllViews();
+        binding.chipsCurrency.setVisibility(codes.size() > 1 ? View.VISIBLE : View.GONE);
+        if (codes.size() < 2) {
+            return;
+        }
+        for (String code : codes) {
+            Chip chip = new Chip(requireContext(), null, com.google.android.material.R.attr.chipStyle);
+            chip.setText(code);
+            chip.setContentDescription("Show " + Currencies.displayName(code));
+            chip.setCheckable(true);
+            chip.setCheckedIconVisible(false);
+            chip.setChecked(code.equals(shown));
+            chip.setOnClickListener(v -> {
+                chip.setChecked(true);
+                viewModel.setHomeCurrency(code);
+            });
+            binding.chipsCurrency.addView(chip);
+        }
     }
 
     private void renderBreakdown() {
@@ -258,7 +310,7 @@ public class HomeFragment extends Fragment {
             row.dot.setBackgroundTintList(ColorStateList.valueOf(color));
             row.tvName.setText(sum.getCategory());
             row.tvPercent.setText(Math.round(sum.getTotal() * 100 / total) + "%");
-            row.tvAmount.setText(Money.format(sum.getTotal()));
+            row.tvAmount.setText(Money.format(sum.getTotal(), viewModel.getHomeCurrency()));
             row.getRoot().setOnClickListener(v -> {
                 viewModel.showHomeCategory(sum.getCategory(), showingExpenses);
                 ((MainActivity) requireActivity()).openTab(R.id.navigation_activity);
@@ -280,7 +332,7 @@ public class HomeFragment extends Fragment {
                 }
                 ItemComingUpBinding row = ItemComingUpBinding.inflate(getLayoutInflater(), binding.comingUpRows, false);
                 row.tvName.setText(bill.getName());
-                row.tvAmount.setText(Money.format(bill.getAmount()));
+                row.tvAmount.setText(Money.format(bill.getAmount(), bill.getCurrency()));
                 BillText.styleStatusTag(row.tvTag, bill, today);
                 binding.comingUpRows.addView(row.getRoot());
                 shown++;

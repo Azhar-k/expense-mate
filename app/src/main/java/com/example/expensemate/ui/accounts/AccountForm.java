@@ -1,6 +1,7 @@
 package com.example.expensemate.ui.accounts;
 
 import android.view.LayoutInflater;
+import android.view.View;
 
 import androidx.annotation.Nullable;
 import androidx.fragment.app.FragmentActivity;
@@ -9,15 +10,18 @@ import androidx.lifecycle.ViewModelProvider;
 import com.example.expensemate.R;
 import com.example.expensemate.data.Account;
 import com.example.expensemate.databinding.DialogAccountFormBinding;
+import com.example.expensemate.ui.common.CurrencyField;
 import com.example.expensemate.ui.common.FormSheet;
 import com.example.expensemate.ui.common.Pickers;
 import com.example.expensemate.ui.common.Ui;
+import com.example.expensemate.util.Currencies;
 import com.example.expensemate.viewmodel.AccountViewModel;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.List;
 import java.util.Locale;
 
 /** Everything about changing an account, shared by the list and the details screen. */
@@ -37,6 +41,18 @@ public final class AccountForm {
         final boolean[] hasExpiry = { false };
 
         form.typeToggle.check(real ? R.id.typeReal : R.id.typeVirtual);
+        form.tilCurrency.setVisibility(real ? View.VISIBLE : View.GONE);
+        form.typeToggle.addOnButtonCheckedListener((group, checkedId, isChecked) -> {
+            if (isChecked) {
+                form.tilCurrency.setVisibility(checkedId == R.id.typeReal ? View.VISIBLE : View.GONE);
+            }
+        });
+        AccountViewModel viewModel = new ViewModelProvider(activity).get(AccountViewModel.class);
+        Ui.observeOnce(viewModel.getAllAccounts(), activity, list -> {
+            String main = Currencies.main(list);
+            String current = account != null && account.getCurrency() != null ? account.getCurrency() : main;
+            CurrencyField.setUp(form.etCurrency, current, main, Currencies.inUse(list));
+        });
         // Transactions already point at this account as one kind or the other
         form.typeVirtual.setEnabled(account == null);
         form.typeReal.setEnabled(account == null);
@@ -69,21 +85,43 @@ public final class AccountForm {
             String number = form.etNumber.getText().toString().trim();
             String description = form.etDescription.getText().toString().trim();
             Date expiryDate = hasExpiry[0] ? expiry.getTime() : null;
+            boolean isReal = form.typeToggle.getCheckedButtonId() == R.id.typeReal;
+            String currency = isReal ? CurrencyField.read(form.etCurrency) : null;
+            form.tilCurrency.setError(isReal && currency == null ? "Pick a currency" : null);
+            if (isReal && currency == null) {
+                return;
+            }
 
-            AccountViewModel viewModel = new ViewModelProvider(activity).get(AccountViewModel.class);
             if (account == null) {
                 Account added = new Account(name, number, bank, expiryDate, description);
-                added.setType(form.typeToggle.getCheckedButtonId() == R.id.typeReal ? Account.TYPE_REAL : Account.TYPE_VIRTUAL);
+                added.setType(isReal ? Account.TYPE_REAL : Account.TYPE_VIRTUAL);
+                added.setCurrency(currency);
                 viewModel.insert(added);
-            } else {
+                sheet.dismiss();
+                return;
+            }
+            Runnable save = () -> {
                 account.setName(name);
                 account.setBank(bank);
                 account.setAccountNumber(number);
                 account.setDescription(description);
                 account.setExpiryDate(expiryDate);
+                account.setCurrency(currency);
                 viewModel.update(account);
+                sheet.dismiss();
+            };
+            if (isReal && account.getCurrency() != null && !account.getCurrency().equals(currency)) {
+                new MaterialAlertDialogBuilder(activity)
+                        .setTitle("Change to " + currency + "?")
+                        .setMessage("Every transaction in " + account.getName() + " is relabelled from "
+                                + account.getCurrency() + " to " + currency + ". Amounts stay the same: "
+                                + "nothing is converted.")
+                        .setNegativeButton("Cancel", null)
+                        .setPositiveButton("Change", (dialog, which) -> save.run())
+                        .show();
+            } else {
+                save.run();
             }
-            sheet.dismiss();
         });
         sheet.show();
     }
@@ -127,9 +165,29 @@ public final class AccountForm {
             Ui.snackbar(activity, "Choose another default " + typeLabel(account) + " account before deleting this one");
             return;
         }
+        AccountViewModel viewModel = new ViewModelProvider(activity).get(AccountViewModel.class);
+        Ui.observeOnce(viewModel.getAllAccounts(), activity,
+                list -> confirmDelete(activity, account, deleteMessage(account, list), onDeleted));
+    }
+
+    private static String deleteMessage(Account account, List<Account> accounts) {
+        // Moving to a real account in another currency relabels the amounts without converting them
+        for (Account other : accounts) {
+            if (account.isReal() && other.isReal() && other.isDefault() && account.getCurrency() != null
+                    && !account.getCurrency().equals(other.getCurrency())) {
+                return "Its transactions move to " + other.getName() + " and are relabelled from "
+                        + account.getCurrency() + " to " + other.getCurrency()
+                        + ". Amounts stay the same: nothing is converted.";
+            }
+        }
+        return "Its transactions move to your default " + typeLabel(account) + " account.";
+    }
+
+    private static void confirmDelete(FragmentActivity activity, Account account, String message,
+            Runnable onDeleted) {
         new MaterialAlertDialogBuilder(activity)
                 .setTitle("Delete " + account.getName() + "?")
-                .setMessage("Its transactions move to your default " + typeLabel(account) + " account.")
+                .setMessage(message)
                 .setNegativeButton("Cancel", null)
                 .setPositiveButton("Delete", (dialog, which) -> {
                     new ViewModelProvider(activity).get(AccountViewModel.class).delete(account);

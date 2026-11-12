@@ -22,6 +22,9 @@ public interface AccountDao {
     @Query("SELECT * FROM accounts WHERE isDefault = 1 AND type = 'REAL' LIMIT 1")
     Account getDefaultRealAccountSync();
 
+    @Query("SELECT * FROM accounts WHERE id = :id")
+    Account getAccountByIdSync(long id);
+
     @Query("UPDATE accounts SET isDefault = 0 WHERE isDefault = 1 AND type = :type")
     void clearDefaultAccount(String type);
 

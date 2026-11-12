@@ -31,6 +31,11 @@ final class RoomAccountStore implements AccountStore {
     }
 
     @Override
+    public Account findById(long id) {
+        return dao.getAccountByIdSync(id);
+    }
+
+    @Override
     public List<Account> findAll() {
         return dao.getAllAccountsSync();
     }

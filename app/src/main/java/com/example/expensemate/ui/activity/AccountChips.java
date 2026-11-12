@@ -18,6 +18,7 @@ final class AccountChips {
     private final ItemChipPickerBinding row;
     private final String label;
     private Long selectedId;
+    private Runnable onChange = () -> { };
 
     AccountChips(ItemChipPickerBinding row, String label) {
         this.row = row;
@@ -27,6 +28,7 @@ final class AccountChips {
             Chip chip = checkedIds.isEmpty() ? null : group.findViewById(checkedIds.get(0));
             selectedId = chip != null ? (Long) chip.getTag() : null;
             setError(null);
+            onChange.run();
         });
     }
 
@@ -60,6 +62,11 @@ final class AccountChips {
         }
         row.chips.clearCheck();
         selectedId = null;
+    }
+
+    /** Runs whenever the choice changes, whether tapped or set from code. */
+    void setOnChange(Runnable onChange) {
+        this.onChange = onChange;
     }
 
     @Nullable

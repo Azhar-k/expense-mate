@@ -10,10 +10,12 @@ import java.util.List;
 
 @Dao
 public interface LoanDao {
-    // Only credits count as returns; the debit that lent the money is linked too, as where it came from
+    // Only credits count as returns; the debit that lent the money is linked too, as where it came from.
+    // A return in another currency cannot be added to what was lent, so only the loan's own currency counts.
     String SUMMARY = "SELECT l.*, l.returnedManually + COALESCE((SELECT SUM(t.amount) FROM transactions t "
-            + "WHERE t.loanId = l.id AND t.transactionType = 'CREDIT'), 0) AS returned, "
-            + "(SELECT MAX(t.date) FROM transactions t WHERE t.loanId = l.id AND t.transactionType = 'CREDIT') "
+            + "WHERE t.loanId = l.id AND t.transactionType = 'CREDIT' AND t.currency = l.currency), 0) AS returned, "
+            + "(SELECT MAX(t.date) FROM transactions t WHERE t.loanId = l.id AND t.transactionType = 'CREDIT' "
+            + "AND t.currency = l.currency) "
             + "AS lastReturnDate FROM loans l";
 
     @Query(SUMMARY + " ORDER BY l.date DESC, l.id DESC")

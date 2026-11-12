@@ -32,6 +32,16 @@
                     app:singleSelection="true" />
             </HorizontalScrollView>
 
+            <!-- Shown only when the month has money in more than one currency -->
+            <com.google.android.material.chip.ChipGroup
+                android:id="@+id/chipsCurrency"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:visibility="gone"
+                app:selectionRequired="true"
+                app:singleLine="true"
+                app:singleSelection="true" />
+
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"

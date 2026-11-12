@@ -1,6 +1,10 @@
 package com.example.expensemate.data;
 
+import androidx.annotation.NonNull;
+import androidx.room.ColumnInfo;
 import androidx.room.Entity;
+
+import com.example.expensemate.util.Currencies;
 import androidx.room.PrimaryKey;
 import java.util.Date;
 
@@ -17,6 +21,13 @@ public class RecurringPayment {
     private Date lastCompletedDate;
     private Long fromAccountId;
     private Long toAccountId;
+    @NonNull
+    @ColumnInfo(defaultValue = Currencies.LEGACY) // Matches the migration
+    private String currency = Currencies.LEGACY; // ISO 4217 code of amount
+
+    @NonNull
+    public String getCurrency() { return currency; }
+    public void setCurrency(@NonNull String currency) { this.currency = currency; }
 
     public RecurringPayment(String name, double amount, int dueDay, Date expiryDate) {
         this.name = name;

@@ -30,6 +30,7 @@ final class LocalCaptureService implements CaptureService {
             List<PastTransaction> history = rules.recentHistory();
             rules.suggestAccounts(parsed, history);
             rules.fillDefaultAccounts(parsed);
+            rules.applyCurrency(parsed);
             rules.applyDefaultCategory(parsed);
             rules.applyRememberedCategory(parsed);
             rules.suggestCategory(parsed, history);

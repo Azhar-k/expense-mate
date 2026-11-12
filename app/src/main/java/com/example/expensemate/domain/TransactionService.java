@@ -23,9 +23,10 @@ public interface TransactionService {
     LiveData<List<Transaction>> transferLegsBetween(Date from, Date to);
 
     /** From inclusive, to exclusive; a null account means all accounts. */
-    LiveData<SummaryTotals> summary(Date from, Date to, Long accountId);
+    LiveData<List<SummaryTotals>> summary(Date from, Date to, Long accountId);
 
-    LiveData<List<CategorySum>> categoryTotals(String transactionType, Date from, Date to, Long accountId);
+    LiveData<List<CategorySum>> categoryTotals(String transactionType, String currency, Date from, Date to,
+            Long accountId);
 
     LiveData<Integer> needsReviewCount();
 

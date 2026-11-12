@@ -16,6 +16,7 @@ import com.example.expensemate.data.Account;
 import com.example.expensemate.data.Transaction;
 import com.example.expensemate.databinding.ItemActivityRowBinding;
 import com.example.expensemate.databinding.ItemDayHeaderBinding;
+import com.example.expensemate.util.Currencies;
 import com.example.expensemate.util.Money;
 import com.example.expensemate.viewmodel.ActivityRow;
 
@@ -37,6 +38,7 @@ public class ActivityAdapter extends ListAdapter<ActivityRow, RecyclerView.ViewH
     private final OnRowClickListener listener;
     private final SimpleDateFormat timeFormat = new SimpleDateFormat("HH:mm", Locale.getDefault());
     private Map<Long, String> accountNames = new HashMap<>();
+    private String mainCurrency;
 
     public ActivityAdapter(OnRowClickListener listener) {
         super(new DiffUtil.ItemCallback<ActivityRow>() {
@@ -59,6 +61,7 @@ public class ActivityAdapter extends ListAdapter<ActivityRow, RecyclerView.ViewH
             names.put(account.getId(), account.getName());
         }
         accountNames = names;
+        mainCurrency = Currencies.main(accounts);
         notifyDataSetChanged();
     }
 
@@ -108,7 +111,7 @@ public class ActivityAdapter extends ListAdapter<ActivityRow, RecyclerView.ViewH
     public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
         ActivityRow row = getItem(position);
         if (holder instanceof HeaderHolder) {
-            ((HeaderHolder) holder).bind(row);
+            ((HeaderHolder) holder).bind(row, mainCurrency);
         } else {
             boolean first = position == 0 || getItem(position - 1).isHeader();
             boolean last = position == getItemCount() - 1 || getItem(position + 1).isHeader();
@@ -124,9 +127,9 @@ public class ActivityAdapter extends ListAdapter<ActivityRow, RecyclerView.ViewH
             this.binding = binding;
         }
 
-        void bind(ActivityRow row) {
+        void bind(ActivityRow row, String mainCurrency) {
             binding.tvDay.setText(row.dayLabel);
-            binding.tvNet.setText(row.dayNet != 0 ? Money.signed(row.dayNet) : "");
+            binding.tvNet.setText(row.dayNet.signed(mainCurrency));
         }
     }
 
@@ -163,7 +166,7 @@ public class ActivityAdapter extends ListAdapter<ActivityRow, RecyclerView.ViewH
                 Ui.styleIconTile(binding.ivIcon, R.drawable.ic_swap, R.color.transfer_container, R.color.transfer);
                 binding.tvTitle.setText(transferTitle(row));
                 binding.tvSubtitle.setText("Transfer");
-                binding.tvAmount.setText(Money.format(transaction.getAmount()));
+                binding.tvAmount.setText(TransactionText.transferAmount(transaction, row.debitLeg, row.creditLeg));
                 amountColor = R.color.transfer;
             } else {
                 binding.tvTitle.setText(TransactionText.title(transaction));
@@ -190,8 +193,8 @@ public class ActivityAdapter extends ListAdapter<ActivityRow, RecyclerView.ViewH
                 Long realId = transaction.getRealAccountId();
                 binding.pillReal.setVisibility(realId != null ? View.VISIBLE : View.GONE);
                 binding.pillReal.setText(TransactionText.accountName(accountNames, realId));
-                binding.tvAmount.setText(credit ? Money.credit(transaction.getAmount())
-                        : Money.debit(transaction.getAmount()));
+                binding.tvAmount.setText(credit ? Money.credit(transaction.getAmount(), transaction.getCurrency())
+                        : Money.debit(transaction.getAmount(), transaction.getCurrency()));
                 if (credit) {
                     amountColor = R.color.credit;
                 }

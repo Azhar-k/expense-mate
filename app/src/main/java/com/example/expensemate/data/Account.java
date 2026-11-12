@@ -26,6 +26,7 @@ public class Account {
     private String type = TYPE_VIRTUAL;
     @ColumnInfo(defaultValue = "0") // Matches the migration, so inserts that leave it out still work
     private int sortOrder; // Lists go by this, then by name; zero until the user reorders
+    private String currency; // ISO 4217 code of a real account's money; null on virtual accounts, which hold any
 
     /**
      * Gives real accounts a default, and that default to any transaction without a real account.
@@ -42,6 +43,12 @@ public class Account {
                 + "(SELECT id FROM accounts WHERE type = ? AND isDefault = 1) WHERE realAccountId IS NULL "
                 + "AND accountId IN (SELECT id FROM accounts WHERE type = ?)",
                 new Object[] { TYPE_REAL, TYPE_VIRTUAL });
+    }
+
+    /** A real account always says what its money is in; one without gets this currency. */
+    public static void ensureRealAccountCurrencies(SupportSQLiteDatabase database, String currency) {
+        database.execSQL("UPDATE accounts SET currency = ? WHERE type = ? AND currency IS NULL",
+                new Object[] { currency, TYPE_REAL });
     }
 
     public Account(String name, String accountNumber, String bank, Date expiryDate, String description) {
@@ -80,6 +87,9 @@ public class Account {
     public void setType(@NonNull String type) { this.type = type; }
 
     public boolean isReal() { return TYPE_REAL.equals(type); }
+
+    public String getCurrency() { return currency; }
+    public void setCurrency(String currency) { this.currency = currency; }
 
     public int getSortOrder() { return sortOrder; }
     public void setSortOrder(int sortOrder) { this.sortOrder = sortOrder; }

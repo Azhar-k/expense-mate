@@ -1,6 +1,7 @@
 package com.example.expensemate.viewmodel;
 
 import com.example.expensemate.data.Transaction;
+import com.example.expensemate.util.CurrencyTotals;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -19,12 +20,12 @@ import java.util.Set;
  */
 public class ActivityRow {
     public final String dayLabel;
-    public final double dayNet;
+    public final CurrencyTotals dayNet; // One net per currency the day has
     public final Transaction transaction;
     public final Transaction debitLeg;
     public final Transaction creditLeg;
 
-    private ActivityRow(String dayLabel, double dayNet, Transaction transaction, Transaction debitLeg,
+    private ActivityRow(String dayLabel, CurrencyTotals dayNet, Transaction transaction, Transaction debitLeg,
             Transaction creditLeg) {
         this.dayLabel = dayLabel;
         this.dayNet = dayNet;
@@ -52,7 +53,7 @@ public class ActivityRow {
 
     public boolean sameContent(ActivityRow other) {
         if (isHeader() || other.isHeader()) {
-            return isHeader() && other.isHeader() && dayNet == other.dayNet;
+            return isHeader() && other.isHeader() && dayNet.equals(other.dayNet);
         }
         return sameTransaction(transaction, other.transaction) && sameTransaction(debitLeg, other.debitLeg)
                 && sameTransaction(creditLeg, other.creditLeg);
@@ -71,6 +72,7 @@ public class ActivityRow {
                 && Objects.equals(a.getAccountId(), b.getAccountId())
                 && Objects.equals(a.getRealAccountId(), b.getRealAccountId())
                 && a.isExcludedFromSummary() == b.isExcludedFromSummary()
+                && a.getCurrency().equals(b.getCurrency())
                 && a.isNeedsReview() == b.isNeedsReview();
     }
 
@@ -97,7 +99,7 @@ public class ActivityRow {
         Calendar day = (Calendar) now.clone();
         Long currentDay = null;
         int headerIndex = -1;
-        double net = 0;
+        CurrencyTotals net = new CurrencyTotals();
         for (Transaction row : transactions) {
             String groupId = row.getTransferGroupId();
             if (groupId != null && !seenGroups.add(groupId)) {
@@ -109,15 +111,15 @@ public class ActivityRow {
                 closeDay(rows, headerIndex, net);
                 currentDay = dayKey;
                 headerIndex = rows.size();
-                net = 0;
-                rows.add(new ActivityRow(dayLabel(day, now), 0, null, null, null));
+                net = new CurrencyTotals();
+                rows.add(new ActivityRow(dayLabel(day, now), net, null, null, null));
             }
             if (groupId != null) {
-                rows.add(new ActivityRow(null, 0, row, debits.get(groupId), credits.get(groupId)));
+                rows.add(new ActivityRow(null, null, row, debits.get(groupId), credits.get(groupId)));
             } else {
-                rows.add(new ActivityRow(null, 0, row, null, null));
+                rows.add(new ActivityRow(null, null, row, null, null));
                 if (!row.isExcludedFromSummary()) {
-                    net += "CREDIT".equals(row.getTransactionType()) ? row.getAmount() : -row.getAmount();
+                    net.add(row.getCurrency(), "CREDIT".equals(row.getTransactionType()) ? row.getAmount() : -row.getAmount());
                 }
             }
         }
@@ -125,7 +127,7 @@ public class ActivityRow {
         return rows;
     }
 
-    private static void closeDay(List<ActivityRow> rows, int headerIndex, double net) {
+    private static void closeDay(List<ActivityRow> rows, int headerIndex, CurrencyTotals net) {
         if (headerIndex >= 0) {
             rows.set(headerIndex, new ActivityRow(rows.get(headerIndex).dayLabel, net, null, null, null));
         }

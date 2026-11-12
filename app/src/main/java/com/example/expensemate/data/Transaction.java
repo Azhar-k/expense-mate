@@ -1,6 +1,10 @@
 package com.example.expensemate.data;
 
+import androidx.annotation.NonNull;
+import androidx.room.ColumnInfo;
 import androidx.room.Entity;
+
+import com.example.expensemate.util.Currencies;
 import androidx.room.Index;
 import androidx.room.PrimaryKey;
 import androidx.room.TypeConverters;
@@ -41,6 +45,9 @@ public class Transaction {
     private String transferGroupId; // Shared by the two sides of a transfer, null otherwise
     private boolean needsReview; // Captured from a message and still waiting for a category
     private Long loanId; // Money lent that this row gave out (a debit) or brought back (a credit)
+    @NonNull
+    @ColumnInfo(defaultValue = Currencies.LEGACY) // Matches the migration
+    private String currency = Currencies.LEGACY; // ISO 4217 code of amount: its real account's currency
 
     public Transaction() {
         this.category = "Default"; // Default category
@@ -238,6 +245,15 @@ public class Transaction {
         this.needsReview = needsReview;
     }
 
+    @NonNull
+    public String getCurrency() {
+        return currency;
+    }
+
+    public void setCurrency(@NonNull String currency) {
+        this.currency = currency;
+    }
+
     public Long getLoanId() {
         return loanId;
     }
@@ -274,6 +290,7 @@ public class Transaction {
         copy.transferGroupId = transferGroupId;
         copy.needsReview = needsReview;
         copy.loanId = loanId;
+        copy.currency = currency;
         return copy;
     }
 

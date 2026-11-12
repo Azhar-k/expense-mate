@@ -96,14 +96,14 @@ public class LoanDetailsSheet extends ExpandedSheet {
         binding.tvPerson.setText(summary.loan.getPerson());
         binding.tvStatus.setText(!completed ? "To get back"
                 : summary.isFullyReturned() ? "Returned" : "Lent, marked as returned");
-        binding.tvAmount.setText(Money.format(completed ? summary.loan.getAmount() : summary.outstanding()));
+        binding.tvAmount.setText(Money.format(completed ? summary.loan.getAmount() : summary.outstanding(), summary.loan.getCurrency()));
 
         binding.details.removeAllViews();
-        Ui.addKeyValue(binding.details, "Lent", Money.format(summary.loan.getAmount()) + " on "
+        Ui.addKeyValue(binding.details, "Lent", Money.format(summary.loan.getAmount(), summary.loan.getCurrency()) + " on "
                 + LoanText.date(summary.loan.getDate()));
-        Ui.addKeyValue(binding.details, "Returned", Money.format(summary.returned));
+        Ui.addKeyValue(binding.details, "Returned", Money.format(summary.returned, summary.loan.getCurrency()));
         if (summary.loan.getReturnedManually() > 0) {
-            Ui.addKeyValue(binding.details, "Recorded by hand", Money.format(summary.loan.getReturnedManually()));
+            Ui.addKeyValue(binding.details, "Recorded by hand", Money.format(summary.loan.getReturnedManually(), summary.loan.getCurrency()));
         }
         if (completed && summary.completedDate() != null) {
             Ui.addKeyValue(binding.details, "Completed on", LoanText.date(summary.completedDate()));
@@ -117,7 +117,7 @@ public class LoanDetailsSheet extends ExpandedSheet {
         for (Transaction transaction : linked) {
             boolean credit = "CREDIT".equals(transaction.getTransactionType());
             Ui.addKeyValue(binding.listLinked, (credit ? "Returned " : "Lent ") + LoanText.date(transaction.getDate()),
-                    credit ? Money.credit(transaction.getAmount()) : Money.debit(transaction.getAmount()));
+                    credit ? Money.credit(transaction.getAmount(), transaction.getCurrency()) : Money.debit(transaction.getAmount(), transaction.getCurrency()));
             View row = binding.listLinked.getChildAt(binding.listLinked.getChildCount() - 1);
             row.setBackgroundResource(android.R.drawable.list_selector_background);
             row.setOnClickListener(v -> {

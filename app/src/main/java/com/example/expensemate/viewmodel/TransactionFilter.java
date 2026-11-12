@@ -15,6 +15,7 @@ public class TransactionFilter {
     public String receiver;
     public String category;
     public Double amount;
+    public String currency;
     public String transactionType;
     public Boolean excluded;
     public Long billId;
@@ -55,6 +56,7 @@ public class TransactionFilter {
         copy.receiver = receiver;
         copy.category = category;
         copy.amount = amount;
+        copy.currency = currency;
         copy.transactionType = transactionType;
         copy.excluded = excluded;
         copy.billId = billId;
@@ -73,6 +75,7 @@ public class TransactionFilter {
         query.receiver = receiver;
         query.category = category;
         query.amount = amount;
+        query.currency = currency;
         query.transactionType = transactionType;
         query.excluded = excluded;
         query.billId = billId;
@@ -83,7 +86,7 @@ public class TransactionFilter {
 
     /** True when any of the filters behind the "More" chip is on. */
     public boolean hasMoreFilters() {
-        return description != null || receiver != null || amount != null || transactionType != null
+        return description != null || receiver != null || amount != null || currency != null || transactionType != null
                 || excluded != null || billId != null || transfers != null || needsReview != null;
     }
 

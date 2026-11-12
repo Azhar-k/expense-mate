@@ -2,6 +2,7 @@ package com.example.expensemate.ui.common;
 
 import com.example.expensemate.R;
 import com.example.expensemate.data.Transaction;
+import com.example.expensemate.util.Money;
 
 import java.util.Locale;
 
@@ -28,6 +29,18 @@ public final class TransactionText {
     public static String accountName(java.util.Map<Long, String> names, Long accountId) {
         String name = accountId != null ? names.get(accountId) : null;
         return name != null ? name : "No account";
+    }
+
+    /**
+     * What a transfer moved: one amount, or what left and what arrived when the two real accounts hold
+     * different currencies, such as "₹2,270 → AED 100".
+     */
+    public static String transferAmount(Transaction shown, Transaction debit, Transaction credit) {
+        if (debit != null && credit != null && !debit.getCurrency().equals(credit.getCurrency())) {
+            return Money.format(debit.getAmount(), debit.getCurrency()) + " → "
+                    + Money.format(credit.getAmount(), credit.getCurrency());
+        }
+        return Money.format(shown.getAmount(), shown.getCurrency());
     }
 
     /** Names the side the money moved on: a transfer can stay in one virtual account and change real account. */

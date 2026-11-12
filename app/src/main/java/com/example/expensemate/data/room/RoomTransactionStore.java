@@ -69,7 +69,7 @@ final class RoomTransactionStore implements TransactionStore {
     @Override
     public LiveData<List<Transaction>> observe(TransactionQuery q) {
         return dao.getFilteredTransactions(new Date(q.fromMillis), new Date(q.toMillis), q.accountId, q.search,
-                q.description, q.receiver, q.category, q.amount, q.transactionType, q.excluded, q.billId,
+                q.description, q.receiver, q.category, q.amount, q.currency, q.transactionType, q.excluded, q.billId,
                 q.transfers, q.needsReview);
     }
 
@@ -109,6 +109,11 @@ final class RoomTransactionStore implements TransactionStore {
     }
 
     @Override
+    public void setCurrencyForRealAccount(long accountId, String currency) {
+        dao.setCurrencyForRealAccount(accountId, currency);
+    }
+
+    @Override
     public List<PastTransaction> findHistory(int limit) {
         return dao.getHistory(limit);
     }
@@ -134,14 +139,14 @@ final class RoomTransactionStore implements TransactionStore {
     }
 
     @Override
-    public LiveData<SummaryTotals> observeSummary(Date from, Date to, Long accountId) {
+    public LiveData<List<SummaryTotals>> observeSummary(Date from, Date to, Long accountId) {
         return dao.getSummaryTotals(from, to, accountId);
     }
 
     @Override
-    public LiveData<List<CategorySum>> observeCategorySums(String transactionType, Date from, Date to,
+    public LiveData<List<CategorySum>> observeCategorySums(String transactionType, String currency, Date from, Date to,
             Long accountId) {
-        return dao.getCategorySums(transactionType, from, to, accountId);
+        return dao.getCategorySums(transactionType, currency, from, to, accountId);
     }
 
     @Override

@@ -100,6 +100,23 @@
                 android:inputType="numberDecimal" />
         </com.google.android.material.textfield.TextInputLayout>
 
+        <!-- Only when more than one currency is in use -->
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/tilCurrency"
+            style="@style/Widget.ExpenseMate.Dropdown"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:visibility="gone">
+
+            <AutoCompleteTextView
+                android:id="@+id/etCurrency"
+                android:hint="Currency"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="none" />
+        </com.google.android.material.textfield.TextInputLayout>
+
         <com.google.android.material.textfield.TextInputLayout
             style="@style/Widget.ExpenseMate.Dropdown"
             android:layout_width="match_parent"

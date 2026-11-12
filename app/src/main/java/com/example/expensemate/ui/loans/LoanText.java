@@ -23,12 +23,12 @@ public final class LoanText {
             if (!summary.isFullyReturned()) {
                 // Closed by hand with part of it, or none of it, back
                 return "Marked returned" + (completed != null ? " " + date(completed) : "") + " · "
-                        + Money.format(summary.returned) + " of " + Money.format(summary.loan.getAmount()) + " back";
+                        + Money.format(summary.returned, summary.loan.getCurrency()) + " of " + Money.format(summary.loan.getAmount(), summary.loan.getCurrency()) + " back";
             }
             return (completed != null ? "Returned " + date(completed) : "Returned") + " · " + lent;
         }
         if (summary.returned > 0) {
-            return Money.format(summary.returned) + " of " + Money.format(summary.loan.getAmount()) + " back · " + lent;
+            return Money.format(summary.returned, summary.loan.getCurrency()) + " of " + Money.format(summary.loan.getAmount(), summary.loan.getCurrency()) + " back · " + lent;
         }
         return capitalise(lent);
     }
@@ -40,7 +40,7 @@ public final class LoanText {
 
     /** What an open loan is listed as when picking which one a return pays back. */
     public static String pickerLine(LoanSummary summary) {
-        return summary.loan.getPerson() + " · " + Money.format(summary.outstanding()) + " to get back";
+        return summary.loan.getPerson() + " · " + Money.format(summary.outstanding(), summary.loan.getCurrency()) + " to get back";
     }
 
     private static String capitalise(String text) {

@@ -19,7 +19,8 @@ import com.example.expensemate.databinding.FragmentAccountsBinding;
 import com.example.expensemate.databinding.ItemAccountBinding;
 import com.example.expensemate.ui.common.ReorderDialog;
 import com.example.expensemate.ui.common.Ui;
-import com.example.expensemate.util.Money;
+import com.example.expensemate.util.Currencies;
+import com.example.expensemate.util.CurrencyTotals;
 import com.example.expensemate.viewmodel.AccountViewModel;
 import com.example.expensemate.viewmodel.TransactionViewModel;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
@@ -35,7 +36,7 @@ public class AccountsFragment extends Fragment {
     private FragmentAccountsBinding binding;
     private AccountViewModel accountViewModel;
     private List<Account> accounts = new ArrayList<>();
-    private Map<Long, Double> balances = new HashMap<>();
+    private Map<Long, CurrencyTotals> balances = new HashMap<>();
     private boolean showingReal = false;
 
     @Nullable
@@ -56,7 +57,7 @@ public class AccountsFragment extends Fragment {
         binding.fabAdd.setOnClickListener(v -> AccountForm.show(requireActivity(), null, showingReal));
         binding.btnInfo.setOnClickListener(v -> new MaterialAlertDialogBuilder(requireContext())
                 .setTitle("Net balance")
-                .setMessage("The balances of the accounts in this tab, added up. "
+                .setMessage("The balances of the accounts in this tab, added up, one for each currency. "
                         + "A transaction counts once in each tab, towards its virtual and its real account. "
                         + "Transactions you've left out of the summary don't count, and transfers between "
                         + "accounts in the same tab cancel out.")
@@ -85,9 +86,9 @@ public class AccountsFragment extends Fragment {
             render();
         });
         transactionViewModel.getAccountBalances().observe(getViewLifecycleOwner(), list -> {
-            Map<Long, Double> updated = new HashMap<>();
+            Map<Long, CurrencyTotals> updated = new HashMap<>();
             for (AccountBalance balance : list) {
-                updated.put(balance.accountId, balance.balance);
+                updated.computeIfAbsent(balance.accountId, id -> new CurrencyTotals()).add(balance.currency, balance.balance);
             }
             balances = updated;
             render();
@@ -98,19 +99,20 @@ public class AccountsFragment extends Fragment {
         ViewGroup list = binding.listAccounts;
         list.removeAllViews();
         List<Account> shown = new ArrayList<>();
-        double net = 0;
+        CurrencyTotals net = new CurrencyTotals();
         for (Account account : accounts) {
             if (account.isReal() == showingReal) {
                 shown.add(account);
-                net += balanceOf(account);
+                net.addAll(balanceOf(account));
             }
         }
         for (int i = 0; i < shown.size(); i++) {
             list.addView(buildRow(list, shown.get(i), i == 0, i == shown.size() - 1));
         }
         binding.tvNetLabel.setText(showingReal ? "Net balance, real accounts" : "Net balance, virtual accounts");
-        binding.tvNetBalance.setText(Money.format(net));
-        binding.tvNetBalance.setTextColor(requireContext().getColor(net < 0 ? R.color.alert : R.color.on_surface));
+        String main = Currencies.main(accounts);
+        binding.tvNetBalance.setText(net.format(main, main));
+        binding.tvNetBalance.setTextColor(requireContext().getColor(net.allNegative() ? R.color.alert : R.color.on_surface));
     }
 
     private void reorder() {
@@ -132,9 +134,9 @@ public class AccountsFragment extends Fragment {
                 });
     }
 
-    private double balanceOf(Account account) {
-        Double balance = balances.get(account.getId());
-        return balance != null ? balance : 0;
+    private CurrencyTotals balanceOf(Account account) {
+        CurrencyTotals balance = balances.get(account.getId());
+        return balance != null ? balance : new CurrencyTotals();
     }
 
     private View buildRow(ViewGroup list, Account account, boolean first, boolean last) {
@@ -152,9 +154,12 @@ public class AccountsFragment extends Fragment {
             Ui.styleTag(row.tvDefault, "Default", R.color.primary_container, R.color.on_primary_container);
         }
 
-        double value = balanceOf(account);
-        row.tvBalance.setText(Money.format(value));
-        row.tvBalance.setTextColor(requireContext().getColor(value < 0 ? R.color.alert : R.color.on_surface));
+        CurrencyTotals value = balanceOf(account);
+        // A real account is in its own currency; a virtual one shows each currency it holds
+        String main = Currencies.main(accounts);
+        String own = account.isReal() && account.getCurrency() != null ? account.getCurrency() : main;
+        row.tvBalance.setText(value.format(own, own));
+        row.tvBalance.setTextColor(requireContext().getColor(value.allNegative() ? R.color.alert : R.color.on_surface));
 
         row.getRoot().setOnClickListener(v -> {
             Bundle args = new Bundle();

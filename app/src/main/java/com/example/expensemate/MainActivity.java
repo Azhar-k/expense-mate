@@ -31,7 +31,7 @@ import com.example.expensemate.data.LoanSummary;
 import com.example.expensemate.service.RcsNotificationListenerService;
 import com.example.expensemate.service.MmsChangeJob;
 import com.example.expensemate.ui.common.AppTheme;
-import com.example.expensemate.util.Money;
+import com.example.expensemate.util.CurrencyTotals;
 import com.example.expensemate.viewmodel.LoanViewModel;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
@@ -117,11 +117,11 @@ public class MainActivity extends AppCompatActivity {
 
         TextView lentAmount = (TextView) drawerView.getMenu().findItem(R.id.navigation_loans).getActionView();
         new ViewModelProvider(this).get(LoanViewModel.class).getLoans().observe(this, loans -> {
-            double outstanding = 0;
+            CurrencyTotals outstanding = new CurrencyTotals();
             for (LoanSummary summary : loans) {
-                outstanding += summary.outstanding();
+                outstanding.add(summary.loan.getCurrency(), summary.outstanding());
             }
-            lentAmount.setText(outstanding > 0 ? Money.format(outstanding) : "");
+            lentAmount.setText(outstanding.isZero() ? "" : outstanding.format(null, null));
         });
 
         OnBackPressedCallback closeDrawer = new OnBackPressedCallback(false) {

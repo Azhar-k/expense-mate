@@ -126,7 +126,7 @@ public class AccountTypesTest {
         assertEquals(-30, balances[(int) trip], 0.001);
         assertEquals(70, balances[(int) bank], 0.001);
         assertEquals(-5, balances[(int) wallet], 0.001);
-        assertEquals(65, value(dao.getNetBalance()), 0.001);
+        assertEquals(65, value(dao.getNetBalances()).get(0).balance, 0.001);
     }
 
     @Test
@@ -138,8 +138,8 @@ public class AccountTypesTest {
 
         assertEquals(1, value(dao.getTransactionsForAccountDetailsScreen(from, to, bank)).size());
         assertEquals(1, value(dao.getTransactionsForAccountDetailsScreen(from, to, trip)).size());
-        assertEquals(30, value(dao.getSummaryTotals(from, to, bank)).expense, 0.001);
-        assertEquals(5, value(dao.getSummaryTotals(from, to, daily)).expense, 0.001);
+        assertEquals(30, value(dao.getSummaryTotals(from, to, bank)).get(0).expense, 0.001);
+        assertEquals(5, value(dao.getSummaryTotals(from, to, daily)).get(0).expense, 0.001);
     }
 
     @Test
@@ -188,7 +188,7 @@ public class AccountTypesTest {
         createVersion10(file);
 
         database = Room.databaseBuilder(context, AppDatabase.class, file.getPath())
-                .addMigrations(AppDatabase.MIGRATION_10_11, AppDatabase.MIGRATION_11_12, AppDatabase.MIGRATION_12_13, AppDatabase.MIGRATION_13_14)
+                .addMigrations(AppDatabase.MIGRATION_10_11, AppDatabase.MIGRATION_11_12, AppDatabase.MIGRATION_12_13, AppDatabase.MIGRATION_13_14, AppDatabase.MIGRATION_14_15)
                 .allowMainThreadQueries()
                 .build();
         accounts = database.accountDao();

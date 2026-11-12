@@ -3,6 +3,7 @@ package com.example.expensemate.domain.local;
 import androidx.lifecycle.LiveData;
 
 import com.example.expensemate.data.Account;
+import com.example.expensemate.util.Currencies;
 import com.example.expensemate.data.AccountBalance;
 import com.example.expensemate.data.store.AccountStore;
 import com.example.expensemate.data.store.TransactionStore;
@@ -40,6 +41,7 @@ final class LocalAccountService implements AccountService {
     @Override
     public CompletableFuture<Void> add(Account account) {
         return writer.run(() -> {
+            account.setCurrency(account.isReal() ? currencyOrMain(account.getCurrency()) : null);
             int last = store.lastSortOrder(account.getType());
             account.setSortOrder(last == 0 ? 0 : last + 1);
             store.insert(account);
@@ -48,7 +50,20 @@ final class LocalAccountService implements AccountService {
 
     @Override
     public CompletableFuture<Void> update(Account account) {
-        return writer.run(() -> store.update(account));
+        return writer.run(() -> {
+            Account before = store.findById(account.getId());
+            account.setCurrency(account.isReal() ? currencyOrMain(account.getCurrency()) : null);
+            store.update(account);
+            // Relabels, never converts: this is for fixing what an account was set up with
+            if (account.isReal() && before != null && !account.getCurrency().equals(before.getCurrency())) {
+                transactions.setCurrencyForRealAccount(account.getId(), account.getCurrency());
+            }
+        });
+    }
+
+    private String currencyOrMain(String currency) {
+        String code = Currencies.normalize(currency);
+        return code != null ? code : Currencies.main(store.findAll());
     }
 
     @Override

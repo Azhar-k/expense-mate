@@ -7,6 +7,7 @@ import com.example.expensemate.data.Account;
 import com.example.expensemate.data.RecurringPayment;
 import com.example.expensemate.ui.common.TransactionText;
 import com.example.expensemate.ui.common.Ui;
+import com.example.expensemate.util.CurrencyTotals;
 import com.example.expensemate.util.Money;
 import com.example.expensemate.viewmodel.RecurringPaymentsViewModel;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
@@ -30,13 +31,13 @@ public final class BillActions {
 
     public static void confirmMove(FragmentActivity activity, RecurringPayment bill, Map<Long, String> names) {
         new MaterialAlertDialogBuilder(activity)
-                .setTitle("Move " + Money.format(bill.getAmount()) + "?")
+                .setTitle("Move " + Money.format(bill.getAmount(), bill.getCurrency()) + "?")
                 .setMessage("From " + TransactionText.accountName(names, bill.getFromAccountId()) + " to "
                         + TransactionText.accountName(names, bill.getToAccountId()) + " for " + bill.getName() + ".")
                 .setNegativeButton("Cancel", null)
                 .setPositiveButton("Move", (dialog, which) -> {
                     move(activity, bill);
-                    Ui.snackbar(activity, "Moved " + Money.format(bill.getAmount()));
+                    Ui.snackbar(activity, "Moved " + Money.format(bill.getAmount(), bill.getCurrency()));
                 })
                 .show();
     }
@@ -44,23 +45,23 @@ public final class BillActions {
     public static void confirmMoveAll(FragmentActivity activity, List<RecurringPayment> pending,
             Map<Long, String> names) {
         StringBuilder message = new StringBuilder();
-        double total = 0;
+        CurrencyTotals total = new CurrencyTotals();
         for (RecurringPayment bill : pending) {
-            message.append(bill.getName()).append(" (").append(Money.format(bill.getAmount())).append("): ")
+            message.append(bill.getName()).append(" (").append(Money.format(bill.getAmount(), bill.getCurrency())).append("): ")
                     .append(TransactionText.accountName(names, bill.getFromAccountId())).append(" → ")
                     .append(TransactionText.accountName(names, bill.getToAccountId())).append('\n');
-            total += bill.getAmount();
+            total.add(bill.getCurrency(), bill.getAmount());
         }
-        double finalTotal = total;
+        String totalText = total.format(pending.get(0).getCurrency(), pending.get(0).getCurrency());
         new MaterialAlertDialogBuilder(activity)
-                .setTitle("Move " + Money.format(total) + "?")
+                .setTitle("Move " + totalText + "?")
                 .setMessage(message.toString().trim())
                 .setNegativeButton("Cancel", null)
                 .setPositiveButton("Move all", (dialog, which) -> {
                     for (RecurringPayment bill : pending) {
                         move(activity, bill);
                     }
-                    Ui.snackbar(activity, "Moved " + Money.format(finalTotal));
+                    Ui.snackbar(activity, "Moved " + totalText);
                 })
                 .show();
     }

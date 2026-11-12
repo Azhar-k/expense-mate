@@ -33,7 +33,7 @@ public class TransactionViewModel extends AndroidViewModel {
     private final LiveData<List<ActivityRow>> activityRows;
 
     private final MutableLiveData<HomePeriod> homePeriod;
-    private final LiveData<SummaryTotals> homeTotals;
+    private final LiveData<List<SummaryTotals>> homeTotals;
     private final LiveData<List<CategorySum>> homeExpenses;
     private final LiveData<List<CategorySum>> homeIncome;
     private boolean homeShowingExpenses = true;
@@ -44,11 +44,13 @@ public class TransactionViewModel extends AndroidViewModel {
         final Date from;
         final Date to;
         final Long accountId;
+        final String currency; // The breakdown shows one currency at a time
 
-        HomePeriod(Date from, Date to, Long accountId) {
+        HomePeriod(Date from, Date to, Long accountId, String currency) {
             this.from = from;
             this.to = to;
             this.accountId = accountId;
+            this.currency = currency;
         }
     }
 
@@ -61,13 +63,13 @@ public class TransactionViewModel extends AndroidViewModel {
 
         activityRows = Transformations.switchMap(filter, this::rowsFor);
 
-        homePeriod = new MutableLiveData<>(periodOf(Calendar.getInstance(), null));
+        homePeriod = new MutableLiveData<>(periodOf(Calendar.getInstance(), null, null));
         homeTotals = Transformations.switchMap(homePeriod,
                 p -> transactions.summary(p.from, p.to, p.accountId));
         homeExpenses = Transformations.switchMap(homePeriod,
-                p -> transactions.categoryTotals("DEBIT", p.from, p.to, p.accountId));
+                p -> transactions.categoryTotals("DEBIT", p.currency, p.from, p.to, p.accountId));
         homeIncome = Transformations.switchMap(homePeriod,
-                p -> transactions.categoryTotals("CREDIT", p.from, p.to, p.accountId));
+                p -> transactions.categoryTotals("CREDIT", p.currency, p.from, p.to, p.accountId));
     }
 
     private LiveData<List<ActivityRow>> rowsFor(TransactionFilter f) {
@@ -88,13 +90,13 @@ public class TransactionViewModel extends AndroidViewModel {
         return rows;
     }
 
-    private static HomePeriod periodOf(Calendar month, Long accountId) {
+    private static HomePeriod periodOf(Calendar month, Long accountId, String currency) {
         Calendar start = (Calendar) month.clone();
         start.set(Calendar.DAY_OF_MONTH, 1);
         TransactionFilter.startOfDay(start);
         Calendar end = (Calendar) start.clone();
         end.add(Calendar.MONTH, 1);
-        return new HomePeriod(start.getTime(), end.getTime(), accountId);
+        return new HomePeriod(start.getTime(), end.getTime(), accountId, currency);
     }
 
     /** For scans started from a screen; it blocks, so call it off the main thread. */
@@ -105,7 +107,8 @@ public class TransactionViewModel extends AndroidViewModel {
     /****************************************************************************************************/
     // Home screen
 
-    public LiveData<SummaryTotals> getHomeTotals() {
+    /** One row per currency that has anything in the month. */
+    public LiveData<List<SummaryTotals>> getHomeTotals() {
         return homeTotals;
     }
 
@@ -143,7 +146,19 @@ public class TransactionViewModel extends AndroidViewModel {
 
     private void showHomeAccount(Long accountId) {
         HomePeriod current = homePeriod.getValue();
-        homePeriod.setValue(new HomePeriod(current.from, current.to, accountId));
+        homePeriod.setValue(new HomePeriod(current.from, current.to, accountId, current.currency));
+    }
+
+    /** Null until Home picks one: the main currency, or another the person chose. */
+    public String getHomeCurrency() {
+        return homePeriod.getValue().currency;
+    }
+
+    public void setHomeCurrency(String currency) {
+        HomePeriod current = homePeriod.getValue();
+        if (!java.util.Objects.equals(current.currency, currency)) {
+            homePeriod.setValue(new HomePeriod(current.from, current.to, current.accountId, currency));
+        }
     }
 
     public Calendar getHomeMonth() {
@@ -155,7 +170,7 @@ public class TransactionViewModel extends AndroidViewModel {
     public void moveHomeMonth(int months) {
         Calendar month = getHomeMonth();
         month.add(Calendar.MONTH, months);
-        homePeriod.setValue(periodOf(month, getHomeAccountId()));
+        homePeriod.setValue(periodOf(month, getHomeAccountId(), getHomeCurrency()));
     }
 
     public LiveData<Integer> getNeedsReviewCount() {
@@ -171,6 +186,7 @@ public class TransactionViewModel extends AndroidViewModel {
         f.rangeLabel = new java.text.SimpleDateFormat("MMMM yyyy", java.util.Locale.getDefault()).format(period.from);
         f.accountId = period.accountId;
         f.category = category;
+        f.currency = period.currency;
         f.transactionType = expenses ? "DEBIT" : "CREDIT";
         f.transfers = false;
         filter.setValue(f);

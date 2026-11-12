@@ -18,7 +18,10 @@ import com.example.expensemate.data.LoanSummary;
 import com.example.expensemate.databinding.FragmentLoansBinding;
 import com.example.expensemate.databinding.ItemLoanRowBinding;
 import com.example.expensemate.ui.common.Ui;
+import com.example.expensemate.util.Currencies;
+import com.example.expensemate.util.CurrencyTotals;
 import com.example.expensemate.util.Money;
+import com.example.expensemate.viewmodel.AccountViewModel;
 import com.example.expensemate.viewmodel.LoanViewModel;
 
 import java.util.ArrayList;
@@ -27,6 +30,8 @@ import java.util.List;
 /** Money lent to people: what is still out, and what has come back. */
 public class LoansFragment extends Fragment {
     private FragmentLoansBinding binding;
+    private String mainCurrency = Currencies.fromLocale();
+    private List<LoanSummary> shown = new ArrayList<>();
 
     @Nullable
     @Override
@@ -39,26 +44,31 @@ public class LoansFragment extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         binding.fabAdd.setOnClickListener(v -> LoanForm.showAdd(requireActivity()));
-        new ViewModelProvider(requireActivity()).get(LoanViewModel.class).getLoans()
-                .observe(getViewLifecycleOwner(), this::render);
+        ViewModelProvider provider = new ViewModelProvider(requireActivity());
+        provider.get(AccountViewModel.class).getMainCurrency().observe(getViewLifecycleOwner(), main -> {
+            mainCurrency = main;
+            render(shown);
+        });
+        provider.get(LoanViewModel.class).getLoans().observe(getViewLifecycleOwner(), this::render);
     }
 
     private void render(List<LoanSummary> loans) {
+        shown = loans;
         if (binding == null) {
             return;
         }
         List<LoanSummary> open = new ArrayList<>();
         List<LoanSummary> completed = new ArrayList<>();
-        double outstanding = 0;
+        CurrencyTotals outstanding = new CurrencyTotals();
         for (LoanSummary summary : loans) {
             if (summary.isCompleted()) {
                 completed.add(summary);
             } else {
                 open.add(summary);
-                outstanding += summary.outstanding();
+                outstanding.add(summary.loan.getCurrency(), summary.outstanding());
             }
         }
-        binding.tvOutstanding.setText(Money.format(outstanding));
+        binding.tvOutstanding.setText(outstanding.format(mainCurrency, mainCurrency));
         Ui.styleTag(binding.tvOpenCount, open.size() + " open", R.color.primary_container,
                 R.color.on_primary_container);
 
@@ -94,7 +104,7 @@ public class LoansFragment extends Fragment {
         }
         row.tvPerson.setText(summary.loan.getPerson());
         row.tvStatus.setText(LoanText.statusLine(summary));
-        row.tvAmount.setText(Money.format(completed ? summary.loan.getAmount() : summary.outstanding()));
+        row.tvAmount.setText(Money.format(completed ? summary.loan.getAmount() : summary.outstanding(), summary.loan.getCurrency()));
         row.tvAmount.setTextColor(ContextCompat.getColor(requireContext(),
                 completed ? R.color.on_surface_variant : R.color.on_surface));
         row.progressReturned.setVisibility(completed || summary.returned <= 0 ? View.GONE : View.VISIBLE);

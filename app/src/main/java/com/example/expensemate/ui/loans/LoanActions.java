@@ -35,9 +35,15 @@ public final class LoanActions {
 
     /** Asks which open loan a credit pays back, and links it. */
     public static void pickLoanForReturn(FragmentActivity activity, Transaction credit, List<LoanSummary> loans) {
-        List<LoanSummary> open = open(loans);
+        // Only a loan in the same currency can be paid back by it
+        List<LoanSummary> open = new ArrayList<>();
+        for (LoanSummary summary : open(loans)) {
+            if (summary.loan.getCurrency().equals(credit.getCurrency())) {
+                open.add(summary);
+            }
+        }
         if (open.isEmpty()) {
-            Ui.snackbar(activity, "No money lent is waiting to come back");
+            Ui.snackbar(activity, "No money lent in " + credit.getCurrency() + " is waiting to come back");
             return;
         }
         String[] lines = new String[open.size()];
@@ -49,7 +55,7 @@ public final class LoanActions {
                 .setItems(lines, (dialog, which) -> {
                     LoanSummary picked = open.get(which);
                     new ViewModelProvider(activity).get(LoanViewModel.class).link(credit.getId(), picked.loan.getId());
-                    Ui.snackbar(activity, Money.format(credit.getAmount()) + " back from " + picked.loan.getPerson());
+                    Ui.snackbar(activity, Money.format(credit.getAmount(), credit.getCurrency()) + " back from " + picked.loan.getPerson());
                 })
                 .setNegativeButton("Cancel", null)
                 .show();
@@ -80,7 +86,7 @@ public final class LoanActions {
                         return;
                     }
                     new ViewModelProvider(activity).get(LoanViewModel.class).recordReturn(summary.loan, amount);
-                    Ui.snackbar(activity, Money.format(amount) + " back from " + summary.loan.getPerson());
+                    Ui.snackbar(activity, Money.format(amount, summary.loan.getCurrency()) + " back from " + summary.loan.getPerson());
                 })
                 .show();
     }

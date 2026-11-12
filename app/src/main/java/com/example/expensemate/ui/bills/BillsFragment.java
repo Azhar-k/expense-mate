@@ -24,6 +24,8 @@ import com.example.expensemate.databinding.FragmentBillsBinding;
 import com.example.expensemate.databinding.ItemBillRowBinding;
 import com.example.expensemate.ui.common.Ui;
 import com.example.expensemate.util.Bills;
+import com.example.expensemate.util.Currencies;
+import com.example.expensemate.util.CurrencyTotals;
 import com.example.expensemate.util.Money;
 import com.example.expensemate.viewmodel.AccountViewModel;
 import com.example.expensemate.viewmodel.RecurringPaymentsViewModel;
@@ -41,6 +43,7 @@ public class BillsFragment extends Fragment {
     private RecurringPaymentsViewModel viewModel;
     private List<RecurringPayment> allBills = new ArrayList<>();
     private Map<Long, String> accountNames = new HashMap<>();
+    private String mainCurrency = Currencies.fromLocale();
 
     @Nullable
     @Override
@@ -75,6 +78,7 @@ public class BillsFragment extends Fragment {
         binding.fabAdd.setOnClickListener(v -> BillForm.show(requireActivity(), null));
         provider.get(AccountViewModel.class).getAllAccounts().observe(getViewLifecycleOwner(), accounts -> {
             accountNames = BillActions.names(accounts);
+            mainCurrency = Currencies.main(accounts);
             render();
         });
         viewModel.getRecurringPayments().observe(getViewLifecycleOwner(), bills -> {
@@ -112,9 +116,9 @@ public class BillsFragment extends Fragment {
         List<RecurringPayment> bills = new ArrayList<>();
         List<RecurringPayment> transfers = new ArrayList<>();
         List<RecurringPayment> ended = new ArrayList<>();
-        double total = 0;
-        double billsLeft = 0;
-        double transfersLeft = 0;
+        CurrencyTotals total = new CurrencyTotals();
+        CurrencyTotals billsLeft = new CurrencyTotals();
+        CurrencyTotals transfersLeft = new CurrencyTotals();
         int done = 0;
         for (RecurringPayment bill : Bills.sortByUrgency(allBills, today)) {
             Bills.Status status = Bills.statusOf(bill, today);
@@ -124,25 +128,36 @@ public class BillsFragment extends Fragment {
             }
             boolean transfer = Bills.isTransfer(bill);
             (transfer ? transfers : bills).add(bill);
-            total += bill.getAmount();
+            total.add(bill.getCurrency(), bill.getAmount());
             if (status == Bills.Status.PAID) {
                 done++;
             } else if (transfer) {
-                transfersLeft += bill.getAmount();
+                transfersLeft.add(bill.getCurrency(), bill.getAmount());
             } else {
-                billsLeft += bill.getAmount();
+                billsLeft.add(bill.getCurrency(), bill.getAmount());
             }
         }
 
-        double left = billsLeft + transfersLeft;
+        CurrencyTotals left = new CurrencyTotals().addAll(billsLeft).addAll(transfersLeft);
+        CurrencyTotals paid = new CurrencyTotals().addAll(total);
+        for (java.util.Map.Entry<String, Double> each : left.nonZero(mainCurrency).entrySet()) {
+            paid.add(each.getKey(), -each.getValue());
+        }
         int count = bills.size() + transfers.size();
-        binding.tvRemaining.setText(Money.format(left));
+        binding.tvRemaining.setText(left.format(mainCurrency, mainCurrency));
         Ui.styleTag(binding.tvDoneCount, done + " of " + count + " done", R.color.primary_container,
                 R.color.on_primary_container);
-        binding.progressPaid.setProgress(total > 0 ? (int) Math.round((total - left) * 100 / total) : 0);
-        binding.tvPaidSummary.setText(Money.format(total - left) + " paid of " + Money.format(total));
-        binding.tvBillsLeft.setText(Money.format(billsLeft) + " left");
-        binding.tvTransfersLeft.setText(Money.format(transfersLeft) + " left");
+        // Amounts in different currencies cannot be added, so with more than one the bar counts bills instead
+        java.util.Map<String, Double> totals = total.nonZero(mainCurrency);
+        if (totals.size() == 1) {
+            String only = totals.keySet().iterator().next();
+            binding.progressPaid.setProgress((int) Math.round(paid.get(only) * 100 / total.get(only)));
+        } else {
+            binding.progressPaid.setProgress(count > 0 ? done * 100 / count : 0);
+        }
+        binding.tvPaidSummary.setText(paidSummary(paid, total));
+        binding.tvBillsLeft.setText(billsLeft.format(mainCurrency, mainCurrency) + " left");
+        binding.tvTransfersLeft.setText(transfersLeft.format(mainCurrency, mainCurrency) + " left");
 
         fillList(binding.listBills, bills, today, "No bills yet. Add rent, subscriptions or anything else that repeats.");
         fillList(binding.listTransfers, transfers, today, "Add a bill with both accounts to plan a regular transfer.");
@@ -150,14 +165,31 @@ public class BillsFragment extends Fragment {
         binding.headerEnded.setVisibility(ended.isEmpty() ? View.GONE : View.VISIBLE);
 
         List<RecurringPayment> pending = Bills.pendingTransfers(allBills, today);
-        double pendingTotal = 0;
+        CurrencyTotals pendingTotal = new CurrencyTotals();
         for (RecurringPayment bill : pending) {
-            pendingTotal += bill.getAmount();
+            pendingTotal.add(bill.getCurrency(), bill.getAmount());
         }
         binding.btnMoveAll.setVisibility(pending.isEmpty() ? View.GONE : View.VISIBLE);
-        binding.btnMoveAll.setText("Move all " + Money.format(pendingTotal));
+        binding.btnMoveAll.setText("Move all " + pendingTotal.format(mainCurrency, mainCurrency));
         binding.btnMoveAll.setOnClickListener(
                 v -> BillActions.confirmMoveAll(requireActivity(), pending, accountNames));
+    }
+
+    /** "₹500 paid of ₹900", or with several currencies "₹500 of ₹900 · AED 0 of AED 300 paid". */
+    private String paidSummary(CurrencyTotals paid, CurrencyTotals total) {
+        java.util.Map<String, Double> totals = total.nonZero(mainCurrency);
+        if (totals.size() < 2) {
+            return paid.format(mainCurrency, mainCurrency) + " paid of " + total.format(mainCurrency, mainCurrency);
+        }
+        StringBuilder text = new StringBuilder();
+        for (java.util.Map.Entry<String, Double> each : totals.entrySet()) {
+            if (text.length() > 0) {
+                text.append(" · ");
+            }
+            text.append(Money.format(paid.get(each.getKey()), each.getKey())).append(" of ")
+                    .append(Money.format(each.getValue(), each.getKey()));
+        }
+        return text.append(" paid").toString();
     }
 
     private void fillList(LinearLayout list, List<RecurringPayment> bills, Calendar today, @Nullable String emptyText) {
@@ -184,7 +216,7 @@ public class BillsFragment extends Fragment {
                 : first ? R.drawable.bg_row_top : last ? R.drawable.bg_row_bottom : R.drawable.bg_row_middle);
         row.divider.setVisibility(last ? View.GONE : View.VISIBLE);
         row.tvName.setText(bill.getName());
-        row.tvAmount.setText(Money.format(bill.getAmount()));
+        row.tvAmount.setText(Money.format(bill.getAmount(), bill.getCurrency()));
 
         String statusLine = BillText.statusLine(bill, today);
         if (Bills.isTransfer(bill)) {

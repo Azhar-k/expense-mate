@@ -37,7 +37,7 @@ public class Migration13To14Test {
         createVersion13(file);
 
         AppDatabase database = Room.databaseBuilder(context, AppDatabase.class, file.getPath())
-                .addMigrations(AppDatabase.MIGRATION_13_14)
+                .addMigrations(AppDatabase.MIGRATION_13_14, AppDatabase.MIGRATION_14_15)
                 .allowMainThreadQueries()
                 .build();
         try {

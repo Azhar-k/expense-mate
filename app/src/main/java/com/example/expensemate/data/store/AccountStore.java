@@ -16,6 +16,8 @@ public interface AccountStore {
 
     List<Account> findAll();
 
+    Account findById(long id);
+
     void insert(Account account);
 
     void update(Account account);

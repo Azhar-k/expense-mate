@@ -53,7 +53,11 @@ public interface TransactionStore {
 
     void moveAccount(long fromAccountId, long toAccountId);
 
+    /** The rows take on the new account's currency. */
     void moveRealAccount(long fromAccountId, long toAccountId);
+
+    /** Relabels the rows of a real account, without converting their amounts. */
+    void setCurrencyForRealAccount(long accountId, String currency);
 
     /** The latest rows that are not transfers, newest first. */
     List<PastTransaction> findHistory(int limit);
@@ -67,9 +71,11 @@ public interface TransactionStore {
     int countByMatchKeyAndSource(String matchKey, String source, long fromTime, long toTime);
 
     /** Months are local-time ranges, from inclusive and to exclusive. */
-    LiveData<SummaryTotals> observeSummary(Date from, Date to, Long accountId);
+    /** One row per currency, since amounts in different currencies are never added together. */
+    LiveData<List<SummaryTotals>> observeSummary(Date from, Date to, Long accountId);
 
-    LiveData<List<CategorySum>> observeCategorySums(String transactionType, Date from, Date to, Long accountId);
+    LiveData<List<CategorySum>> observeCategorySums(String transactionType, String currency, Date from, Date to,
+            Long accountId);
 
     LiveData<Integer> observeNeedsReviewCount();
 

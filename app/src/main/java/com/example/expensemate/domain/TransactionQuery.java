@@ -10,6 +10,7 @@ public class TransactionQuery {
     public String receiver;
     public String category;
     public Double amount;
+    public String currency;
     public String transactionType;
     public Boolean excluded;
     public Long billId;

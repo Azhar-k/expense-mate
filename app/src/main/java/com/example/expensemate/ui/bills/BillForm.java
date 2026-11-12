@@ -10,9 +10,11 @@ import androidx.lifecycle.ViewModelProvider;
 import com.example.expensemate.data.Account;
 import com.example.expensemate.data.RecurringPayment;
 import com.example.expensemate.databinding.DialogBillFormBinding;
+import com.example.expensemate.ui.common.CurrencyField;
 import com.example.expensemate.ui.common.FormSheet;
 import com.example.expensemate.ui.common.Pickers;
 import com.example.expensemate.ui.common.Ui;
+import com.example.expensemate.util.Currencies;
 import com.example.expensemate.util.Money;
 import com.example.expensemate.viewmodel.AccountViewModel;
 import com.example.expensemate.viewmodel.RecurringPaymentsViewModel;
@@ -68,6 +70,8 @@ public final class BillForm {
             }
             Ui.setDropdownItems(form.etFrom, names);
             Ui.setDropdownItems(form.etTo, names);
+            String main = Currencies.main(list);
+            CurrencyField.setUp(form.etCurrency, bill != null ? bill.getCurrency() : main, main, Currencies.inUse(list));
         });
 
         FormSheet sheet = FormSheet.create(activity, bill == null ? "Add a bill" : "Edit " + bill.getName(),
@@ -79,13 +83,15 @@ public final class BillForm {
             Integer dueDay = parseDay(form.etDueDay.getText().toString());
             Long fromId = idOf(form.etFrom, accounts);
             Long toId = idOf(form.etTo, accounts);
+            String currency = CurrencyField.read(form.etCurrency);
             boolean sameAccount = fromId != null && fromId.equals(toId);
 
             form.tilName.setError(name.isEmpty() ? "Enter a name" : null);
             form.tilAmount.setError(amount == null ? "Enter an amount" : null);
             form.tilDueDay.setError(dueDay == null ? "1 to 31" : null);
             form.tilTo.setError(sameAccount ? "Pick another" : null);
-            if (name.isEmpty() || amount == null || dueDay == null || sameAccount) {
+            form.tilCurrency.setError(currency == null ? "Pick a currency" : null);
+            if (name.isEmpty() || amount == null || dueDay == null || sameAccount || currency == null) {
                 return;
             }
 
@@ -94,6 +100,7 @@ public final class BillForm {
                 RecurringPayment created = new RecurringPayment(name, amount, dueDay, ends.getTime());
                 created.setFromAccountId(fromId);
                 created.setToAccountId(toId);
+                created.setCurrency(currency);
                 viewModel.insert(created);
             } else {
                 bill.setName(name);
@@ -102,6 +109,7 @@ public final class BillForm {
                 bill.setExpiryDate(ends.getTime());
                 bill.setFromAccountId(fromId);
                 bill.setToAccountId(toId);
+                bill.setCurrency(currency);
                 viewModel.update(bill);
             }
             sheet.dismiss();

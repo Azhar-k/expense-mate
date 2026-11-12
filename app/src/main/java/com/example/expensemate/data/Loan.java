@@ -1,7 +1,10 @@
 package com.example.expensemate.data;
 
 import androidx.annotation.NonNull;
+import androidx.room.ColumnInfo;
 import androidx.room.Entity;
+
+import com.example.expensemate.util.Currencies;
 import androidx.room.PrimaryKey;
 
 import java.util.Date;
@@ -22,6 +25,13 @@ public class Loan {
     private double returnedManually; // Returns that never showed up as a transaction, such as cash
     private boolean closedManually; // Marked as returned by hand, whatever came back
     private Date closedDate; // Last done by hand: marked as returned, or a return recorded
+    @NonNull
+    @ColumnInfo(defaultValue = Currencies.LEGACY) // Matches the migration
+    private String currency = Currencies.LEGACY; // What it was lent in; only returns in it count
+
+    @NonNull
+    public String getCurrency() { return currency; }
+    public void setCurrency(@NonNull String currency) { this.currency = currency; }
 
     public long getId() { return id; }
     public void setId(long id) { this.id = id; }

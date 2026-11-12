@@ -252,6 +252,54 @@ public class BackupRestoreTest {
     }
 
     @Test
+    public void currenciesSurviveABackupAndOlderBackupsAreRupees() throws Exception {
+        account(1, "Daily", Account.TYPE_VIRTUAL, true);
+        Account dirhams = new Account("Emirates NBD", "", "", null, "");
+        dirhams.setId(2);
+        dirhams.setType(Account.TYPE_REAL);
+        dirhams.setDefault(true);
+        dirhams.setCurrency("AED");
+        source.accountDao().insert(dirhams);
+        Transaction spent = row(1, "DEBIT", 1L, 2L);
+        spent.setCurrency("AED");
+        source.transactionDao().insertTransaction(spent);
+        Loan loan = new Loan();
+        loan.setId(1);
+        loan.setPerson("Ravi");
+        loan.setAmount(50);
+        loan.setCurrency("AED");
+        source.loanDao().insert(loan);
+        RecurringPayment rent = new RecurringPayment("Rent", 900, 5, null);
+        rent.setCurrency("USD");
+        source.recurringPaymentDao().insert(rent);
+
+        for (String section : new String[] { "RECURRING PAYMENTS", "ACCOUNTS", "LOANS", "TRANSACTIONS" }) {
+            load(section, BackupDataLoader.entityText(section, source));
+        }
+        BackupDataLoader.finishRestore(restored);
+
+        assertEquals("AED", findAccount(restored, "Emirates NBD").getCurrency());
+        assertNull(findAccount(restored, "Daily").getCurrency());
+        assertEquals("AED", find(restored, 1).getCurrency());
+        assertEquals("AED", restored.loanDao().getAllLoansSync().get(0).getCurrency());
+        assertEquals("USD", restored.recurringPaymentDao().getAllRecurringPaymentsSync().get(0).getCurrency());
+    }
+
+    @Test
+    public void aBackupWithoutCurrenciesComesBackInRupees() throws Exception {
+        account(1, "Daily", Account.TYPE_VIRTUAL, true);
+        account(2, "Bank", Account.TYPE_REAL, true);
+        source.transactionDao().insertTransaction(row(1, "DEBIT", 1L, 2L));
+        for (String section : new String[] { "ACCOUNTS", "TRANSACTIONS" }) {
+            load(section, BackupDataLoader.entityText(section, source).replaceAll("(?m)^Currency: .*\\R", ""));
+        }
+        BackupDataLoader.finishRestore(restored);
+
+        assertEquals("INR", findAccount(restored, "Bank").getCurrency());
+        assertEquals("INR", find(restored, 1).getCurrency());
+    }
+
+    @Test
     public void loansComeBackWithTheirReturns() throws Exception {
         account(1, "Daily", Account.TYPE_VIRTUAL, true);
         Loan loan = new Loan();

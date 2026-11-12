@@ -11,6 +11,8 @@ import com.example.expensemate.data.store.CategoryStore;
 import com.example.expensemate.data.store.CounterpartyCategoryStore;
 import com.example.expensemate.data.store.TransactionStore;
 
+import com.example.expensemate.util.Currencies;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
@@ -50,6 +52,32 @@ final class TransactionRules {
         if (transaction.getRealAccountId() == null) {
             transaction.setRealAccountId(defaultAccountId(Account.TYPE_REAL));
         }
+    }
+
+    /**
+     * A row's amount is in its real account's currency, so the currency always follows that account.
+     * A row without one, or an account that somehow has none, takes the main currency.
+     */
+    void applyCurrency(Transaction transaction) {
+        Account real = transaction.getRealAccountId() != null ? accounts.findById(transaction.getRealAccountId()) : null;
+        String currency = real != null ? Currencies.of(real) : null;
+        transaction.setCurrency(currency != null ? currency : Currencies.main(accounts.findAll()));
+    }
+
+    /** The default real account if it holds this currency, else the first real account that does, else null. */
+    Long realAccountIn(String currency) {
+        Account fallback = null;
+        for (Account account : accounts.findAll()) {
+            if (account.isReal() && currency.equals(account.getCurrency())) {
+                if (account.isDefault()) {
+                    return account.getId();
+                }
+                if (fallback == null) {
+                    fallback = account;
+                }
+            }
+        }
+        return fallback != null ? fallback.getId() : null;
     }
 
     void applyDefaultCategory(Transaction transaction) {
@@ -109,7 +137,14 @@ final class TransactionRules {
 
     /** The unpaid bill this payment most likely pays, or null. Nothing is linked until someone saves it. */
     Long suggestBill(Transaction transaction) {
-        return Suggestions.bill(transaction, bills.findAll(), recentHistory());
+        // A bill in another currency cannot be what this amount pays
+        List<RecurringPayment> sameCurrency = new ArrayList<>();
+        for (RecurringPayment bill : bills.findAll()) {
+            if (bill.getCurrency().equals(transaction.getCurrency())) {
+                sameCurrency.add(bill);
+            }
+        }
+        return Suggestions.bill(transaction, sameCurrency, recentHistory());
     }
 
     void rememberCategory(Transaction row) {

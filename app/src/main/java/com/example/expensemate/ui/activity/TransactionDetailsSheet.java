@@ -157,7 +157,7 @@ public class TransactionDetailsSheet extends ExpandedSheet {
             }
         }
         binding.tvTitle.setText(TransactionText.transferRoute(accountNames, debit, credit));
-        binding.tvAmount.setText(Money.format(transaction.getAmount()));
+        binding.tvAmount.setText(TransactionText.transferAmount(transaction, debit, credit));
         binding.tvAmount.setTextColor(requireContext().getColor(R.color.transfer));
         binding.groupCategory.setVisibility(View.GONE);
         binding.rowLoan.setVisibility(View.GONE);
@@ -181,7 +181,7 @@ public class TransactionDetailsSheet extends ExpandedSheet {
                 credit ? R.color.primary_container : R.color.surface_variant,
                 credit ? R.color.primary : R.color.on_surface);
         binding.tvTitle.setText(TransactionText.title(transaction));
-        binding.tvAmount.setText(credit ? Money.credit(transaction.getAmount()) : Money.debit(transaction.getAmount()));
+        binding.tvAmount.setText(credit ? Money.credit(transaction.getAmount(), transaction.getCurrency()) : Money.debit(transaction.getAmount(), transaction.getCurrency()));
         binding.tvAmount.setTextColor(requireContext().getColor(credit ? R.color.credit : R.color.on_surface));
 
         binding.groupCategory.setVisibility(View.VISIBLE);

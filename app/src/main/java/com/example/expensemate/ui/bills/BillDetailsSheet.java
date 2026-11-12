@@ -71,7 +71,7 @@ public class BillDetailsSheet extends ExpandedSheet {
         Bills.Status status = Bills.statusOf(bill, today);
 
         binding.tvName.setText(bill.getName());
-        binding.tvAmount.setText(Money.format(bill.getAmount()));
+        binding.tvAmount.setText(Money.format(bill.getAmount(), bill.getCurrency()));
         binding.details.removeAllViews();
         Ui.addKeyValue(binding.details, "This month", BillText.statusLine(bill, today));
         Ui.addKeyValue(binding.details, "Repeats", "Day " + bill.getDueDay() + " of every month");
@@ -91,7 +91,7 @@ public class BillDetailsSheet extends ExpandedSheet {
         boolean canMove = Bills.isTransfer(bill) && status != Bills.Status.PAID && status != Bills.Status.ENDED
                 && !bill.getFromAccountId().equals(bill.getToAccountId());
         binding.btnMove.setVisibility(canMove ? View.VISIBLE : View.GONE);
-        binding.btnMove.setText("Move " + Money.format(bill.getAmount()));
+        binding.btnMove.setText("Move " + Money.format(bill.getAmount(), bill.getCurrency()));
         binding.btnMove.setOnClickListener(v -> {
             dismiss();
             BillActions.confirmMove(activity, bill, names);

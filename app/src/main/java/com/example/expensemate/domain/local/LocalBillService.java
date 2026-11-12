@@ -78,8 +78,12 @@ final class LocalBillService implements BillService {
         bill.setCompleted(true);
         bill.setLastCompletedDate(now);
         return writer.run(() -> {
+            // Both sides stay in one real account that holds the bill's currency, so only virtual balances move
+            Long real = rules.realAccountIn(bill.getCurrency());
             for (Transaction leg : legs) {
+                leg.setRealAccountId(real);
                 rules.fillDefaultAccounts(leg);
+                leg.setCurrency(bill.getCurrency());
                 transactions.insert(leg);
             }
             store.update(bill);

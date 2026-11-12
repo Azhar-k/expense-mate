@@ -3,9 +3,11 @@ package com.example.expensemate.viewmodel;
 import android.app.Application;
 import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
+import androidx.lifecycle.Transformations;
 import com.example.expensemate.AppServices;
 import com.example.expensemate.data.Account;
 import com.example.expensemate.domain.AccountService;
+import com.example.expensemate.util.Currencies;
 import java.util.List;
 
 public class AccountViewModel extends AndroidViewModel {
@@ -19,6 +21,11 @@ public class AccountViewModel extends AndroidViewModel {
 
     public LiveData<List<Account>> getAllAccounts() {
         return accounts.accounts();
+    }
+
+    /** The default real account's currency, which lists and totals put first. */
+    public LiveData<String> getMainCurrency() {
+        return Transformations.distinctUntilChanged(Transformations.map(accounts.accounts(), Currencies::main));
     }
 
     public LiveData<Account> getDefaultAccount() {

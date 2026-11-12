@@ -139,6 +139,7 @@ public class ScreensTest {
             database.accountDao().insert(new Account("Credit card", "", "", daysAgo(-900, 9), ""));
             Account bank = new Account("Bank account", "", "", null, "");
             bank.setType(Account.TYPE_REAL);
+            bank.setCurrency("INR");
             bank.setDefault(true);
             database.accountDao().insert(bank);
 
@@ -398,7 +399,7 @@ public class ScreensTest {
         });
         reader.start();
         reader.join();
-        return com.example.expensemate.util.Money.format(total[0]).substring(1);
+        return com.example.expensemate.util.Money.format(total[0], "INR").substring(1);
     }
 
     private long firstTransactionId() throws Exception {

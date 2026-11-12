@@ -8,6 +8,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase;
 
 import com.example.expensemate.service.GoogleDriveService;
 import com.example.expensemate.service.GoogleSignInHelper;
+import com.example.expensemate.util.Currencies;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -91,6 +92,7 @@ public class BackupDataLoader {
                     put(data, "Last Completed Date", p.getLastCompletedDate());
                     put(data, "From Account ID", p.getFromAccountId());
                     put(data, "To Account ID", p.getToAccountId());
+                    put(data, "Currency", p.getCurrency());
                     data.append("---\n");
                 }
                 break;
@@ -105,6 +107,7 @@ public class BackupDataLoader {
                     put(data, "Is Default", a.isDefault());
                     put(data, "Account Type", a.getType());
                     put(data, "Sort Order", a.getSortOrder());
+                    put(data, "Currency", a.getCurrency());
                     data.append("---\n");
                 }
                 break;
@@ -118,6 +121,7 @@ public class BackupDataLoader {
                     put(data, "Returned Manually", l.getReturnedManually());
                     put(data, "Closed Manually", l.isClosedManually());
                     put(data, "Closed Date", l.getClosedDate());
+                    put(data, "Currency", l.getCurrency());
                     data.append("---\n");
                 }
                 break;
@@ -144,6 +148,7 @@ public class BackupDataLoader {
                     put(data, "Dedup Key", t.getDedupKey());
                     put(data, "Match Key", t.getMatchKey());
                     put(data, "Message Time", t.getMessageTime());
+                    put(data, "Currency", t.getCurrency());
                     data.append("---\n");
                 }
                 break;
@@ -336,6 +341,7 @@ public class BackupDataLoader {
         transaction.setSmsHash(record.text("SMS Hash"));
         transaction.setTransferGroupId(record.text("Transfer Group"));
         transaction.setNeedsReview(record.flag("Needs Review"));
+        transaction.setCurrency(currencyOf(record));
 
         if (record.escaped) {
             transaction.setSource(record.text("Source"));
@@ -396,6 +402,7 @@ public class BackupDataLoader {
         payment.setLastCompletedDate(record.date("Last Completed Date"));
         payment.setFromAccountId(record.number("From Account ID"));
         payment.setToAccountId(record.number("To Account ID"));
+        payment.setCurrency(currencyOf(record));
         database.recurringPaymentDao().insert(payment);
     }
 
@@ -408,6 +415,7 @@ public class BackupDataLoader {
                 record.date("Expiry Date"), orEmpty(record, "Description"));
         account.setDefault(record.flag("Is Default"));
         account.setType(Account.TYPE_REAL.equals(record.text("Account Type")) ? Account.TYPE_REAL : Account.TYPE_VIRTUAL);
+        account.setCurrency(account.isReal() ? currencyOf(record) : null);
         account.setSortOrder(record.integer("Sort Order", 0));
 
         // The original id keeps transactions and bills pointing at the right account
@@ -441,12 +449,19 @@ public class BackupDataLoader {
         loan.setReturnedManually(record.amount("Returned Manually"));
         loan.setClosedManually(record.flag("Closed Manually"));
         loan.setClosedDate(record.date("Closed Date"));
+        loan.setCurrency(currencyOf(record));
         database.loanDao().insert(loan);
     }
 
     private String orEmpty(Record record, String key) {
         String value = record.text(key);
         return record.escaped || value != null ? value : "";
+    }
+
+    // Backups from before currencies were all in rupees
+    private static String currencyOf(Record record) {
+        String code = Currencies.normalize(record.text("Currency"));
+        return code != null ? code : Currencies.LEGACY;
     }
 
     private void processCounterpartyCategory(Record record) {
@@ -513,6 +528,7 @@ public class BackupDataLoader {
             SupportSQLiteDatabase db = restored.getOpenHelper().getWritableDatabase();
             Category.ensureDefaults(db);
             Account.ensureDefaultRealAccount(db);
+            Account.ensureRealAccountCurrencies(db, Currencies.LEGACY);
             Transfers.linkLegacyPairs(db);
             // Backups from before the mappings file are rebuilt from the transactions
             if (rebuildMappings) {
