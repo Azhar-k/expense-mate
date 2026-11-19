@@ -12,10 +12,12 @@ import com.example.expensemate.util.Currencies;
 
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -24,6 +26,10 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.zip.Deflater;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
+import java.util.zip.ZipOutputStream;
 
 /**
  * Backs up to Google Drive as one text file per table and restores from them.
@@ -232,7 +238,8 @@ public class BackupDataLoader {
     }
 
     private void load(File file, String section) throws IOException {
-        try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
+        try (BufferedReader reader = new BufferedReader(
+                new InputStreamReader(new FileInputStream(file), StandardCharsets.UTF_8))) {
             String line = reader.readLine();
             boolean escaped = FORMAT_LINE.equals(line);
             if (escaped) {
@@ -581,11 +588,54 @@ public class BackupDataLoader {
     /****************************************************************************************************/
     // Google Drive
 
-    /** Uploads every file, then a marker; a backup that stops partway is deleted, not left looking finished. */
+    /** Writes every table's file into one zip; the text is repetitive, so it shrinks several times over. */
+    static void writeZip(AppDatabase database, File zip) throws IOException {
+        try (ZipOutputStream out = new ZipOutputStream(new FileOutputStream(zip))) {
+            out.setLevel(Deflater.BEST_COMPRESSION);
+            for (String[] entry : FILES) {
+                out.putNextEntry(new ZipEntry(entry[1]));
+                out.write(entityText(entry[0], database).getBytes(StandardCharsets.UTF_8));
+                out.closeEntry();
+            }
+        }
+    }
+
+    /** Unpacks a backup zip into {@code dir}, keyed by section. Names it does not know are left out. */
+    static Map<String, File> readZip(File zip, File dir) throws IOException {
+        Map<String, String> sections = new HashMap<>();
+        for (String[] entry : FILES) {
+            sections.put(entry[1], entry[0]);
+        }
+        Map<String, File> files = new HashMap<>();
+        try (ZipInputStream in = new ZipInputStream(new FileInputStream(zip))) {
+            byte[] buffer = new byte[8192];
+            for (ZipEntry entry; (entry = in.getNextEntry()) != null; ) {
+                String section = sections.get(entry.getName());
+                if (section == null || entry.isDirectory()) {
+                    continue;
+                }
+                // The name is one of ours, so the file cannot land outside the cache
+                File file = new File(dir, "restore_" + entry.getName());
+                files.put(section, file);
+                try (FileOutputStream out = new FileOutputStream(file)) {
+                    for (int read; (read = in.read(buffer)) != -1; ) {
+                        out.write(buffer, 0, read);
+                    }
+                }
+            }
+        }
+        return files;
+    }
+
+    /**
+     * Uploads one zip, which appears on Drive whole or not at all; a backup that fails is deleted.
+     * After it, only the newest {@value GoogleDriveService#KEEP_BACKUPS} backups are kept.
+     */
     public static void exportDatabaseDataToGoogleDrive(Context context, AppDatabase database,
             GoogleDriveService.DriveCallback callback) {
         new Thread(() -> {
             GoogleDriveService driveService = new GoogleDriveService(context);
+            File zip = new File(context.getCacheDir(), GoogleDriveService.BACKUP_ZIP);
             try {
                 GoogleSignInHelper signInHelper = new GoogleSignInHelper(context);
                 if (!signInHelper.isSignedIn()) {
@@ -594,13 +644,10 @@ public class BackupDataLoader {
                 }
                 driveService.initializeDriveService(signInHelper.getAccessToken());
 
+                writeZip(database, zip);
                 String folderId = driveService.createBackupFolder();
                 try {
-                    for (String[] entry : FILES) {
-                        upload(context, driveService, folderId, entry[1], entityText(entry[0], database));
-                    }
-                    upload(context, driveService, folderId, GoogleDriveService.COMPLETE_MARKER,
-                            "Backup finished " + new Date() + "\n");
+                    driveService.uploadFile(folderId, zip, "application/zip");
                 } catch (IOException | RuntimeException e) {
                     try {
                         driveService.delete(folderId);
@@ -609,27 +656,26 @@ public class BackupDataLoader {
                     }
                     throw e;
                 }
-                callback.onSuccess("Backup completed successfully");
+
+                // The backup is safe by now, so a failure here only leaves extra old copies
+                String pruned = "";
+                try {
+                    int count = driveService.pruneBackups(GoogleDriveService.KEEP_BACKUPS);
+                    if (count > 0) {
+                        pruned = ", removed " + count + " old backup(s)";
+                    }
+                } catch (IOException | RuntimeException e) {
+                    Log.e(TAG, "Could not remove old backups", e);
+                }
+                callback.onSuccess("Backup completed successfully" + pruned);
             } catch (Exception e) {
                 Log.e(TAG, "Error backing up to Google Drive", e);
                 callback.onError("Backup failed: " + e.getMessage());
             } finally {
+                zip.delete();
                 driveService.shutdown();
             }
         }).start();
-    }
-
-    private static void upload(Context context, GoogleDriveService driveService, String folderId, String fileName,
-            String text) throws IOException {
-        File file = new File(context.getCacheDir(), fileName);
-        try {
-            try (FileWriter writer = new FileWriter(file)) {
-                writer.write(text);
-            }
-            driveService.uploadFile(folderId, file, "text/plain");
-        } finally {
-            file.delete();
-        }
     }
 
     /** Downloads the newest finished backup in full before anything on the phone changes. */
@@ -637,6 +683,7 @@ public class BackupDataLoader {
         new Thread(() -> {
             GoogleDriveService driveService = new GoogleDriveService(context);
             Map<String, File> files = new HashMap<>();
+            File zip = new File(context.getCacheDir(), "restore_" + GoogleDriveService.BACKUP_ZIP);
             try {
                 GoogleSignInHelper signInHelper = new GoogleSignInHelper(context);
                 if (!signInHelper.isSignedIn()) {
@@ -650,12 +697,19 @@ public class BackupDataLoader {
                     callback.onError("No complete backup found");
                     return;
                 }
-                for (String[] entry : FILES) {
-                    String fileId = backup.files.get(entry[1]);
-                    if (fileId != null) {
-                        File file = new File(context.getCacheDir(), "restore_" + entry[1]);
-                        files.put(entry[0], file);
-                        driveService.downloadFile(fileId, file);
+                String zipId = backup.files.get(GoogleDriveService.BACKUP_ZIP);
+                if (zipId != null) {
+                    driveService.downloadFile(zipId, zip);
+                    files.putAll(readZip(zip, context.getCacheDir()));
+                } else {
+                    // Backups from before the zip hold one file per table
+                    for (String[] entry : FILES) {
+                        String fileId = backup.files.get(entry[1]);
+                        if (fileId != null) {
+                            File file = new File(context.getCacheDir(), "restore_" + entry[1]);
+                            files.put(entry[0], file);
+                            driveService.downloadFile(fileId, file);
+                        }
                     }
                 }
                 new BackupDataLoader(context).restore(files);
@@ -667,6 +721,7 @@ public class BackupDataLoader {
                 for (File file : files.values()) {
                     file.delete();
                 }
+                zip.delete();
                 driveService.shutdown();
             }
         }).start();

@@ -311,7 +311,8 @@ public class SettingsFragment extends Fragment {
     private void confirmBackup() {
         new MaterialAlertDialogBuilder(requireContext())
                 .setTitle("Back up to Google Drive?")
-                .setMessage("This saves a new backup of your data to your Drive.")
+                .setMessage("This saves a new backup of your data to your Drive. Only your "
+                        + GoogleDriveService.KEEP_BACKUPS + " newest backups are kept.")
                 .setNegativeButton("Cancel", null)
                 .setPositiveButton("Back up", (dialog, which) -> {
                     showStatus("Backing up…");

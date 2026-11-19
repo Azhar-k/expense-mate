@@ -217,13 +217,18 @@ public class GoogleDriveService {
     }
 
     /**
-     * A backup finished if it has the marker that is uploaded last. One made before the marker
-     * existed is usable when all four of its files are there, as each file uploads whole.
+     * A backup finished if it has its zip, which uploads whole, or, from before the zip, the
+     * marker that was uploaded last. One made before the marker is usable when all four of its
+     * files are there, as each file uploads whole.
      */
     public static boolean isComplete(java.util.Set<String> fileNames) {
-        return fileNames.contains(COMPLETE_MARKER) || fileNames.containsAll(LEGACY_FILES);
+        return fileNames.contains(BACKUP_ZIP) || fileNames.contains(COMPLETE_MARKER)
+                || fileNames.containsAll(LEGACY_FILES);
     }
 
+    /** How many finished backups are kept on Drive after each new one. */
+    public static final int KEEP_BACKUPS = 3;
+    public static final String BACKUP_ZIP = "backup.zip";
     public static final String COMPLETE_MARKER = "backup_complete.txt";
     private static final List<String> LEGACY_FILES = java.util.Arrays.asList(
             "categories.txt", "recurring_payments.txt", "accounts.txt", "transactions.txt");
@@ -232,35 +237,52 @@ public class GoogleDriveService {
         public final String id;
         public final java.util.Map<String, String> files; // Name to Drive file id
 
-        BackupFolder(String id, java.util.Map<String, String> files) {
+        public BackupFolder(String id, java.util.Map<String, String> files) {
             this.id = id;
             this.files = files;
         }
+    }
+
+    /**
+     * The folders to delete, given newest first, so the newest {@code keep} finished backups stay.
+     * An unfinished folder goes once a newer backup has finished; one newer than every finished
+     * backup may still be uploading, so it stays.
+     */
+    public static List<BackupFolder> toPrune(List<BackupFolder> newestFirst, int keep) {
+        List<BackupFolder> prune = new java.util.ArrayList<>();
+        int kept = 0;
+        for (BackupFolder folder : newestFirst) {
+            if (isComplete(folder.files.keySet())) {
+                if (kept < keep) {
+                    kept++;
+                } else {
+                    prune.add(folder);
+                }
+            } else if (kept > 0) {
+                prune.add(folder);
+            }
+        }
+        return prune;
+    }
+
+    /** Deletes all but the newest {@code keep} finished backups and returns how many went. */
+    public int pruneBackups(int keep) throws IOException {
+        List<BackupFolder> prune = toPrune(listBackupFolders(), keep);
+        for (BackupFolder folder : prune) {
+            delete(folder.id);
+        }
+        return prune.size();
     }
 
     /** Keeps the newest backup that can be restored and deletes every other one. */
     public void deleteOldBackups(DriveCallback callback) {
         executorService.execute(() -> {
             try {
-                List<BackupFolder> folders = listBackupFolders();
-                BackupFolder keep = null;
-                for (BackupFolder folder : folders) {
-                    if (isComplete(folder.files.keySet())) {
-                        keep = folder;
-                        break;
-                    }
-                }
-                if (keep == null) {
+                if (findLatestBackup() == null) {
                     callback.onError("No complete backup found, so nothing was deleted");
                     return;
                 }
-                int deletedCount = 0;
-                for (BackupFolder folder : folders) {
-                    if (folder != keep) {
-                        delete(folder.id);
-                        deletedCount++;
-                    }
-                }
+                int deletedCount = pruneBackups(1);
                 callback.onSuccess(deletedCount == 0 ? "No old backups to delete" : "Deleted " + deletedCount + " old backup(s)");
             } catch (IOException e) {
                 Log.e(TAG, "Error deleting old backups", e);

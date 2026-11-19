@@ -428,6 +428,79 @@ public class BackupRestoreTest {
                 "categories.txt", "recurring_payments.txt", "accounts.txt", "transactions.txt"))));
         assertFalse("Stopped partway", GoogleDriveService.isComplete(new HashSet<>(Arrays.asList(
                 "categories.txt", "recurring_payments.txt", "accounts.txt"))));
+        assertTrue("One zip", GoogleDriveService.isComplete(new HashSet<>(Arrays.asList(
+                GoogleDriveService.BACKUP_ZIP))));
+        assertFalse("Empty folder", GoogleDriveService.isComplete(new HashSet<>()));
+    }
+
+    @Test
+    public void aZippedBackupRestoresAndIsSmaller() throws Exception {
+        account(1, "Daily", Account.TYPE_VIRTUAL, true);
+        account(3, "Bank", Account.TYPE_REAL, false);
+        source.categoryDao().insertCategory(new Category("Fuel", "EXPENSE"));
+        for (long id = 1; id <= 200; id++) {
+            Transaction t = row(id, "DEBIT", 1L, 3L);
+            t.setCategory("Fuel");
+            t.setSmsBody("Dear Customer, Rs." + (100 + id) + " debited from A/c XX1234 on 12-11-26 to VPA shop"
+                    + id + "@upi. Ref " + (900000 + id) + ". Not you? Call 1800-000-000\nbank");
+            t.setSmsSender("AD-BANK");
+            source.transactionDao().insertTransaction(t);
+        }
+
+        File zip = File.createTempFile("backup", ".zip", context.getCacheDir());
+        BackupDataLoader.writeZip(source, zip);
+        long plain = 0;
+        for (String[] entry : BackupDataLoader.FILES) {
+            plain += BackupDataLoader.entityText(entry[0], source).getBytes("UTF-8").length;
+        }
+        assertTrue("Zip " + zip.length() + " bytes vs " + plain + " plain", zip.length() * 4 < plain);
+
+        Map<String, File> files = BackupDataLoader.readZip(zip, context.getCacheDir());
+        assertEquals(BackupDataLoader.FILES.length, files.size());
+        new BackupDataLoader(context, restored).restore(files);
+        for (File file : files.values()) {
+            file.delete();
+        }
+        zip.delete();
+
+        assertEquals(200, restored.transactionDao().getAllTransactionsSyncOrderByDateAsc().size());
+        Transaction back = find(restored, 7);
+        assertEquals(find(source, 7).getSmsBody(), back.getSmsBody());
+        assertEquals("Fuel", back.getCategory());
+        assertEquals(Long.valueOf(3), back.getRealAccountId());
+    }
+
+    private static GoogleDriveService.BackupFolder folder(String id, String... names) {
+        Map<String, String> files = new HashMap<>();
+        for (String name : names) {
+            files.put(name, name);
+        }
+        return new GoogleDriveService.BackupFolder(id, files);
+    }
+
+    private static java.util.List<String> ids(java.util.List<GoogleDriveService.BackupFolder> folders) {
+        java.util.List<String> ids = new java.util.ArrayList<>();
+        for (GoogleDriveService.BackupFolder f : folders) {
+            ids.add(f.id);
+        }
+        return ids;
+    }
+
+    @Test
+    public void onlyTheNewestFinishedBackupsAreKept() {
+        String zip = GoogleDriveService.BACKUP_ZIP;
+        java.util.List<GoogleDriveService.BackupFolder> newestFirst = Arrays.asList(
+                folder("uploading"),                 // newer than any finished one: may still be going
+                folder("a", zip), folder("b", zip),
+                folder("broken"),                    // a leftover older than a finished backup
+                folder("c", GoogleDriveService.COMPLETE_MARKER, "accounts.txt"),
+                folder("d", zip), folder("e", zip), folder("f", zip));
+
+        assertEquals(Arrays.asList("broken", "f"), ids(GoogleDriveService.toPrune(newestFirst, 5)));
+        assertEquals(Arrays.asList("b", "broken", "c", "d", "e", "f"),
+                ids(GoogleDriveService.toPrune(newestFirst, 1)));
+        assertTrue("Nothing finished, nothing goes",
+                GoogleDriveService.toPrune(Arrays.asList(folder("x"), folder("y")), 1).isEmpty());
     }
 
     private static String oldRow(long id, String accountId) {
