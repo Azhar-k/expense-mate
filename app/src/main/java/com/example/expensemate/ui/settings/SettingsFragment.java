@@ -20,8 +20,6 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.app.ActivityCompat;
 import androidx.fragment.app.Fragment;
-import androidx.lifecycle.ViewModelProvider;
-import androidx.navigation.fragment.NavHostFragment;
 import androidx.work.WorkInfo;
 import androidx.work.WorkManager;
 
@@ -29,7 +27,6 @@ import com.example.expensemate.BuildConfig;
 import com.example.expensemate.MainActivity;
 import com.example.expensemate.R;
 import com.example.expensemate.data.BackupDataLoader;
-import com.example.expensemate.data.Category;
 import com.example.expensemate.databinding.FragmentSettingsBinding;
 import com.example.expensemate.databinding.ItemSettingsRowBinding;
 import com.example.expensemate.service.BackupScheduler;
@@ -38,9 +35,6 @@ import com.example.expensemate.service.DriveAuth;
 import com.example.expensemate.service.GoogleDriveService;
 import com.example.expensemate.ui.common.AppTheme;
 import com.example.expensemate.ui.common.Ui;
-import com.example.expensemate.data.MessagePattern;
-import com.example.expensemate.viewmodel.CategoryViewModel;
-import com.example.expensemate.viewmodel.PatternViewModel;
 import com.google.android.gms.auth.api.identity.AuthorizationResult;
 import com.google.android.gms.common.api.ApiException;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
@@ -120,41 +114,6 @@ public class SettingsFragment extends Fragment {
 
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
-        configureRow(binding.rowScan, R.drawable.ic_search, "Scan messages", "Find past transactions");
-        binding.rowScan.getRoot().setOnClickListener(
-                v -> NavHostFragment.findNavController(this).navigate(R.id.navigation_sms_scan));
-
-        configureRow(binding.rowPatterns, R.drawable.ic_sms, "Message patterns", "");
-        binding.rowPatterns.getRoot().setOnClickListener(
-                v -> NavHostFragment.findNavController(this).navigate(R.id.navigation_patterns));
-        new ViewModelProvider(requireActivity()).get(PatternViewModel.class).getPatterns()
-                .observe(getViewLifecycleOwner(), patterns -> {
-                    int on = 0;
-                    for (MessagePattern pattern : patterns) {
-                        if (pattern.isActive()) {
-                            on++;
-                        }
-                    }
-                    binding.rowPatterns.tvSubtitle.setText(on + " on · add your bank");
-                });
-
-        configureRow(binding.rowCategories, R.drawable.ic_tag, "Categories", "");
-        binding.rowCategories.getRoot().setOnClickListener(
-                v -> NavHostFragment.findNavController(this).navigate(R.id.navigation_categories));
-        new ViewModelProvider(requireActivity()).get(CategoryViewModel.class).getAllCategories()
-                .observe(getViewLifecycleOwner(), categories -> {
-                    int expense = 0;
-                    int income = 0;
-                    for (Category category : categories) {
-                        if ("INCOME".equals(category.getType())) {
-                            income++;
-                        } else {
-                            expense++;
-                        }
-                    }
-                    binding.rowCategories.tvSubtitle.setText(expense + " expense · " + income + " income");
-                });
-
         configureRow(binding.rowTheme, R.drawable.ic_palette, "Theme", AppTheme.LABELS[AppTheme.selected(requireContext())]);
         binding.rowTheme.getRoot().setOnClickListener(v -> chooseTheme());
 
