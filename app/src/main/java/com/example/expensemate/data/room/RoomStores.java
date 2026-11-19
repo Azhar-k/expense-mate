@@ -3,6 +3,7 @@ package com.example.expensemate.data.room;
 import com.example.expensemate.data.AppDatabase;
 import com.example.expensemate.data.store.AccountStore;
 import com.example.expensemate.data.store.BillStore;
+import com.example.expensemate.data.store.BudgetStore;
 import com.example.expensemate.data.store.CategoryStore;
 import com.example.expensemate.data.store.CounterpartyCategoryStore;
 import com.example.expensemate.data.store.LoanStore;
@@ -22,6 +23,7 @@ public final class RoomStores implements Stores {
     private final LoanStore loans;
     private final BillStore bills;
     private final PatternStore patterns;
+    private final BudgetStore budgets;
     private final UnitOfWork unitOfWork;
 
     public RoomStores(AppDatabase database) {
@@ -32,6 +34,7 @@ public final class RoomStores implements Stores {
         loans = new RoomLoanStore(database.loanDao());
         bills = new RoomBillStore(database.recurringPaymentDao());
         patterns = new RoomPatternStore(database.messagePatternDao());
+        budgets = new RoomBudgetStore(database.budgetDao());
         unitOfWork = new UnitOfWork() {
             @Override
             public void run(Runnable work) {
@@ -78,6 +81,11 @@ public final class RoomStores implements Stores {
     @Override
     public PatternStore patterns() {
         return patterns;
+    }
+
+    @Override
+    public BudgetStore budgets() {
+        return budgets;
     }
 
     @Override

@@ -90,8 +90,8 @@ public class SortOrderTest {
 
     @Test
     public void accountsStayAlphabeticalUntilReordered() {
-        account(database, "Trip", Account.TYPE_VIRTUAL);
-        account(database, "Daily", Account.TYPE_VIRTUAL);
+        account(database, "Trip", Account.TYPE_FUND);
+        account(database, "Daily", Account.TYPE_FUND);
         account(database, "Wallet", Account.TYPE_REAL);
         account(database, "Bank", Account.TYPE_REAL);
         assertEquals(Arrays.asList("Daily", "Trip", "Bank", "Wallet"), accountNames(database));
@@ -100,7 +100,7 @@ public class SortOrderTest {
         // Virtual still comes first, and the real ones keep their own order
         assertEquals(Arrays.asList("Trip", "Daily", "Bank", "Wallet"), accountNames(database));
 
-        account(database, "Gold", Account.TYPE_VIRTUAL);
+        account(database, "Gold", Account.TYPE_FUND);
         account(database, "Cash", Account.TYPE_REAL);
         assertEquals("A new account goes last in an ordered list, alphabetically in one that is not",
                 Arrays.asList("Trip", "Daily", "Gold", "Bank", "Cash", "Wallet"), accountNames(database));
@@ -121,8 +121,8 @@ public class SortOrderTest {
 
     @Test
     public void theOrderSurvivesABackupAndAnOlderBackupStaysAlphabetical() throws Exception {
-        account(database, "Daily", Account.TYPE_VIRTUAL);
-        account(database, "Trip", Account.TYPE_VIRTUAL);
+        account(database, "Daily", Account.TYPE_FUND);
+        account(database, "Trip", Account.TYPE_FUND);
         services().accounts().reorder(Arrays.asList(accountId(database, "Trip"), accountId(database, "Daily"))).join();
         services().categories().add(new Category("Food", "EXPENSE")).join();
         services().categories().add(new Category("Fuel", "EXPENSE")).join();

@@ -75,7 +75,7 @@ public final class Currencies {
         return firstReal != null ? firstReal : fromLocale();
     }
 
-    /** The currency an account's money is in: its own for a real account, none for a virtual one. */
+    /** The currency an account's money is in: its own for a real account, none for a fund. */
     public static String of(Account account) {
         return account != null && account.isReal() ? account.getCurrency() : null;
     }

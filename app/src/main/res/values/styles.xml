@@ -166,7 +166,7 @@
         <item name="android:letterSpacing">0.06</item>
     </style>
 
-    <!-- The small labels under an activity row: category, virtual and real account -->
+    <!-- The small labels under an activity row: category, fund and real account -->
     <style name="Text.ExpenseMate.Pill" parent="">
         <item name="android:textSize">11.5sp</item>
         <item name="android:fontFamily">sans-serif-medium</item>

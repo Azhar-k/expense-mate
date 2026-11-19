@@ -58,9 +58,12 @@ public class AccountsFragment extends Fragment {
         binding.btnInfo.setOnClickListener(v -> new MaterialAlertDialogBuilder(requireContext())
                 .setTitle("Net balance")
                 .setMessage("The balances of the accounts in this tab, added up, one for each currency. "
-                        + "A transaction counts once in each tab, towards its virtual and its real account. "
+                        + "A transaction counts once in each tab, towards its fund and its real account. "
                         + "Transactions you've left out of the summary don't count, and transfers between "
-                        + "accounts in the same tab cancel out.")
+                        + "accounts in the same tab cancel out.\n\n"
+                        + "Funds say what money is for. Your everyday fund is day-to-day money, and budgets "
+                        + "track what it spends. Move money into other funds to set it aside, and give a fund "
+                        + "a target to save towards.")
                 .setPositiveButton("OK", null)
                 .show());
 
@@ -109,7 +112,7 @@ public class AccountsFragment extends Fragment {
         for (int i = 0; i < shown.size(); i++) {
             list.addView(buildRow(list, shown.get(i), i == 0, i == shown.size() - 1));
         }
-        binding.tvNetLabel.setText(showingReal ? "Net balance, real accounts" : "Net balance, virtual accounts");
+        binding.tvNetLabel.setText(showingReal ? "Net balance, real accounts" : "Net balance, funds");
         String main = Currencies.main(accounts);
         binding.tvNetBalance.setText(net.format(main, main));
         binding.tvNetBalance.setTextColor(requireContext().getColor(net.allNegative() ? R.color.alert : R.color.on_surface));
@@ -124,7 +127,7 @@ public class AccountsFragment extends Fragment {
                 names.add(account.getName());
             }
         }
-        ReorderDialog.show(requireContext(), showingReal ? "Order real accounts" : "Order virtual accounts", names,
+        ReorderDialog.show(requireContext(), showingReal ? "Order real accounts" : "Order funds", names,
                 order -> {
                     List<Long> ids = new ArrayList<>();
                     for (int index : order) {
@@ -147,17 +150,23 @@ public class AccountsFragment extends Fragment {
 
         row.tvName.setText(account.getName());
         row.tvInitials.setText(initials(account.getName()));
-        String detail = AccountForm.detailLine(account);
-        row.tvDetail.setText(detail);
-        row.tvDetail.setVisibility(detail.isEmpty() ? View.GONE : View.VISIBLE);
-        if (account.isDefault()) {
-            Ui.styleTag(row.tvDefault, "Default", R.color.primary_container, R.color.on_primary_container);
-        }
-
         CurrencyTotals value = balanceOf(account);
-        // A real account is in its own currency; a virtual one shows each currency it holds
+        // A real account is in its own currency; a fund shows each currency it holds
         String main = Currencies.main(accounts);
         String own = account.isReal() && account.getCurrency() != null ? account.getCurrency() : main;
+
+        // A fund's target is in the main currency, like the rest of what it shows first
+        String targetLine = AccountForm.targetLine(account, value.get(main), main);
+        String detail = targetLine != null ? targetLine : AccountForm.detailLine(account);
+        row.tvDetail.setText(detail);
+        row.tvDetail.setVisibility(detail.isEmpty() ? View.GONE : View.VISIBLE);
+        row.progressTarget.setVisibility(targetLine != null ? View.VISIBLE : View.GONE);
+        row.progressTarget.setProgress(AccountForm.targetPercent(account, value.get(main)));
+        if (account.isDefault()) {
+            // The default fund is everyday money, the one budgets keep track of
+            Ui.styleTag(row.tvDefault, account.isReal() ? "Default" : "Everyday", R.color.primary_container,
+                    R.color.on_primary_container);
+        }
         row.tvBalance.setText(value.format(own, own));
         row.tvBalance.setTextColor(requireContext().getColor(value.allNegative() ? R.color.alert : R.color.on_surface));
 

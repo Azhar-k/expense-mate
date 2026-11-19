@@ -107,8 +107,8 @@ public class BackupRestoreTest {
         TestServices.over(source).categories().saveAsDefault(new Category("Fuel", "EXPENSE")).join();
         source.categoryDao().insertCategory(new Category("Default", "EXPENSE"));
         TestServices.over(source).categories().saveAsDefault(new Category("Salary", "INCOME")).join();
-        account(1, "Daily", Account.TYPE_VIRTUAL, true);
-        account(2, "Trip", Account.TYPE_VIRTUAL, false);
+        account(1, "Daily", Account.TYPE_FUND, true);
+        account(2, "Trip", Account.TYPE_FUND, false);
         account(3, "Bank", Account.TYPE_REAL, false);
         account(4, "Wallet", Account.TYPE_REAL, true);
 
@@ -201,7 +201,7 @@ public class BackupRestoreTest {
     public void everyValueComesBackExactly() throws Exception {
         TestServices.over(source).categories().saveAsDefault(new Category("Default", "EXPENSE")).join();
         source.categoryDao().insertCategory(new Category("Fuel", "EXPENSE"));
-        account(1, "Daily", Account.TYPE_VIRTUAL, true);
+        account(1, "Daily", Account.TYPE_FUND, true);
         Account noDetails = new Account("Bare", null, null, null, null);
         noDetails.setId(2);
         source.accountDao().insert(noDetails);
@@ -253,7 +253,7 @@ public class BackupRestoreTest {
 
     @Test
     public void currenciesSurviveABackupAndOlderBackupsAreRupees() throws Exception {
-        account(1, "Daily", Account.TYPE_VIRTUAL, true);
+        account(1, "Daily", Account.TYPE_FUND, true);
         Account dirhams = new Account("Emirates NBD", "", "", null, "");
         dirhams.setId(2);
         dirhams.setType(Account.TYPE_REAL);
@@ -287,7 +287,7 @@ public class BackupRestoreTest {
 
     @Test
     public void aBackupWithoutCurrenciesComesBackInRupees() throws Exception {
-        account(1, "Daily", Account.TYPE_VIRTUAL, true);
+        account(1, "Daily", Account.TYPE_FUND, true);
         account(2, "Bank", Account.TYPE_REAL, true);
         source.transactionDao().insertTransaction(row(1, "DEBIT", 1L, 2L));
         for (String section : new String[] { "ACCOUNTS", "TRANSACTIONS" }) {
@@ -301,7 +301,7 @@ public class BackupRestoreTest {
 
     @Test
     public void loansComeBackWithTheirReturns() throws Exception {
-        account(1, "Daily", Account.TYPE_VIRTUAL, true);
+        account(1, "Daily", Account.TYPE_FUND, true);
         Loan loan = new Loan();
         loan.setId(5);
         loan.setPerson("Ravi");
@@ -364,8 +364,54 @@ public class BackupRestoreTest {
     }
 
     @Test
+    public void budgetsAndFundTargetsComeBack() throws Exception {
+        account(1, "Daily", Account.TYPE_FUND, true);
+        Account trip = new Account("Trip", "", "", null, "");
+        trip.setId(2);
+        trip.setTarget(50000.5);
+        trip.setTargetDate(new Date(1798761600000L));
+        source.accountDao().insert(trip);
+        Budget food = new Budget();
+        food.setId(7);
+        food.setName("Food");
+        food.setAmount(6000);
+        food.setCurrency("AED");
+        food.setSortOrder(3);
+        source.budgetDao().insert(food);
+        source.budgetDao().insertCategory(new BudgetCategory(7, "Outside Food"));
+        source.budgetDao().insertCategory(new BudgetCategory(7, "Food"));
+
+        new BackupDataLoader(context, restored).restore(backupFiles());
+
+        Account back = restored.accountDao().getAccountByIdSync(2);
+        assertEquals(50000.5, back.getTarget(), 0);
+        assertEquals(1798761600000L, back.getTargetDate().getTime());
+        assertNull(restored.accountDao().getAccountByIdSync(1).getTarget());
+        Budget budget = restored.budgetDao().getAllSync().get(0);
+        assertEquals(7, budget.getId());
+        assertEquals("Food", budget.getName());
+        assertEquals(6000, budget.getAmount(), 0);
+        assertEquals("AED", budget.getCurrency());
+        assertEquals(3, budget.getSortOrder());
+        BudgetProgress progress = restored.budgetDao().getProgressSync(new Date(0), new Date(Long.MAX_VALUE)).get(0);
+        assertEquals(Arrays.asList("Food", "Outside Food"), progress.categories());
+    }
+
+    @Test
+    public void aBackupWithoutBudgetsStillRestores() throws Exception {
+        account(1, "Daily", Account.TYPE_FUND, true);
+        Map<String, File> files = backupFiles();
+        files.remove("BUDGETS");
+
+        new BackupDataLoader(context, restored).restore(files);
+
+        assertTrue(restored.budgetDao().getAllSync().isEmpty());
+        assertEquals(1, restored.accountDao().getAllAccountsSync().stream().filter(Account::isFund).count());
+    }
+
+    @Test
     public void aBackupWithoutPatternsGetsTheShippedOnes() throws Exception {
-        account(1, "Daily", Account.TYPE_VIRTUAL, true);
+        account(1, "Daily", Account.TYPE_FUND, true);
         Map<String, File> files = backupFiles();
         files.remove("MESSAGE PATTERNS");
 
@@ -376,7 +422,7 @@ public class BackupRestoreTest {
 
     @Test
     public void aBackupWithoutLoansStillRestores() throws Exception {
-        account(1, "Daily", Account.TYPE_VIRTUAL, true);
+        account(1, "Daily", Account.TYPE_FUND, true);
         source.transactionDao().insertTransaction(row(1, "DEBIT", 1L, null));
         Map<String, File> files = backupFiles();
         files.remove("LOANS");
@@ -389,7 +435,7 @@ public class BackupRestoreTest {
 
     @Test
     public void aRestoreThatFailsLeavesTheDataAsItWas() throws Exception {
-        account(1, "Daily", Account.TYPE_VIRTUAL, true);
+        account(1, "Daily", Account.TYPE_FUND, true);
         source.transactionDao().insertTransaction(row(1, "DEBIT", 1L, null));
         new BackupDataLoader(context, restored).restore(backupFiles());
 
@@ -435,7 +481,7 @@ public class BackupRestoreTest {
 
     @Test
     public void aZippedBackupRestoresAndIsSmaller() throws Exception {
-        account(1, "Daily", Account.TYPE_VIRTUAL, true);
+        account(1, "Daily", Account.TYPE_FUND, true);
         account(3, "Bank", Account.TYPE_REAL, false);
         source.categoryDao().insertCategory(new Category("Fuel", "EXPENSE"));
         for (long id = 1; id <= 200; id++) {

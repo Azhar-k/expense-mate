@@ -6,7 +6,7 @@ import java.util.List;
 
 @Dao
 public interface AccountDao {
-    // Virtual accounts first, so every list reads the same way
+    // Funds first, so every list reads the same way
     @Query("SELECT * FROM accounts ORDER BY type DESC, sortOrder ASC, name ASC")
     LiveData<List<Account>> getAllAccounts();
 

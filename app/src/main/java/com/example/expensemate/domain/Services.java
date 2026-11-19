@@ -18,4 +18,6 @@ public interface Services {
     BillService bills();
 
     PatternService patterns();
+
+    BudgetService budgets();
 }

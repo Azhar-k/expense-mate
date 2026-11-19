@@ -47,7 +47,7 @@ final class TransactionRules {
     /** A transaction always has both accounts, so whichever is missing goes to its default. */
     void fillDefaultAccounts(Transaction transaction) {
         if (transaction.getAccountId() == null) {
-            transaction.setAccountId(defaultAccountId(Account.TYPE_VIRTUAL));
+            transaction.setAccountId(defaultAccountId(Account.TYPE_FUND));
         }
         if (transaction.getRealAccountId() == null) {
             transaction.setRealAccountId(defaultAccountId(Account.TYPE_REAL));

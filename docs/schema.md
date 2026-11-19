@@ -11,7 +11,7 @@ erDiagram
         String category "Refers to Category.name"
         long linkedRecurringPaymentId FK "Logical FK to RecurringPayment"
         String smsHash
-        long accountId FK "Logical FK to a virtual Account"
+        long accountId FK "Logical FK to a fund (Account of type VIRTUAL)"
         long realAccountId FK "Logical FK to a real Account"
         boolean isExcludedFromSummary
         long loanId FK "Logical FK to Loan: a debit lent it, a credit returns it"
@@ -54,13 +54,30 @@ erDiagram
         long expiryDate "Timestamp"
         String description
         boolean isDefault "One per type"
-        String type "VIRTUAL or REAL"
+        String type "VIRTUAL (a fund) or REAL"
         int sortOrder "User's order within the type, 0 until reordered"
-        String currency
+        String currency "Real accounts only"
+        double target "Funds only: amount to save up to, optional"
+        long targetDate "Funds only: when to reach the target, optional"
+    }
+
+    BUDGET {
+        long id PK "Auto-generated"
+        String name
+        double amount "Limit per calendar month"
+        String currency "Only spending in it counts"
+        int sortOrder "0 until reordered"
+    }
+
+    BUDGET_CATEGORY {
+        long budgetId PK "Logical FK to Budget"
+        String category PK "Category name, as transactions store it"
     }
 
     %% Relationships
-    %% Transaction links to a virtual Account via accountId and a real Account via realAccountId
+    %% A budget counts debits from the default fund in its categories, excluding transfers and excluded rows
+    BUDGET ||--o{ BUDGET_CATEGORY : "budgetId"
+    %% Transaction links to a fund via accountId and a real Account via realAccountId
     ACCOUNT ||--o{ TRANSACTION : "accountId"
     ACCOUNT ||--o{ TRANSACTION : "realAccountId"
     

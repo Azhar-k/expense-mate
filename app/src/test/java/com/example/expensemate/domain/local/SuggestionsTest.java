@@ -95,7 +95,7 @@ public class SuggestionsTest {
     @Test
     public void virtualAccountsAreNotMatchedByNumber() {
         Account budget = real(3, "1234");
-        budget.setType(Account.TYPE_VIRTUAL);
+        budget.setType(Account.TYPE_FUND);
         assertNull(Suggestions.realAccountFromMessage("Acct XX1234 debited", Collections.singletonList(budget)));
     }
 

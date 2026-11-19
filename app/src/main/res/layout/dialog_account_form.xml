@@ -12,12 +12,12 @@
         android:layout_marginBottom="16dp">
 
         <Button
-            android:id="@+id/typeVirtual"
+            android:id="@+id/typeFund"
             style="@style/Widget.ExpenseMate.Segment"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Virtual" />
+            android:text="Fund" />
 
         <Button
             android:id="@+id/typeReal"
@@ -41,7 +41,7 @@
             android:inputType="textCapWords" />
     </com.google.android.material.textfield.TextInputLayout>
 
-    <!-- Real accounts only: virtual accounts can hold money in any currency -->
+    <!-- Real accounts only: funds can hold money in any currency -->
     <com.google.android.material.textfield.TextInputLayout
         android:id="@+id/tilCurrency"
         style="@style/Widget.ExpenseMate.Dropdown"
@@ -59,7 +59,48 @@
             android:maxLines="1" />
     </com.google.android.material.textfield.TextInputLayout>
 
+    <!-- Funds only: what it is saving up to, and by when -->
+    <LinearLayout
+        android:id="@+id/rowTarget"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:orientation="horizontal">
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/tilTarget"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="10dp"
+            android:layout_weight="1"
+            android:hint="Target (optional)">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etTarget"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="numberDecimal" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:hint="By (optional)">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etTargetDate"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:clickable="true"
+                android:focusable="false"
+                android:inputType="none" />
+        </com.google.android.material.textfield.TextInputLayout>
+    </LinearLayout>
+
+    <!-- Real accounts only: where the money actually is -->
     <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/tilBank"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="10dp"
@@ -73,6 +114,7 @@
     </com.google.android.material.textfield.TextInputLayout>
 
     <LinearLayout
+        android:id="@+id/rowNumber"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="10dp"

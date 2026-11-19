@@ -11,7 +11,7 @@ import java.util.concurrent.CompletableFuture;
 public interface AccountService {
     LiveData<List<Account>> accounts();
 
-    /** The default virtual account. */
+    /** The default fund, which holds everyday money. */
     LiveData<Account> defaultAccount();
 
     LiveData<List<AccountBalance>> balances();

@@ -55,7 +55,7 @@ public final class BillForm {
             List<String> names = new ArrayList<>();
             names.add(NO_ACCOUNT);
             for (Account account : list) {
-                // A planned transfer moves money between virtual accounts
+                // A planned transfer moves money between funds
                 if (account.isReal()) {
                     continue;
                 }

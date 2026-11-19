@@ -3,6 +3,7 @@ package com.example.expensemate.domain.local;
 import com.example.expensemate.data.store.Stores;
 import com.example.expensemate.domain.AccountService;
 import com.example.expensemate.domain.BillService;
+import com.example.expensemate.domain.BudgetService;
 import com.example.expensemate.domain.CaptureService;
 import com.example.expensemate.domain.CategoryService;
 import com.example.expensemate.domain.LoanService;
@@ -21,6 +22,7 @@ public final class LocalServices implements Services {
     private final LoanService loans;
     private final BillService bills;
     private final PatternService patterns;
+    private final BudgetService budgets;
 
     /** @param executor runs the writes; pass a direct executor to finish them on the calling thread */
     public LocalServices(Stores stores, Executor executor) {
@@ -34,6 +36,7 @@ public final class LocalServices implements Services {
         categories = new LocalCategoryService(stores.categories(), writer);
         loans = new LocalLoanService(stores.loans(), writer);
         bills = new LocalBillService(stores.bills(), stores.transactions(), rules, writer);
+        budgets = new LocalBudgetService(stores.budgets(), writer);
     }
 
     @Override
@@ -69,5 +72,10 @@ public final class LocalServices implements Services {
     @Override
     public PatternService patterns() {
         return patterns;
+    }
+
+    @Override
+    public BudgetService budgets() {
+        return budgets;
     }
 }

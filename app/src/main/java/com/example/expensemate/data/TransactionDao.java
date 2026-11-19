@@ -146,8 +146,8 @@ public interface TransactionDao {
                         + "FROM transactions WHERE isExcludedFromSummary = 0 GROUP BY currency ORDER BY currency")
         LiveData<List<AccountBalance>> getNetBalances();
 
-        // A row counts once for its virtual account and once for its real account; their ids never overlap.
-        // A real account holds one currency; a virtual one gets a balance for each currency it holds.
+        // A row counts once for its fund and once for its real account; their ids never overlap.
+        // A real account holds one currency; a fund gets a balance for each currency it holds.
         @Query("SELECT accountId, currency, COALESCE(SUM(CASE WHEN transactionType = 'CREDIT' THEN amount WHEN transactionType = 'DEBIT' THEN -amount END), 0) AS balance "
                         + "FROM (SELECT accountId, currency, amount, transactionType FROM transactions WHERE isExcludedFromSummary = 0 "
                         + "UNION ALL SELECT realAccountId, currency, amount, transactionType FROM transactions WHERE isExcludedFromSummary = 0) "

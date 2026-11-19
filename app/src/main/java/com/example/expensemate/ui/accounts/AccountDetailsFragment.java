@@ -93,7 +93,7 @@ public class AccountDetailsFragment extends Fragment {
                     case MENU_DEFAULT:
                         accountViewModel.setDefaultAccount(account);
                         Ui.snackbar(requireActivity(), account.getName() + " is now your default "
-                                + AccountForm.typeLabel(account) + " account");
+                                + AccountForm.typeLabel(account));
                         return true;
                     case MENU_DELETE:
                         AccountForm.confirmDelete(requireActivity(), account,
@@ -174,7 +174,7 @@ public class AccountDetailsFragment extends Fragment {
                 value.add(balance.currency, balance.balance);
             }
         }
-        // A real account is in its own currency; a virtual one shows each currency it holds
+        // A real account is in its own currency; a fund shows each currency it holds
         String main = Currencies.main(allAccounts);
         String own = account.isReal() && account.getCurrency() != null ? account.getCurrency() : main;
         binding.tvBalance.setText(value.format(own, own));

@@ -123,7 +123,7 @@ final class LocalTransactionService implements TransactionService {
     public CompletableFuture<Void> setAccount(long id, long accountId) {
         return writer.run(() -> {
             store.setAccount(id, accountId);
-            // A row that had no virtual account has no real one either, so it gets the default real account now.
+            // A row that had no fund has no real one either, so it gets the default real account now.
             Transaction row = store.findById(id);
             Long defaultReal = rules.defaultAccountId(Account.TYPE_REAL);
             if (row != null && row.getRealAccountId() == null && defaultReal != null) {

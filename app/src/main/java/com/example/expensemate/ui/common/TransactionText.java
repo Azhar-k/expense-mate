@@ -43,7 +43,7 @@ public final class TransactionText {
         return Money.format(shown.getAmount(), shown.getCurrency());
     }
 
-    /** Names the side the money moved on: a transfer can stay in one virtual account and change real account. */
+    /** Names the side the money moved on: a transfer can stay in one fund and change real account. */
     public static String transferRoute(java.util.Map<Long, String> names, Transaction debit, Transaction credit) {
         if (debit == null || credit == null) {
             return (debit != null ? accountName(names, debit.getAccountId()) : "Unknown") + " → "

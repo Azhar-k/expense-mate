@@ -23,6 +23,8 @@ import androidx.test.core.app.ApplicationProvider;
 
 import com.example.expensemate.data.Account;
 import com.example.expensemate.data.AppDatabase;
+import com.example.expensemate.data.Budget;
+import com.example.expensemate.data.BudgetCategory;
 import com.example.expensemate.data.Category;
 import com.example.expensemate.data.RecurringPayment;
 import com.example.expensemate.data.Transaction;
@@ -183,6 +185,14 @@ public class ScreensTest {
             savingsPlan.setFromAccountId(salaryId);
             savingsPlan.setToAccountId(savings);
             database.recurringPaymentDao().insert(savingsPlan);
+
+            Budget eating = new Budget();
+            eating.setName("Eating");
+            eating.setAmount(6000);
+            eating.setCurrency("INR");
+            long eatingId = database.budgetDao().insert(eating);
+            database.budgetDao().insertCategory(new BudgetCategory(eatingId, "Groceries"));
+            database.budgetDao().insertCategory(new BudgetCategory(eatingId, "Eating out"));
         });
         seeder.start();
         seeder.join();
@@ -319,10 +329,10 @@ public class ScreensTest {
         settle();
         assertEquals("Accounts", title());
         assertShows("State Bank ••4821");
-        assertShows("Default");
+        assertShows("Everyday");
         shoot("accounts");
 
-        assertShows("Net balance, virtual accounts");
+        assertShows("Net balance, funds");
         assertShows("₹3,48,390");
         TabLayout tabs = activity.findViewById(R.id.tabs);
         tabs.selectTab(tabs.getTabAt(1));
@@ -365,6 +375,15 @@ public class ScreensTest {
         settle();
         assertEquals("Scan messages", title());
         shoot("scan");
+
+        nav.popBackStack();
+        settle();
+        nav.navigate(R.id.navigation_budgets);
+        settle();
+        assertEquals("Budgets", title());
+        assertShows("Eating");
+        assertShows("Eating out, Groceries");
+        shoot("budgets");
 
         nav.popBackStack();
         nav.popBackStack();

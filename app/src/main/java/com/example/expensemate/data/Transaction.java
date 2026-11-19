@@ -35,7 +35,7 @@ public class Transaction {
     private String category; // New field for transaction category
     private Long linkedRecurringPaymentId; // ID of the linked recurring payment, null if not linked
     private String smsHash; // Hash of SMS body and sender for duplicate detection
-    private Long accountId; // ID of the linked virtual account
+    private Long accountId; // ID of the linked fund
     private Long realAccountId; // ID of the linked real account
     private boolean isExcludedFromSummary; // Whether this transaction should be excluded from summary calculations
     private String dedupKey; // Hash of the normalized message text, null for manual entries

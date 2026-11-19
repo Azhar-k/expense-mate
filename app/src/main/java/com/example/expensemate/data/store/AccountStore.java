@@ -11,7 +11,7 @@ public interface AccountStore {
 
     LiveData<Account> observeDefault();
 
-    /** @param type Account.TYPE_VIRTUAL or Account.TYPE_REAL */
+    /** @param type Account.TYPE_FUND or Account.TYPE_REAL */
     Account findDefault(String type);
 
     List<Account> findAll();

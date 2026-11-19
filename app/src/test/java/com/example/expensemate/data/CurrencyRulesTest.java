@@ -35,7 +35,7 @@ public class CurrencyRulesTest {
         Context context = ApplicationProvider.getApplicationContext();
         database = Room.inMemoryDatabaseBuilder(context, AppDatabase.class).allowMainThreadQueries().build();
         services = TestServices.over(database);
-        daily = account("Daily", Account.TYPE_VIRTUAL, null, true);
+        daily = account("Daily", Account.TYPE_FUND, null, true);
         rupees = account("HDFC", Account.TYPE_REAL, "INR", true);
         dirhams = account("Emirates NBD", Account.TYPE_REAL, "AED", false);
     }
@@ -185,7 +185,7 @@ public class CurrencyRulesTest {
     public void aPlannedTransferStaysInTheBillsCurrency() {
         RecurringPayment bill = new RecurringPayment("Savings", 300, 1, new Date(Long.MAX_VALUE / 2));
         bill.setFromAccountId(daily);
-        bill.setToAccountId(account("Goals", Account.TYPE_VIRTUAL, null, false));
+        bill.setToAccountId(account("Goals", Account.TYPE_FUND, null, false));
         bill.setCurrency("AED");
         services.bills().add(bill).join();
         bill = database.recurringPaymentDao().getAllRecurringPaymentsSync().get(0);

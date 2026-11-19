@@ -15,6 +15,7 @@ import com.example.expensemate.ui.common.FormSheet;
 import com.example.expensemate.ui.common.Pickers;
 import com.example.expensemate.ui.common.Ui;
 import com.example.expensemate.util.Currencies;
+import com.example.expensemate.util.Money;
 import com.example.expensemate.viewmodel.AccountViewModel;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
@@ -39,12 +40,14 @@ public final class AccountForm {
         SimpleDateFormat format = new SimpleDateFormat("MMM yyyy", Locale.getDefault());
         Calendar expiry = Calendar.getInstance();
         final boolean[] hasExpiry = { false };
+        Calendar targetBy = Calendar.getInstance();
+        final boolean[] hasTargetDate = { false };
 
-        form.typeToggle.check(real ? R.id.typeReal : R.id.typeVirtual);
-        form.tilCurrency.setVisibility(real ? View.VISIBLE : View.GONE);
+        form.typeToggle.check(real ? R.id.typeReal : R.id.typeFund);
+        showFieldsFor(form, real);
         form.typeToggle.addOnButtonCheckedListener((group, checkedId, isChecked) -> {
             if (isChecked) {
-                form.tilCurrency.setVisibility(checkedId == R.id.typeReal ? View.VISIBLE : View.GONE);
+                showFieldsFor(form, checkedId == R.id.typeReal);
             }
         });
         AccountViewModel viewModel = new ViewModelProvider(activity).get(AccountViewModel.class);
@@ -54,7 +57,7 @@ public final class AccountForm {
             CurrencyField.setUp(form.etCurrency, current, main, Currencies.inUse(list));
         });
         // Transactions already point at this account as one kind or the other
-        form.typeVirtual.setEnabled(account == null);
+        form.typeFund.setEnabled(account == null);
         form.typeReal.setEnabled(account == null);
         if (account != null) {
             form.etName.setText(account.getName());
@@ -66,7 +69,20 @@ public final class AccountForm {
                 hasExpiry[0] = true;
                 form.etExpiry.setText(format.format(expiry.getTime()));
             }
+            if (account.getTarget() != null) {
+                form.etTarget.setText(Money.plain(account.getTarget()));
+            }
+            if (account.getTargetDate() != null) {
+                targetBy.setTime(account.getTargetDate());
+                hasTargetDate[0] = true;
+                form.etTargetDate.setText(format.format(targetBy.getTime()));
+            }
         }
+        form.etTargetDate.setOnClickListener(v -> Pickers.pickDate(activity.getSupportFragmentManager(),
+                "Reach the target by", targetBy, () -> {
+                    hasTargetDate[0] = true;
+                    form.etTargetDate.setText(format.format(targetBy.getTime()));
+                }));
         form.etExpiry.setOnClickListener(v -> Pickers.pickDate(activity.getSupportFragmentManager(), "Card expiry",
                 expiry, () -> {
                     hasExpiry[0] = true;
@@ -88,14 +104,22 @@ public final class AccountForm {
             boolean isReal = form.typeToggle.getCheckedButtonId() == R.id.typeReal;
             String currency = isReal ? CurrencyField.read(form.etCurrency) : null;
             form.tilCurrency.setError(isReal && currency == null ? "Pick a currency" : null);
-            if (isReal && currency == null) {
+            String targetText = form.etTarget.getText().toString().trim();
+            Double target = isReal || targetText.isEmpty() ? null : Money.parse(targetText);
+            boolean badTarget = !isReal && !targetText.isEmpty() && (target == null || target <= 0);
+            form.tilTarget.setError(badTarget ? "Enter an amount above zero" : null);
+            if ((isReal && currency == null) || badTarget) {
                 return;
             }
+            // A date means nothing without an amount to reach
+            Date targetDate = target != null && hasTargetDate[0] ? targetBy.getTime() : null;
 
             if (account == null) {
                 Account added = new Account(name, number, bank, expiryDate, description);
-                added.setType(isReal ? Account.TYPE_REAL : Account.TYPE_VIRTUAL);
+                added.setType(isReal ? Account.TYPE_REAL : Account.TYPE_FUND);
                 added.setCurrency(currency);
+                added.setTarget(target);
+                added.setTargetDate(targetDate);
                 viewModel.insert(added);
                 sheet.dismiss();
                 return;
@@ -107,6 +131,8 @@ public final class AccountForm {
                 account.setDescription(description);
                 account.setExpiryDate(expiryDate);
                 account.setCurrency(currency);
+                account.setTarget(target);
+                account.setTargetDate(targetDate);
                 viewModel.update(account);
                 sheet.dismiss();
             };
@@ -124,6 +150,38 @@ public final class AccountForm {
             }
         });
         sheet.show();
+    }
+
+    // A fund is a purpose for money, so it gets a target; a real account is where money is, so it gets bank details
+    private static void showFieldsFor(DialogAccountFormBinding form, boolean real) {
+        form.tilCurrency.setVisibility(real ? View.VISIBLE : View.GONE);
+        form.rowTarget.setVisibility(real ? View.GONE : View.VISIBLE);
+        form.tilBank.setVisibility(real ? View.VISIBLE : View.GONE);
+        form.rowNumber.setVisibility(real ? View.VISIBLE : View.GONE);
+    }
+
+    /** How far a fund with a target has got, such as "₹4,000 to go · by Mar 2027", or null without one. */
+    @Nullable
+    public static String targetLine(Account account, double saved, String currency) {
+        if (account.isReal() || account.getTarget() == null) {
+            return null;
+        }
+        double toGo = account.getTarget() - saved;
+        StringBuilder line = new StringBuilder(toGo <= 0
+                ? "Target of " + Money.format(account.getTarget(), currency) + " reached"
+                : Money.format(toGo, currency) + " to go of " + Money.format(account.getTarget(), currency));
+        if (account.getTargetDate() != null && toGo > 0) {
+            line.append(" · by ").append(new SimpleDateFormat("MMM yyyy", Locale.getDefault()).format(account.getTargetDate()));
+        }
+        return line.toString();
+    }
+
+    /** From 0 to 100, how much of its target a fund holds. */
+    public static int targetPercent(Account account, double saved) {
+        if (account.getTarget() == null || account.getTarget() <= 0) {
+            return 0;
+        }
+        return (int) Math.max(0, Math.min(100, Math.round(saved * 100 / account.getTarget())));
     }
 
     /** Shows only the last four digits, so a full number is never on screen by accident. */
@@ -153,7 +211,7 @@ public final class AccountForm {
     }
 
     public static String typeLabel(Account account) {
-        return account.isReal() ? "real" : "virtual";
+        return account.isReal() ? "real account" : "fund";
     }
 
     private static boolean notBlank(String text) {
@@ -162,7 +220,7 @@ public final class AccountForm {
 
     public static void confirmDelete(FragmentActivity activity, Account account, Runnable onDeleted) {
         if (account.isDefault()) {
-            Ui.snackbar(activity, "Choose another default " + typeLabel(account) + " account before deleting this one");
+            Ui.snackbar(activity, "Choose another default " + typeLabel(account) + " before deleting this one");
             return;
         }
         AccountViewModel viewModel = new ViewModelProvider(activity).get(AccountViewModel.class);
@@ -180,7 +238,7 @@ public final class AccountForm {
                         + ". Amounts stay the same: nothing is converted.";
             }
         }
-        return "Its transactions move to your default " + typeLabel(account) + " account.";
+        return "Its transactions move to your default " + typeLabel(account) + ".";
     }
 
     private static void confirmDelete(FragmentActivity activity, Account account, String message,

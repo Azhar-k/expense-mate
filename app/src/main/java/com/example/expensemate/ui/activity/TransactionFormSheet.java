@@ -117,10 +117,10 @@ public class TransactionFormSheet extends ExpandedSheet {
         AccountViewModel accountViewModel = provider.get(AccountViewModel.class);
         CategoryViewModel categoryViewModel = provider.get(CategoryViewModel.class);
 
-        account = new AccountChips(binding.pickAccount, "Virtual account");
+        account = new AccountChips(binding.pickAccount, "Fund");
         realAccount = new AccountChips(binding.pickRealAccount, "Real account");
-        from = new AccountChips(binding.pickFrom, "From virtual");
-        to = new AccountChips(binding.pickTo, "To virtual");
+        from = new AccountChips(binding.pickFrom, "From fund");
+        to = new AccountChips(binding.pickTo, "To fund");
         fromReal = new AccountChips(binding.pickFromReal, "From real");
         toReal = new AccountChips(binding.pickToReal, "To real");
         realAccount.setOnChange(this::onCurrencyChanged);
@@ -533,7 +533,7 @@ public class TransactionFormSheet extends ExpandedSheet {
     private void saveTransaction(double amount) {
         Long accountId = account.selectedId();
         Long realAccountId = realAccount.selectedId();
-        account.setError(accountId == null ? "Choose a virtual account" : null);
+        account.setError(accountId == null ? "Choose a fund" : null);
         realAccount.setError(realAccountId == null ? "Choose a real account" : null);
         if (accountId == null || realAccountId == null) {
             return;

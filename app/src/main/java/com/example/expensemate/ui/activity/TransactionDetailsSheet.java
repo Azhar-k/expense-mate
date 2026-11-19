@@ -164,8 +164,8 @@ public class TransactionDetailsSheet extends ExpandedSheet {
         binding.rowCount.setVisibility(View.GONE);
         binding.tvMessage.setVisibility(View.GONE);
         if (debit != null && credit != null) {
-            Ui.addKeyValue(binding.details, "From virtual", TransactionText.accountName(accountNames, debit.getAccountId()));
-            Ui.addKeyValue(binding.details, "To virtual", TransactionText.accountName(accountNames, credit.getAccountId()));
+            Ui.addKeyValue(binding.details, "From fund", TransactionText.accountName(accountNames, debit.getAccountId()));
+            Ui.addKeyValue(binding.details, "To fund", TransactionText.accountName(accountNames, credit.getAccountId()));
             Ui.addKeyValue(binding.details, "From real", TransactionText.accountName(accountNames, debit.getRealAccountId()));
             Ui.addKeyValue(binding.details, "To real", TransactionText.accountName(accountNames, credit.getRealAccountId()));
         }

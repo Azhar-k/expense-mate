@@ -53,10 +53,11 @@ public class BackupDataLoader {
             { "TRANSACTIONS", "transactions.txt" },
             { "COUNTERPARTY CATEGORIES", "counterparty_categories.txt" },
             { "MESSAGE PATTERNS", "message_patterns.txt" },
+            { "BUDGETS", "budgets.txt" },
     };
     private static final String[] TABLES = {
             "transactions", "categories", "recurring_payments", "accounts", "counterparty_categories", "loans",
-            "message_patterns" };
+            "message_patterns", "budgets", "budget_categories" };
 
     private final AppDatabase database;
     private final SimpleDateFormat dateFormat;
@@ -117,6 +118,8 @@ public class BackupDataLoader {
                     put(data, "Account Type", a.getType());
                     put(data, "Sort Order", a.getSortOrder());
                     put(data, "Currency", a.getCurrency());
+                    put(data, "Target", a.getTarget());
+                    put(data, "Target Date", a.getTargetDate());
                     data.append("---\n");
                 }
                 break;
@@ -176,6 +179,9 @@ public class BackupDataLoader {
                     }
                 }
                 break;
+            case "BUDGETS":
+                budgetText(data, database);
+                break;
             case "MESSAGE PATTERNS":
                 for (MessagePattern p : database.messagePatternDao().getAllSync()) {
                     put(data, "Name", p.getName());
@@ -191,6 +197,27 @@ public class BackupDataLoader {
                 break;
         }
         return data.toString();
+    }
+
+    private static void budgetText(StringBuilder data, AppDatabase database) {
+        Map<Long, StringBuilder> categories = new LinkedHashMap<>();
+        for (BudgetCategory category : database.budgetDao().getAllCategoriesSync()) {
+            StringBuilder names = categories.computeIfAbsent(category.budgetId, id -> new StringBuilder());
+            if (names.length() > 0) {
+                names.append('\n');
+            }
+            names.append(category.category);
+        }
+        for (Budget b : database.budgetDao().getAllSync()) {
+            StringBuilder names = categories.get(b.getId());
+            put(data, "ID", b.getId());
+            put(data, "Name", b.getName());
+            put(data, "Amount", b.getAmount());
+            put(data, "Currency", b.getCurrency());
+            put(data, "Sort Order", b.getSortOrder());
+            put(data, "Categories", names != null ? names.toString() : "");
+            data.append("---\n");
+        }
     }
 
     private static void put(StringBuilder data, String key, Object value) {
@@ -285,6 +312,9 @@ public class BackupDataLoader {
                     break;
                 case "MESSAGE PATTERNS":
                     processPattern(record);
+                    break;
+                case "BUDGETS":
+                    processBudget(record);
                     break;
             }
         } catch (Exception e) {
@@ -440,9 +470,13 @@ public class BackupDataLoader {
         Account account = new Account(name, orEmpty(record, "Account Number"), orEmpty(record, "Bank"),
                 record.date("Expiry Date"), orEmpty(record, "Description"));
         account.setDefault(record.flag("Is Default"));
-        account.setType(Account.TYPE_REAL.equals(record.text("Account Type")) ? Account.TYPE_REAL : Account.TYPE_VIRTUAL);
+        account.setType(Account.TYPE_REAL.equals(record.text("Account Type")) ? Account.TYPE_REAL : Account.TYPE_FUND);
         account.setCurrency(account.isReal() ? currencyOf(record) : null);
         account.setSortOrder(record.integer("Sort Order", 0));
+        if (account.isFund()) {
+            account.setTarget(record.has("Target") && record.text("Target") != null ? record.amount("Target") : null);
+            account.setTargetDate(record.date("Target Date"));
+        }
 
         // The original id keeps transactions and bills pointing at the right account
         Long originalId = record.number("ID");
@@ -514,6 +548,31 @@ public class BackupDataLoader {
                 "INSERT OR REPLACE INTO counterparty_categories (counterparty, transactionType, categoryId) VALUES (?, ?, ?)",
                 new Object[] { counterparty, type, categoryId });
         restoredMappings = true;
+    }
+
+    // Categories are one per line, the way transactions name them
+    private void processBudget(Record record) {
+        String name = record.text("Name");
+        if (name == null || name.trim().isEmpty()) {
+            return;
+        }
+        Budget budget = new Budget();
+        if (record.has("ID")) {
+            budget.setId(record.number("ID"));
+        }
+        budget.setName(name);
+        budget.setAmount(record.amount("Amount"));
+        budget.setCurrency(currencyOf(record));
+        budget.setSortOrder(record.integer("Sort Order", 0));
+        long id = database.budgetDao().insert(budget);
+        String categories = record.text("Categories");
+        if (categories != null) {
+            for (String category : categories.split("\n")) {
+                if (!category.isEmpty()) {
+                    database.budgetDao().insertCategory(new BudgetCategory(id, category));
+                }
+            }
+        }
     }
 
     private void processPattern(Record record) {

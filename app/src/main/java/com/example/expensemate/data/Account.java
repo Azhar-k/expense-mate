@@ -9,7 +9,8 @@ import java.util.Date;
 
 @Entity(tableName = "accounts")
 public class Account {
-    public static final String TYPE_VIRTUAL = "VIRTUAL";
+    // Funds were called virtual accounts; the stored value stays so older backups still restore
+    public static final String TYPE_FUND = "VIRTUAL";
     public static final String TYPE_REAL = "REAL";
     static final String DEFAULT_REAL_NAME = "Bank account";
 
@@ -23,14 +24,16 @@ public class Account {
     private String description;
     private boolean isDefault; // One per type
     @NonNull
-    private String type = TYPE_VIRTUAL;
+    private String type = TYPE_FUND;
     @ColumnInfo(defaultValue = "0") // Matches the migration, so inserts that leave it out still work
     private int sortOrder; // Lists go by this, then by name; zero until the user reorders
-    private String currency; // ISO 4217 code of a real account's money; null on virtual accounts, which hold any
+    private String currency; // ISO 4217 code of a real account's money; null on funds, which hold any
+    private Double target; // What a fund is saving up to; null when it has no goal
+    private Date targetDate; // When a fund with a target should reach it; optional
 
     /**
      * Gives real accounts a default, and that default to any transaction without a real account.
-     * A transaction whose virtual account is missing is left as it is until someone assigns one.
+     * A transaction whose fund is missing is left as it is until someone assigns one.
      */
     public static void ensureDefaultRealAccount(SupportSQLiteDatabase database) {
         database.execSQL("INSERT INTO accounts (name, accountNumber, bank, description, isDefault, type) "
@@ -42,7 +45,7 @@ public class Account {
         database.execSQL("UPDATE transactions SET realAccountId = "
                 + "(SELECT id FROM accounts WHERE type = ? AND isDefault = 1) WHERE realAccountId IS NULL "
                 + "AND accountId IN (SELECT id FROM accounts WHERE type = ?)",
-                new Object[] { TYPE_REAL, TYPE_VIRTUAL });
+                new Object[] { TYPE_REAL, TYPE_FUND });
     }
 
     /** A real account always says what its money is in; one without gets this currency. */
@@ -87,6 +90,14 @@ public class Account {
     public void setType(@NonNull String type) { this.type = type; }
 
     public boolean isReal() { return TYPE_REAL.equals(type); }
+
+    public boolean isFund() { return !isReal(); }
+
+    public Double getTarget() { return target; }
+    public void setTarget(Double target) { this.target = target; }
+
+    public Date getTargetDate() { return targetDate; }
+    public void setTargetDate(Date targetDate) { this.targetDate = targetDate; }
 
     public String getCurrency() { return currency; }
     public void setCurrency(String currency) { this.currency = currency; }

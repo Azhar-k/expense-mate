@@ -16,5 +16,7 @@ public interface Stores {
 
     PatternStore patterns();
 
+    BudgetStore budgets();
+
     UnitOfWork unitOfWork();
 }

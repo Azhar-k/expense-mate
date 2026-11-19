@@ -32,7 +32,7 @@ public class Migration15To16Test {
         createVersion15(file);
 
         AppDatabase database = Room.databaseBuilder(context, AppDatabase.class, file.getPath())
-                .addMigrations(AppDatabase.MIGRATION_15_16)
+                .addMigrations(AppDatabase.MIGRATION_15_16, AppDatabase.MIGRATION_16_17)
                 .allowMainThreadQueries()
                 .build();
         try {

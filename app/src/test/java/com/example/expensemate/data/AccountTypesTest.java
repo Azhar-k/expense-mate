@@ -44,8 +44,8 @@ public class AccountTypesTest {
                 .build();
         dao = database.transactionDao();
         accounts = database.accountDao();
-        daily = add("Daily", Account.TYPE_VIRTUAL, true);
-        trip = add("Trip", Account.TYPE_VIRTUAL, false);
+        daily = add("Daily", Account.TYPE_FUND, true);
+        trip = add("Trip", Account.TYPE_FUND, false);
         bank = add("Bank", Account.TYPE_REAL, true);
         wallet = add("Wallet", Account.TYPE_REAL, false);
     }
@@ -188,7 +188,7 @@ public class AccountTypesTest {
         createVersion10(file);
 
         database = Room.databaseBuilder(context, AppDatabase.class, file.getPath())
-                .addMigrations(AppDatabase.MIGRATION_10_11, AppDatabase.MIGRATION_11_12, AppDatabase.MIGRATION_12_13, AppDatabase.MIGRATION_13_14, AppDatabase.MIGRATION_14_15, AppDatabase.MIGRATION_15_16)
+                .addMigrations(AppDatabase.MIGRATION_10_11, AppDatabase.MIGRATION_11_12, AppDatabase.MIGRATION_12_13, AppDatabase.MIGRATION_13_14, AppDatabase.MIGRATION_14_15, AppDatabase.MIGRATION_15_16, AppDatabase.MIGRATION_16_17)
                 .allowMainThreadQueries()
                 .build();
         accounts = database.accountDao();
