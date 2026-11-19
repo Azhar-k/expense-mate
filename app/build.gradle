@@ -84,19 +84,22 @@ dependencies {
     implementation 'androidx.room:room-runtime:2.6.1'
     annotationProcessor 'androidx.room:room-compiler:2.6.1'
     
-    // SMS handling
-    implementation 'com.google.android.gms:play-services-auth:20.7.0'
+    // Drive access (AuthorizationClient) and SMS handling
+    implementation 'com.google.android.gms:play-services-auth:21.3.0'
     implementation 'com.google.android.gms:play-services-auth-api-phone:18.0.2'
-    
+
     // Google Drive API
     implementation 'com.google.apis:google-api-services-drive:v3-rev20220815-2.0.0'
     implementation 'com.google.api-client:google-api-client-android:2.0.0'
-    implementation 'com.google.auth:google-auth-library-oauth2-http:1.19.0'
-    
+
+    // Scheduled backups
+    implementation 'androidx.work:work-runtime:2.10.0'
+
     // Testing
     testImplementation 'junit:junit:4.13.2'
     testImplementation 'org.robolectric:robolectric:4.14.1'
     testImplementation 'androidx.test:core:1.5.0'
+    testImplementation 'androidx.work:work-testing:2.10.0'
     androidTestImplementation 'androidx.test.ext:junit:1.1.5'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
     

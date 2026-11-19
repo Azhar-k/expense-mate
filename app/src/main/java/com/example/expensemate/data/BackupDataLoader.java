@@ -7,7 +7,7 @@ import android.util.Log;
 import androidx.sqlite.db.SupportSQLiteDatabase;
 
 import com.example.expensemate.service.GoogleDriveService;
-import com.example.expensemate.service.GoogleSignInHelper;
+import com.example.expensemate.service.BackupScheduler;
 import com.example.expensemate.util.Currencies;
 
 import java.io.BufferedReader;
@@ -627,23 +627,19 @@ public class BackupDataLoader {
         return files;
     }
 
+    /** One backup, restore or clean-up at a time: they share the cache files and the Drive folder. */
+    private static final Object DRIVE_LOCK = new Object();
+
     /**
      * Uploads one zip, which appears on Drive whole or not at all; a backup that fails is deleted.
-     * After it, only the newest {@value GoogleDriveService#KEEP_BACKUPS} backups are kept.
+     * After it, only the newest {@value GoogleDriveService#KEEP_BACKUPS} backups are kept. Blocks,
+     * so call it off the main thread; returns what to tell the user.
      */
-    public static void exportDatabaseDataToGoogleDrive(Context context, AppDatabase database,
-            GoogleDriveService.DriveCallback callback) {
-        new Thread(() -> {
-            GoogleDriveService driveService = new GoogleDriveService(context);
+    public static String backUp(Context context, AppDatabase database) throws IOException {
+        synchronized (DRIVE_LOCK) {
+            GoogleDriveService driveService = GoogleDriveService.connect(context);
             File zip = new File(context.getCacheDir(), GoogleDriveService.BACKUP_ZIP);
             try {
-                GoogleSignInHelper signInHelper = new GoogleSignInHelper(context);
-                if (!signInHelper.isSignedIn()) {
-                    callback.onError("User not signed in to Google Drive");
-                    return;
-                }
-                driveService.initializeDriveService(signInHelper.getAccessToken());
-
                 writeZip(database, zip);
                 String folderId = driveService.createBackupFolder();
                 try {
@@ -656,6 +652,7 @@ public class BackupDataLoader {
                     }
                     throw e;
                 }
+                BackupScheduler.recordBackup(context, System.currentTimeMillis());
 
                 // The backup is safe by now, so a failure here only leaves extra old copies
                 String pruned = "";
@@ -667,35 +664,26 @@ public class BackupDataLoader {
                 } catch (IOException | RuntimeException e) {
                     Log.e(TAG, "Could not remove old backups", e);
                 }
-                callback.onSuccess("Backup completed successfully" + pruned);
-            } catch (Exception e) {
-                Log.e(TAG, "Error backing up to Google Drive", e);
-                callback.onError("Backup failed: " + e.getMessage());
+                return "Backup completed successfully" + pruned;
             } finally {
                 zip.delete();
-                driveService.shutdown();
             }
-        }).start();
+        }
     }
 
-    /** Downloads the newest finished backup in full before anything on the phone changes. */
-    public static void loadBackupDataFromGoogleDrive(Context context, GoogleDriveService.DriveCallback callback) {
-        new Thread(() -> {
-            GoogleDriveService driveService = new GoogleDriveService(context);
+    /**
+     * Downloads the newest finished backup in full before anything on the phone changes, then
+     * replaces the phone's data with it in one transaction. Blocks; returns what to tell the user.
+     */
+    public static String restoreLatest(Context context) throws IOException {
+        synchronized (DRIVE_LOCK) {
+            GoogleDriveService driveService = GoogleDriveService.connect(context);
             Map<String, File> files = new HashMap<>();
             File zip = new File(context.getCacheDir(), "restore_" + GoogleDriveService.BACKUP_ZIP);
             try {
-                GoogleSignInHelper signInHelper = new GoogleSignInHelper(context);
-                if (!signInHelper.isSignedIn()) {
-                    callback.onError("User not signed in to Google Drive");
-                    return;
-                }
-                driveService.initializeDriveService(signInHelper.getAccessToken());
-
                 GoogleDriveService.BackupFolder backup = driveService.findLatestBackup();
                 if (backup == null) {
-                    callback.onError("No complete backup found");
-                    return;
+                    throw new IOException("No complete backup found");
                 }
                 String zipId = backup.files.get(GoogleDriveService.BACKUP_ZIP);
                 if (zipId != null) {
@@ -712,19 +700,32 @@ public class BackupDataLoader {
                         }
                     }
                 }
-                new BackupDataLoader(context).restore(files);
-                callback.onSuccess("Restore completed successfully");
-            } catch (Exception e) {
-                Log.e(TAG, "Error restoring from Google Drive", e);
-                callback.onError("Restore failed, nothing was changed: " + e.getMessage());
+                try {
+                    new BackupDataLoader(context).restore(files);
+                } catch (UncheckedIOException e) {
+                    throw e.getCause();
+                }
+                return "Restore completed successfully";
             } finally {
                 for (File file : files.values()) {
                     file.delete();
                 }
                 zip.delete();
-                driveService.shutdown();
             }
-        }).start();
+        }
+    }
+
+    /** Keeps only the newest backup on Drive. Blocks; returns what to tell the user. */
+    public static String clearOldBackups(Context context) throws IOException {
+        synchronized (DRIVE_LOCK) {
+            return GoogleDriveService.connect(context).deleteOldBackups();
+        }
+    }
+
+    /** When the newest finished backup on Drive was made, or 0 if there is none. Blocks. */
+    public static long latestBackupTime(Context context) throws IOException {
+        GoogleDriveService.BackupFolder latest = GoogleDriveService.connect(context).findLatestBackup();
+        return latest != null ? latest.createdTime : 0;
     }
 
     /** Earlier versions left a plain text copy of the database here on every start. */

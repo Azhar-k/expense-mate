@@ -67,6 +67,8 @@ public class ScreensTest {
     @Before
     public void setUp() throws Exception {
         Application app = ApplicationProvider.getApplicationContext();
+        // On a phone WorkManager starts itself; Settings watches its Back up now job
+        androidx.work.testing.WorkManagerTestInitHelper.initializeTestWorkManager(app);
         Shadows.shadowOf(app).grantPermissions(Manifest.permission.READ_SMS, Manifest.permission.RECEIVE_SMS);
         app.getSharedPreferences("main_activity", Context.MODE_PRIVATE).edit()
                 .putBoolean("notification_access_asked", true).apply();
