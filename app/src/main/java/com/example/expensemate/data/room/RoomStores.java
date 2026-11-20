@@ -6,6 +6,7 @@ import com.example.expensemate.data.store.BillStore;
 import com.example.expensemate.data.store.BudgetStore;
 import com.example.expensemate.data.store.CategoryStore;
 import com.example.expensemate.data.store.CounterpartyCategoryStore;
+import com.example.expensemate.data.store.FundStore;
 import com.example.expensemate.data.store.LoanStore;
 import com.example.expensemate.data.store.PatternStore;
 import com.example.expensemate.data.store.Stores;
@@ -18,6 +19,7 @@ import java.util.concurrent.Callable;
 public final class RoomStores implements Stores {
     private final TransactionStore transactions;
     private final AccountStore accounts;
+    private final FundStore funds;
     private final CategoryStore categories;
     private final CounterpartyCategoryStore counterpartyCategories;
     private final LoanStore loans;
@@ -29,6 +31,7 @@ public final class RoomStores implements Stores {
     public RoomStores(AppDatabase database) {
         transactions = new RoomTransactionStore(database.transactionDao());
         accounts = new RoomAccountStore(database.accountDao());
+        funds = new RoomFundStore(database.fundDao());
         categories = new RoomCategoryStore(database.categoryDao());
         counterpartyCategories = new RoomCounterpartyCategoryStore(database.transactionDao());
         loans = new RoomLoanStore(database.loanDao());
@@ -56,6 +59,11 @@ public final class RoomStores implements Stores {
     @Override
     public AccountStore accounts() {
         return accounts;
+    }
+
+    @Override
+    public FundStore funds() {
+        return funds;
     }
 
     @Override

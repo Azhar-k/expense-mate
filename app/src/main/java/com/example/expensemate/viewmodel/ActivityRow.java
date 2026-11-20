@@ -69,8 +69,8 @@ public class ActivityRow {
                 && Objects.equals(a.getReceiverName(), b.getReceiverName())
                 && Objects.equals(a.getCategory(), b.getCategory())
                 && Objects.equals(a.getTransactionType(), b.getTransactionType())
+                && Objects.equals(a.getFundId(), b.getFundId())
                 && Objects.equals(a.getAccountId(), b.getAccountId())
-                && Objects.equals(a.getRealAccountId(), b.getRealAccountId())
                 && a.isExcludedFromSummary() == b.isExcludedFromSummary()
                 && a.getCurrency().equals(b.getCurrency())
                 && a.isNeedsReview() == b.isNeedsReview();
@@ -79,7 +79,7 @@ public class ActivityRow {
     /**
      * @param transactions the rows to show, newest first
      * @param transferLegs every transfer row in the same date range, so the other side of a
-     *                     transfer can be named even when an account filter hides it
+     *                     transfer can be named even when a fund or account filter hides it
      */
     public static List<ActivityRow> build(List<Transaction> transactions, List<Transaction> transferLegs,
             Calendar now) {

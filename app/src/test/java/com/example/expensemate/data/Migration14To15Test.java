@@ -1,7 +1,6 @@
 package com.example.expensemate.data;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
 
 import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;
@@ -30,19 +29,15 @@ public class Migration14To15Test {
         createVersion14(file);
 
         AppDatabase database = Room.databaseBuilder(context, AppDatabase.class, file.getPath())
-                .addMigrations(AppDatabase.MIGRATION_14_15, AppDatabase.MIGRATION_15_16, AppDatabase.MIGRATION_16_17)
+                .addMigrations(AppDatabase.MIGRATION_14_15, AppDatabase.MIGRATION_15_16, AppDatabase.MIGRATION_16_17, AppDatabase.MIGRATION_17_18)
                 .allowMainThreadQueries()
                 .build();
         try {
+            // The virtual account is a fund by now, and funds have no currency
             List<Account> accounts = database.accountDao().getAllAccountsSync();
-            for (Account account : accounts) {
-                if (account.isReal()) {
-                    assertEquals("INR", account.getCurrency());
-                } else {
-                    assertNull(account.getCurrency());
-                }
-            }
-            assertEquals(2, accounts.size());
+            assertEquals(1, accounts.size());
+            assertEquals("INR", accounts.get(0).getCurrency());
+            assertEquals(1, database.fundDao().getAllFundsSync().size());
             assertEquals("INR", database.transactionDao().getTransactionSync(1).getCurrency());
             assertEquals("INR", database.loanDao().getAllLoansSync().get(0).getCurrency());
             assertEquals("INR", database.recurringPaymentDao().getAllRecurringPaymentsSync().get(0).getCurrency());

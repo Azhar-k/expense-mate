@@ -29,4 +29,11 @@ public interface RecurringPaymentDao {
 
     @Delete
     void delete(RecurringPayment payment);
+
+    // A deleted fund's top-ups go to another fund, so a bill never points at a fund that is gone
+    @Query("UPDATE recurring_payments SET fromFundId = :toFundId WHERE fromFundId = :fromFundId")
+    void moveFromFund(long fromFundId, long toFundId);
+
+    @Query("UPDATE recurring_payments SET toFundId = :toFundId WHERE toFundId = :fromFundId")
+    void moveToFund(long fromFundId, long toFundId);
 } 

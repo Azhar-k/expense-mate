@@ -8,7 +8,7 @@ public class PastTransaction {
     public String transactionType;
     public String category;
     public boolean needsReview;
+    public Long fundId;
     public Long accountId;
-    public Long realAccountId;
     public Long linkedRecurringPaymentId;
 }

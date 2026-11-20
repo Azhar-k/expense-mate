@@ -16,16 +16,20 @@ public final class Transfers {
     private Transfers() {
     }
 
-    /** @return the debit and credit sides, in that order */
-    public static Transaction[] newPair(double amount, long fromAccountId, long toAccountId, Date date, String note) {
+    /**
+     * Legs between two funds. Callers set each leg's account, since the funds say nothing about it.
+     *
+     * @return the debit and credit sides, in that order
+     */
+    public static Transaction[] newPair(double amount, long fromFundId, long toFundId, Date date, String note) {
         String groupId = UUID.randomUUID().toString();
         return new Transaction[] {
-                leg(amount, fromAccountId, date, note, "DEBIT", groupId),
-                leg(amount, toAccountId, date, note, "CREDIT", groupId)
+                leg(amount, fromFundId, date, note, "DEBIT", groupId),
+                leg(amount, toFundId, date, note, "CREDIT", groupId)
         };
     }
 
-    private static Transaction leg(double amount, long accountId, Date date, String note, String type, String groupId) {
+    private static Transaction leg(double amount, long fundId, Date date, String note, String type, String groupId) {
         Transaction leg = new Transaction();
         leg.setAmount(amount);
         leg.setDate(date);
@@ -33,15 +37,16 @@ public final class Transfers {
         leg.setTransactionType(type);
         leg.setReceiverName("");
         leg.setCategory(CATEGORY);
-        leg.setAccountId(accountId);
+        leg.setFundId(fundId);
         leg.setTransferGroupId(groupId);
         return leg;
     }
 
     /**
      * Links manual rows that can only be two sides of one transfer: same moment, amount,
-     * note and category, opposite types, different accounts, and no message behind them.
-     * A row matching more than one candidate is left alone rather than guessed at.
+     * note and category, opposite types, different funds, and no message behind them.
+     * A row matching more than one candidate is left alone rather than guessed at. Older backups
+     * hold such rows, so a restore comes through here; MIGRATION_7_8 uses the copy in LegacySchema.
      *
      * @return the number of transfers linked
      */
@@ -53,7 +58,7 @@ public final class Transfers {
                 + "AND COALESCE(d.category, '') = COALESCE(c.category, '') "
                 + "WHERE d.transactionType = 'DEBIT' AND c.transactionType = 'CREDIT' "
                 + "AND d.transferGroupId IS NULL AND c.transferGroupId IS NULL "
-                + "AND d.accountId IS NOT NULL AND c.accountId IS NOT NULL AND d.accountId <> c.accountId "
+                + "AND d.fundId IS NOT NULL AND c.fundId IS NOT NULL AND d.fundId <> c.fundId "
                 + "AND " + String.format(manual, "d") + " AND " + String.format(manual, "c");
 
         Map<Long, Integer> debitMatches = new HashMap<>();

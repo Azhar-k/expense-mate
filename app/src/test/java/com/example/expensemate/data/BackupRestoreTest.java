@@ -63,15 +63,30 @@ public class BackupRestoreTest {
         file.delete();
     }
 
-    private void account(long id, String name, String type, boolean isDefault) {
+    private void fund(long id, String name, boolean isDefault) {
+        Fund fund = new Fund(name, "");
+        fund.setId(id);
+        fund.setDefault(isDefault);
+        source.fundDao().insert(fund);
+    }
+
+    private void account(long id, String name, boolean isDefault) {
         Account account = new Account(name, "", "", null, "");
         account.setId(id);
-        account.setType(type);
+        account.setCurrency("INR");
         account.setDefault(isDefault);
         source.accountDao().insert(account);
     }
 
-    private Transaction row(long id, String type, Long virtual, Long real) {
+    private File file(String text) throws IOException {
+        File file = File.createTempFile("backup", ".txt", context.getCacheDir());
+        try (FileWriter writer = new FileWriter(file)) {
+            writer.write(text);
+        }
+        return file;
+    }
+
+    private Transaction row(long id, String type, Long fundId, Long accountId) {
         Transaction row = new Transaction();
         row.setId(id);
         row.setAmount(100 + id);
@@ -79,8 +94,8 @@ public class BackupRestoreTest {
         row.setDescription("note " + id);
         row.setReceiverName("Shop " + id);
         row.setTransactionType(type);
-        row.setAccountId(virtual);
-        row.setRealAccountId(real);
+        row.setFundId(fundId);
+        row.setAccountId(accountId);
         return row;
     }
 
@@ -102,15 +117,24 @@ public class BackupRestoreTest {
         throw new AssertionError("No account " + name);
     }
 
+    private Fund findFund(AppDatabase database, String name) {
+        for (Fund fund : database.fundDao().getAllFundsSync()) {
+            if (fund.getName().equals(name)) {
+                return fund;
+            }
+        }
+        throw new AssertionError("No fund " + name);
+    }
+
     @Test
     public void everyFlagSurvivesABackupAndRestore() throws Exception {
         TestServices.over(source).categories().saveAsDefault(new Category("Fuel", "EXPENSE")).join();
         source.categoryDao().insertCategory(new Category("Default", "EXPENSE"));
         TestServices.over(source).categories().saveAsDefault(new Category("Salary", "INCOME")).join();
-        account(1, "Daily", Account.TYPE_FUND, true);
-        account(2, "Trip", Account.TYPE_FUND, false);
-        account(3, "Bank", Account.TYPE_REAL, false);
-        account(4, "Wallet", Account.TYPE_REAL, true);
+        fund(1, "Daily", true);
+        fund(2, "Trip", false);
+        account(3, "Bank", false);
+        account(4, "Wallet", true);
 
         Transaction waiting = row(1, "DEBIT", 2L, 3L);
         waiting.setCategory("Fuel");
@@ -118,7 +142,7 @@ public class BackupRestoreTest {
         source.transactionDao().insertTransaction(waiting);
         source.transactionDao().insertTransaction(row(2, "DEBIT", null, null));
 
-        // A transfer that only moves between real accounts
+        // A transfer that only moves between accounts
         Transaction debit = row(3, "DEBIT", 1L, 4L);
         Transaction credit = row(4, "CREDIT", 1L, 3L);
         debit.setTransferGroupId("group");
@@ -126,7 +150,7 @@ public class BackupRestoreTest {
         source.transactionDao().insertTransaction(debit);
         source.transactionDao().insertTransaction(credit);
 
-        for (String section : new String[] { "CATEGORIES", "ACCOUNTS", "TRANSACTIONS" }) {
+        for (String section : new String[] { "CATEGORIES", "FUNDS", "ACCOUNTS", "TRANSACTIONS" }) {
             load(section, BackupDataLoader.entityText(section, source));
         }
         BackupDataLoader.finishRestore(restored);
@@ -134,27 +158,27 @@ public class BackupRestoreTest {
         assertEquals("Fuel", restored.categoryDao().getDefaultName("EXPENSE"));
         assertEquals("Salary", restored.categoryDao().getDefaultName("INCOME"));
 
-        assertEquals(4, restored.accountDao().getAllAccountsSync().size());
-        assertTrue(findAccount(restored, "Bank").isReal());
-        assertFalse(findAccount(restored, "Trip").isReal());
-        assertEquals(1, restored.accountDao().getDefaultAccountSync().getId());
-        assertEquals(4, restored.accountDao().getDefaultRealAccountSync().getId());
+        assertEquals(2, restored.fundDao().getAllFundsSync().size());
+        assertEquals(2, restored.accountDao().getAllAccountsSync().size());
+        assertEquals(1, restored.fundDao().getDefaultFundSync().getId());
+        assertEquals(4, restored.accountDao().getDefaultAccountSync().getId());
 
         Transaction restoredWaiting = find(restored, 1);
-        assertEquals(Long.valueOf(2), restoredWaiting.getAccountId());
-        assertEquals(Long.valueOf(3), restoredWaiting.getRealAccountId());
+        assertEquals(Long.valueOf(2), restoredWaiting.getFundId());
+        assertEquals(Long.valueOf(3), restoredWaiting.getAccountId());
         assertTrue(restoredWaiting.isNeedsReview());
         assertEquals("Fuel", restoredWaiting.getCategory());
 
+        // A row without either gets the defaults
         Transaction noAccount = find(restored, 2);
-        assertNull(noAccount.getAccountId());
-        assertNull(noAccount.getRealAccountId());
+        assertEquals(Long.valueOf(1), noAccount.getFundId());
+        assertEquals(Long.valueOf(4), noAccount.getAccountId());
         assertFalse(noAccount.isNeedsReview());
 
         assertEquals("group", find(restored, 3).getTransferGroupId());
         assertEquals("group", find(restored, 4).getTransferGroupId());
-        assertEquals(Long.valueOf(4), find(restored, 3).getRealAccountId());
-        assertEquals(Long.valueOf(3), find(restored, 4).getRealAccountId());
+        assertEquals(Long.valueOf(4), find(restored, 3).getAccountId());
+        assertEquals(Long.valueOf(3), find(restored, 4).getAccountId());
     }
 
     /** Written the way the app wrote backups before account types and default categories. */
@@ -170,19 +194,122 @@ public class BackupRestoreTest {
         assertEquals("Default", restored.categoryDao().getDefaultName("EXPENSE"));
         assertEquals("Default", restored.categoryDao().getDefaultName("INCOME"));
 
-        assertFalse(findAccount(restored, "Daily").isReal());
-        assertFalse(findAccount(restored, "Trip").isReal());
-        assertEquals(1, restored.accountDao().getDefaultAccountSync().getId());
-        Long real = restored.accountDao().getDefaultRealAccountSync().getId();
+        // Before account types every row of the accounts file was a fund
+        assertEquals(2, restored.fundDao().getAllFundsSync().size());
+        assertEquals("Trip", restored.fundDao().getFundByIdSync(2).getName());
+        assertEquals(1, restored.fundDao().getDefaultFundSync().getId());
+        Account account = restored.accountDao().getDefaultAccountSync();
+        assertEquals(Account.DEFAULT_NAME, account.getName());
+        assertEquals(1, restored.accountDao().getAllAccountsSync().size());
+        Long accountId = account.getId();
 
-        assertEquals(Long.valueOf(2), find(restored, 1).getAccountId());
-        assertEquals(real, find(restored, 1).getRealAccountId());
+        assertEquals(Long.valueOf(2), find(restored, 1).getFundId());
+        assertEquals(accountId, find(restored, 1).getAccountId());
         // As it always has, an older backup's row without an account goes to the default one
-        assertEquals(Long.valueOf(1), find(restored, 2).getAccountId());
-        assertEquals(real, find(restored, 2).getRealAccountId());
-        // Its account was deleted, so there is no virtual account to pair a real one with
-        assertEquals(Long.valueOf(99), find(restored, 3).getAccountId());
-        assertNull(find(restored, 3).getRealAccountId());
+        assertEquals(Long.valueOf(1), find(restored, 2).getFundId());
+        assertEquals(accountId, find(restored, 2).getAccountId());
+        // Its fund was deleted; it keeps pointing there, and still gets an account
+        assertEquals(Long.valueOf(99), find(restored, 3).getFundId());
+        assertEquals(accountId, find(restored, 3).getAccountId());
+    }
+
+    /** Written the way format 2 wrote backups, when funds and accounts shared the accounts file. */
+    @Test
+    public void aFormatTwoBackupRestoresIntoFundsAndAccounts() throws Exception {
+        String accounts = "Format: 2\n---\n"
+                + "ID: 1\nName: Daily\nAccount Number: \nBank: \nExpiry Date: \\N\nDescription: Everyday\n"
+                + "Is Default: true\nAccount Type: VIRTUAL\nSort Order: 0\nCurrency: \\N\nTarget: \\N\nTarget Date: \\N\n---\n"
+                + "ID: 2\nName: Trip\nAccount Number: \nBank: Travel card\nExpiry Date: \\N\nDescription: \n"
+                + "Is Default: false\nAccount Type: VIRTUAL\nSort Order: 1\nCurrency: \\N\nTarget: 50000.5\n"
+                + "Target Date: 1798761600000\n---\n"
+                + "ID: 3\nName: Savings\nAccount Number: 1234\nBank: SBI\nExpiry Date: \\N\nDescription: salary\n"
+                + "Is Default: true\nAccount Type: REAL\nSort Order: 0\nCurrency: AED\nTarget: \\N\nTarget Date: \\N\n---\n";
+        String bills = "Format: 2\n---\n"
+                + "ID: 7\nName: Trip savings\nAmount: 2000.0\nDue Day: 5\nExpiry Date: \\N\nIs Completed: false\n"
+                + "Last Completed Date: \\N\nFrom Account ID: 1\nTo Account ID: 2\nCurrency: AED\n---\n";
+        String transactions = "Format: 2\n---\n"
+                + formatTwoRow(1, 120.0, "DEBIT", "Food", 1, 3, null)
+                + formatTwoRow(2, 500.0, "DEBIT", "Transfer", 1, 3, "g1")
+                + formatTwoRow(3, 500.0, "CREDIT", "Transfer", 2, 3, "g1");
+        Map<String, File> files = new HashMap<>();
+        files.put("ACCOUNTS", file(accounts));
+        files.put("RECURRING PAYMENTS", file(bills));
+        files.put("TRANSACTIONS", file(transactions));
+
+        new BackupDataLoader(context, restored).restore(files);
+        for (File file : files.values()) {
+            file.delete();
+        }
+
+        assertEquals(2, restored.fundDao().getAllFundsSync().size());
+        Fund daily = restored.fundDao().getDefaultFundSync();
+        assertEquals(1, daily.getId());
+        assertEquals("Daily", daily.getName());
+        assertEquals("Everyday", daily.getDescription());
+        assertNull(daily.getTarget());
+        Fund trip = restored.fundDao().getFundByIdSync(2);
+        assertEquals("Travel card", trip.getDescription()); // Its bank was its only note
+        assertFalse(trip.isDefault());
+        assertEquals(1, trip.getSortOrder());
+        assertEquals(50000.5, trip.getTarget(), 0);
+        assertEquals(1798761600000L, trip.getTargetDate().getTime());
+        assertNull(restored.fundDao().getFundByIdSync(3));
+
+        assertEquals(1, restored.accountDao().getAllAccountsSync().size());
+        Account savings = restored.accountDao().getDefaultAccountSync();
+        assertEquals(3, savings.getId());
+        assertEquals("Savings", savings.getName());
+        assertEquals("1234", savings.getAccountNumber());
+        assertEquals("SBI", savings.getBank());
+        assertEquals("salary", savings.getDescription());
+        assertEquals("AED", savings.getCurrency());
+        assertNull(restored.accountDao().getAccountByIdSync(1));
+
+        Transaction lunch = find(restored, 1);
+        assertEquals(Long.valueOf(1), lunch.getFundId());
+        assertEquals(Long.valueOf(3), lunch.getAccountId());
+        assertEquals("AED", lunch.getCurrency());
+        assertEquals(Long.valueOf(1), find(restored, 2).getFundId());
+        assertEquals(Long.valueOf(2), find(restored, 3).getFundId());
+        assertEquals("g1", find(restored, 2).getTransferGroupId());
+        assertEquals("g1", find(restored, 3).getTransferGroupId());
+        assertEquals(Long.valueOf(3), find(restored, 3).getAccountId());
+
+        RecurringPayment bill = restored.recurringPaymentDao().getAllRecurringPaymentsSync().get(0);
+        assertEquals(7, bill.getId());
+        assertEquals(Long.valueOf(1), bill.getFromFundId());
+        assertEquals(Long.valueOf(2), bill.getToFundId());
+    }
+
+    private static String formatTwoRow(long id, double amount, String type, String category, long fundId,
+            long accountId, String group) {
+        return "ID: " + id + "\nAmount: " + amount + "\nDescription: note\nDate: " + (1793447463000L + id)
+                + "\nTransaction Type: " + type + "\nReceiver: \nCategory: " + category
+                + "\nIs excluded from summary: false\nAccount id: " + fundId + "\nReal account id: " + accountId
+                + "\nLinked Payment ID: \\N\nLoan ID: \\N\nSMS Body: \\N\nSMS Sender: \\N\nSMS Hash: \\N"
+                + "\nTransfer Group: " + (group != null ? group : "\\N") + "\nNeeds Review: false\nSource: \\N"
+                + "\nDedup Key: \\N\nMatch Key: \\N\nMessage Time: \\N\nCurrency: AED\n---\n";
+    }
+
+    /** A current backup names a transaction's fund and account with their own keys, and funds have their own file. */
+    @Test
+    public void aCurrentBackupWritesFundsAndAccountsApart() {
+        fund(1, "Daily", true);
+        account(1, "Bank", true);
+        Transaction spent = row(1, "DEBIT", 1L, 1L);
+        source.transactionDao().insertTransaction(spent);
+        RecurringPayment bill = new RecurringPayment("Top up", 10, 1, null);
+        bill.setFromFundId(1L);
+        source.recurringPaymentDao().insert(bill);
+
+        assertTrue(BackupDataLoader.entityText("FUNDS", source).startsWith("Format: 3\n"));
+        assertTrue(BackupDataLoader.entityText("FUNDS", source).contains("Name: Daily\n"));
+        assertFalse(BackupDataLoader.entityText("ACCOUNTS", source).contains("Account Type"));
+        String rows = BackupDataLoader.entityText("TRANSACTIONS", source);
+        assertTrue(rows.contains("Fund ID: 1\n"));
+        assertTrue(rows.contains("Account ID: 1\n"));
+        assertFalse(rows.contains("Real account id"));
+        assertTrue(BackupDataLoader.entityText("RECURRING PAYMENTS", source).contains("From Fund ID: 1\n"));
     }
 
     private Map<String, File> backupFiles() throws IOException {
@@ -201,11 +328,11 @@ public class BackupRestoreTest {
     public void everyValueComesBackExactly() throws Exception {
         TestServices.over(source).categories().saveAsDefault(new Category("Default", "EXPENSE")).join();
         source.categoryDao().insertCategory(new Category("Fuel", "EXPENSE"));
-        account(1, "Daily", Account.TYPE_FUND, true);
+        fund(1, "Daily", true);
         Account noDetails = new Account("Bare", null, null, null, null);
         noDetails.setId(2);
         source.accountDao().insert(noDetails);
-        account(3, "Bank", Account.TYPE_REAL, true);
+        account(3, "Bank", true);
         source.recurringPaymentDao().insert(new RecurringPayment("No end", 99.5, 3, null));
 
         // Lines that look like the backup's own keys and separators, inside a message
@@ -253,10 +380,9 @@ public class BackupRestoreTest {
 
     @Test
     public void currenciesSurviveABackupAndOlderBackupsAreRupees() throws Exception {
-        account(1, "Daily", Account.TYPE_FUND, true);
+        fund(1, "Daily", true);
         Account dirhams = new Account("Emirates NBD", "", "", null, "");
         dirhams.setId(2);
-        dirhams.setType(Account.TYPE_REAL);
         dirhams.setDefault(true);
         dirhams.setCurrency("AED");
         source.accountDao().insert(dirhams);
@@ -273,13 +399,14 @@ public class BackupRestoreTest {
         rent.setCurrency("USD");
         source.recurringPaymentDao().insert(rent);
 
-        for (String section : new String[] { "RECURRING PAYMENTS", "ACCOUNTS", "LOANS", "TRANSACTIONS" }) {
+        for (String section : new String[] { "FUNDS", "ACCOUNTS", "RECURRING PAYMENTS", "LOANS", "TRANSACTIONS" }) {
             load(section, BackupDataLoader.entityText(section, source));
         }
         BackupDataLoader.finishRestore(restored);
 
         assertEquals("AED", findAccount(restored, "Emirates NBD").getCurrency());
-        assertNull(findAccount(restored, "Daily").getCurrency());
+        assertEquals(1, restored.accountDao().getAllAccountsSync().size()); // No default added on top
+        assertEquals(1, findFund(restored, "Daily").getId());
         assertEquals("AED", find(restored, 1).getCurrency());
         assertEquals("AED", restored.loanDao().getAllLoansSync().get(0).getCurrency());
         assertEquals("USD", restored.recurringPaymentDao().getAllRecurringPaymentsSync().get(0).getCurrency());
@@ -287,10 +414,10 @@ public class BackupRestoreTest {
 
     @Test
     public void aBackupWithoutCurrenciesComesBackInRupees() throws Exception {
-        account(1, "Daily", Account.TYPE_FUND, true);
-        account(2, "Bank", Account.TYPE_REAL, true);
+        fund(1, "Daily", true);
+        account(2, "Bank", true);
         source.transactionDao().insertTransaction(row(1, "DEBIT", 1L, 2L));
-        for (String section : new String[] { "ACCOUNTS", "TRANSACTIONS" }) {
+        for (String section : new String[] { "FUNDS", "ACCOUNTS", "TRANSACTIONS" }) {
             load(section, BackupDataLoader.entityText(section, source).replaceAll("(?m)^Currency: .*\\R", ""));
         }
         BackupDataLoader.finishRestore(restored);
@@ -301,7 +428,7 @@ public class BackupRestoreTest {
 
     @Test
     public void loansComeBackWithTheirReturns() throws Exception {
-        account(1, "Daily", Account.TYPE_FUND, true);
+        fund(1, "Daily", true);
         Loan loan = new Loan();
         loan.setId(5);
         loan.setPerson("Ravi");
@@ -365,12 +492,12 @@ public class BackupRestoreTest {
 
     @Test
     public void budgetsAndFundTargetsComeBack() throws Exception {
-        account(1, "Daily", Account.TYPE_FUND, true);
-        Account trip = new Account("Trip", "", "", null, "");
+        fund(1, "Daily", true);
+        Fund trip = new Fund("Trip", "");
         trip.setId(2);
         trip.setTarget(50000.5);
         trip.setTargetDate(new Date(1798761600000L));
-        source.accountDao().insert(trip);
+        source.fundDao().insert(trip);
         Budget food = new Budget();
         food.setId(7);
         food.setName("Food");
@@ -383,10 +510,10 @@ public class BackupRestoreTest {
 
         new BackupDataLoader(context, restored).restore(backupFiles());
 
-        Account back = restored.accountDao().getAccountByIdSync(2);
+        Fund back = restored.fundDao().getFundByIdSync(2);
         assertEquals(50000.5, back.getTarget(), 0);
         assertEquals(1798761600000L, back.getTargetDate().getTime());
-        assertNull(restored.accountDao().getAccountByIdSync(1).getTarget());
+        assertNull(restored.fundDao().getFundByIdSync(1).getTarget());
         Budget budget = restored.budgetDao().getAllSync().get(0);
         assertEquals(7, budget.getId());
         assertEquals("Food", budget.getName());
@@ -399,19 +526,19 @@ public class BackupRestoreTest {
 
     @Test
     public void aBackupWithoutBudgetsStillRestores() throws Exception {
-        account(1, "Daily", Account.TYPE_FUND, true);
+        fund(1, "Daily", true);
         Map<String, File> files = backupFiles();
         files.remove("BUDGETS");
 
         new BackupDataLoader(context, restored).restore(files);
 
         assertTrue(restored.budgetDao().getAllSync().isEmpty());
-        assertEquals(1, restored.accountDao().getAllAccountsSync().stream().filter(Account::isFund).count());
+        assertEquals(1, restored.fundDao().getAllFundsSync().size());
     }
 
     @Test
     public void aBackupWithoutPatternsGetsTheShippedOnes() throws Exception {
-        account(1, "Daily", Account.TYPE_FUND, true);
+        fund(1, "Daily", true);
         Map<String, File> files = backupFiles();
         files.remove("MESSAGE PATTERNS");
 
@@ -422,7 +549,7 @@ public class BackupRestoreTest {
 
     @Test
     public void aBackupWithoutLoansStillRestores() throws Exception {
-        account(1, "Daily", Account.TYPE_FUND, true);
+        fund(1, "Daily", true);
         source.transactionDao().insertTransaction(row(1, "DEBIT", 1L, null));
         Map<String, File> files = backupFiles();
         files.remove("LOANS");
@@ -435,7 +562,7 @@ public class BackupRestoreTest {
 
     @Test
     public void aRestoreThatFailsLeavesTheDataAsItWas() throws Exception {
-        account(1, "Daily", Account.TYPE_FUND, true);
+        fund(1, "Daily", true);
         source.transactionDao().insertTransaction(row(1, "DEBIT", 1L, null));
         new BackupDataLoader(context, restored).restore(backupFiles());
 
@@ -448,7 +575,7 @@ public class BackupRestoreTest {
             // The transactions file could not be read
         }
         assertEquals(1, restored.transactionDao().getAllTransactionsSyncOrderByDateAsc().size());
-        assertEquals(1, restored.accountDao().getAllAccountsSync().stream().filter(a -> !a.isReal()).count());
+        assertEquals(1, restored.fundDao().getAllFundsSync().size());
     }
 
     @Test
@@ -481,8 +608,8 @@ public class BackupRestoreTest {
 
     @Test
     public void aZippedBackupRestoresAndIsSmaller() throws Exception {
-        account(1, "Daily", Account.TYPE_FUND, true);
-        account(3, "Bank", Account.TYPE_REAL, false);
+        fund(1, "Daily", true);
+        account(3, "Bank", false);
         source.categoryDao().insertCategory(new Category("Fuel", "EXPENSE"));
         for (long id = 1; id <= 200; id++) {
             Transaction t = row(id, "DEBIT", 1L, 3L);
@@ -513,7 +640,7 @@ public class BackupRestoreTest {
         Transaction back = find(restored, 7);
         assertEquals(find(source, 7).getSmsBody(), back.getSmsBody());
         assertEquals("Fuel", back.getCategory());
-        assertEquals(Long.valueOf(3), back.getRealAccountId());
+        assertEquals(Long.valueOf(3), back.getAccountId());
     }
 
     private static GoogleDriveService.BackupFolder folder(String id, String... names) {

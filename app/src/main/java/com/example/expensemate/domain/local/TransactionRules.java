@@ -1,6 +1,7 @@
 package com.example.expensemate.domain.local;
 
 import com.example.expensemate.data.Account;
+import com.example.expensemate.data.Fund;
 import com.example.expensemate.data.PastTransaction;
 import com.example.expensemate.data.RecurringPayment;
 import com.example.expensemate.data.Transaction;
@@ -9,6 +10,7 @@ import com.example.expensemate.data.store.AccountStore;
 import com.example.expensemate.data.store.BillStore;
 import com.example.expensemate.data.store.CategoryStore;
 import com.example.expensemate.data.store.CounterpartyCategoryStore;
+import com.example.expensemate.data.store.FundStore;
 import com.example.expensemate.data.store.TransactionStore;
 
 import com.example.expensemate.util.Currencies;
@@ -20,15 +22,17 @@ import java.util.Set;
 
 /** What a transaction gets filled in with on its way into the store. Call these inside a unit of work. */
 final class TransactionRules {
+    private final FundStore funds;
     private final AccountStore accounts;
     private final CategoryStore categories;
     private final CounterpartyCategoryStore counterparties;
     private final BillStore bills;
     private final TransactionStore transactions;
 
-    TransactionRules(AccountStore accounts, CategoryStore categories, CounterpartyCategoryStore counterparties,
-            BillStore bills, TransactionStore transactions) {
+    TransactionRules(FundStore funds, AccountStore accounts, CategoryStore categories,
+            CounterpartyCategoryStore counterparties, BillStore bills, TransactionStore transactions) {
         this.transactions = transactions;
+        this.funds = funds;
         this.accounts = accounts;
         this.categories = categories;
         this.counterparties = counterparties;
@@ -39,36 +43,41 @@ final class TransactionRules {
         return "CREDIT".equals(transactionType) ? "INCOME" : "EXPENSE";
     }
 
-    Long defaultAccountId(String type) {
-        Account account = accounts.findDefault(type);
+    Long defaultFundId() {
+        Fund fund = funds.findDefault();
+        return fund != null ? fund.getId() : null;
+    }
+
+    Long defaultAccountId() {
+        Account account = accounts.findDefault();
         return account != null ? account.getId() : null;
     }
 
-    /** A transaction always has both accounts, so whichever is missing goes to its default. */
-    void fillDefaultAccounts(Transaction transaction) {
-        if (transaction.getAccountId() == null) {
-            transaction.setAccountId(defaultAccountId(Account.TYPE_FUND));
+    /** A transaction always has a fund and an account, so whichever is missing goes to its default. */
+    void fillDefaults(Transaction transaction) {
+        if (transaction.getFundId() == null) {
+            transaction.setFundId(defaultFundId());
         }
-        if (transaction.getRealAccountId() == null) {
-            transaction.setRealAccountId(defaultAccountId(Account.TYPE_REAL));
+        if (transaction.getAccountId() == null) {
+            transaction.setAccountId(defaultAccountId());
         }
     }
 
     /**
-     * A row's amount is in its real account's currency, so the currency always follows that account.
+     * A row's amount is in its account's currency, so the currency always follows that account.
      * A row without one, or an account that somehow has none, takes the main currency.
      */
     void applyCurrency(Transaction transaction) {
-        Account real = transaction.getRealAccountId() != null ? accounts.findById(transaction.getRealAccountId()) : null;
-        String currency = real != null ? Currencies.of(real) : null;
+        Account account = transaction.getAccountId() != null ? accounts.findById(transaction.getAccountId()) : null;
+        String currency = Currencies.of(account);
         transaction.setCurrency(currency != null ? currency : Currencies.main(accounts.findAll()));
     }
 
-    /** The default real account if it holds this currency, else the first real account that does, else null. */
-    Long realAccountIn(String currency) {
+    /** The default account if it holds this currency, else the first account that does, else null. */
+    Long accountIn(String currency) {
         Account fallback = null;
         for (Account account : accounts.findAll()) {
-            if (account.isReal() && currency.equals(account.getCurrency())) {
+            if (currency.equals(account.getCurrency())) {
                 if (account.isDefault()) {
                     return account.getId();
                 }
@@ -105,18 +114,18 @@ final class TransactionRules {
     }
 
     /**
-     * Picks the accounts a captured payment most likely belongs to: the real account from the number
-     * the message shows, or else where that bank's earlier messages went, and the account where
-     * earlier payments with this payee went. Whatever stays unknown is left for the defaults.
+     * Picks where a captured payment most likely belongs: the account from the number the message
+     * shows, or else where that bank's earlier messages went, and the fund that earlier payments with
+     * this payee went to. Whatever stays unknown is left for the defaults.
      */
-    void suggestAccounts(Transaction transaction, List<PastTransaction> history) {
-        if (transaction.getRealAccountId() == null) {
-            Long real = Suggestions.realAccountFromMessage(transaction.getSmsBody(), accounts.findAll());
-            transaction.setRealAccountId(real != null ? real
-                    : Suggestions.realAccountFromSender(transaction.getSmsSender(), history));
-        }
+    void suggestFundAndAccount(Transaction transaction, List<PastTransaction> history) {
         if (transaction.getAccountId() == null) {
-            transaction.setAccountId(Suggestions.accountFromPayee(transaction.getReceiverName(), history));
+            Long account = Suggestions.accountFromMessage(transaction.getSmsBody(), accounts.findAll());
+            transaction.setAccountId(account != null ? account
+                    : Suggestions.accountFromSender(transaction.getSmsSender(), history));
+        }
+        if (transaction.getFundId() == null) {
+            transaction.setFundId(Suggestions.fundFromPayee(transaction.getReceiverName(), history));
         }
     }
 

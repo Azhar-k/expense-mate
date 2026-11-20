@@ -11,6 +11,8 @@ public interface Services {
 
     AccountService accounts();
 
+    FundService funds();
+
     CategoryService categories();
 
     LoanService loans();

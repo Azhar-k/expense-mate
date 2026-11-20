@@ -3,7 +3,7 @@ package com.example.expensemate.ui.bills;
 import androidx.fragment.app.FragmentActivity;
 import androidx.lifecycle.ViewModelProvider;
 
-import com.example.expensemate.data.Account;
+import com.example.expensemate.data.Fund;
 import com.example.expensemate.data.RecurringPayment;
 import com.example.expensemate.ui.common.TransactionText;
 import com.example.expensemate.ui.common.Ui;
@@ -21,24 +21,24 @@ public final class BillActions {
     private BillActions() {
     }
 
-    public static Map<Long, String> names(List<Account> accounts) {
+    public static Map<Long, String> names(List<Fund> funds) {
         Map<Long, String> names = new HashMap<>();
-        for (Account account : accounts) {
-            names.put(account.getId(), account.getName());
+        for (Fund fund : funds) {
+            names.put(fund.getId(), fund.getName());
         }
         return names;
     }
 
     public static void confirmMove(FragmentActivity activity, RecurringPayment bill, Map<Long, String> names) {
         new MaterialAlertDialogBuilder(activity)
-                .setTitle("Top up " + TransactionText.accountName(names, bill.getToAccountId()) + " with "
+                .setTitle("Top up " + TransactionText.fundName(names, bill.getToFundId()) + " with "
                         + Money.format(bill.getAmount(), bill.getCurrency()) + "?")
-                .setMessage("From " + TransactionText.accountName(names, bill.getFromAccountId()) + " to "
-                        + TransactionText.accountName(names, bill.getToAccountId()) + " for " + bill.getName() + ".")
+                .setMessage("From " + TransactionText.fundName(names, bill.getFromFundId()) + " to "
+                        + TransactionText.fundName(names, bill.getToFundId()) + " for " + bill.getName() + ".")
                 .setNegativeButton("Cancel", null)
                 .setPositiveButton("Top up", (dialog, which) -> {
                     move(activity, bill);
-                    Ui.snackbar(activity, TransactionText.accountName(names, bill.getToAccountId()) + " topped up with "
+                    Ui.snackbar(activity, TransactionText.fundName(names, bill.getToFundId()) + " topped up with "
                             + Money.format(bill.getAmount(), bill.getCurrency()));
                 })
                 .show();
@@ -50,8 +50,8 @@ public final class BillActions {
         CurrencyTotals total = new CurrencyTotals();
         for (RecurringPayment bill : pending) {
             message.append(bill.getName()).append(" (").append(Money.format(bill.getAmount(), bill.getCurrency())).append("): ")
-                    .append(TransactionText.accountName(names, bill.getFromAccountId())).append(" → ")
-                    .append(TransactionText.accountName(names, bill.getToAccountId())).append('\n');
+                    .append(TransactionText.fundName(names, bill.getFromFundId())).append(" → ")
+                    .append(TransactionText.fundName(names, bill.getToFundId())).append('\n');
             total.add(bill.getCurrency(), bill.getAmount());
         }
         String totalText = total.format(pending.get(0).getCurrency(), pending.get(0).getCurrency());

@@ -2,7 +2,7 @@ package com.example.expensemate.data.store;
 
 import androidx.lifecycle.LiveData;
 
-import com.example.expensemate.data.AccountBalance;
+import com.example.expensemate.data.Balance;
 import com.example.expensemate.data.CategorySum;
 import com.example.expensemate.data.PastTransaction;
 import com.example.expensemate.data.SummaryTotals;
@@ -16,6 +16,7 @@ import java.util.List;
  * Reads and writes transaction rows. No rules live here: deciding what a row should hold
  * is the service's job. The totals are query contracts any database must keep:
  * income and spending leave out transfers, and excluded rows count nowhere.
+ * Every row has a fund and an account; their ids come from separate tables and may be equal.
  */
 public interface TransactionStore {
     /** Replaces a row with the same id, so undo can put a deleted row back. */
@@ -41,23 +42,26 @@ public interface TransactionStore {
 
     LiveData<List<Transaction>> observe(TransactionQuery query);
 
+    LiveData<List<Transaction>> observeForFund(long fundId, Date from, Date to);
+
     LiveData<List<Transaction>> observeForAccount(long accountId, Date from, Date to);
 
     void setCategory(long id, String category);
 
-    void setAccount(long id, long accountId);
+    void setFund(long id, long fundId);
 
-    void setRealAccount(long id, long accountId);
+    /** The row takes on the account's currency. */
+    void setAccount(long id, long accountId);
 
     void setExcludedFromSummary(long id, boolean excluded);
 
-    void moveAccount(long fromAccountId, long toAccountId);
+    void moveFund(long fromFundId, long toFundId);
 
     /** The rows take on the new account's currency. */
-    void moveRealAccount(long fromAccountId, long toAccountId);
+    void moveAccount(long fromAccountId, long toAccountId);
 
-    /** Relabels the rows of a real account, without converting their amounts. */
-    void setCurrencyForRealAccount(long accountId, String currency);
+    /** Relabels the rows of an account, without converting their amounts. */
+    void setCurrencyForAccount(long accountId, String currency);
 
     /** The latest rows that are not transfers, newest first. */
     List<PastTransaction> findHistory(int limit);
@@ -70,15 +74,20 @@ public interface TransactionStore {
 
     int countByMatchKeyAndSource(String matchKey, String source, long fromTime, long toTime);
 
-    /** Months are local-time ranges, from inclusive and to exclusive. */
-    /** One row per currency, since amounts in different currencies are never added together. */
-    LiveData<List<SummaryTotals>> observeSummary(Date from, Date to, Long accountId);
+    /**
+     * Months are local-time ranges, from inclusive and to exclusive. One row per currency, since amounts
+     * in different currencies are never added together. A null fund or account means any.
+     */
+    LiveData<List<SummaryTotals>> observeSummary(Date from, Date to, Long fundId, Long accountId);
 
     LiveData<List<CategorySum>> observeCategorySums(String transactionType, String currency, Date from, Date to,
-            Long accountId);
+            Long fundId, Long accountId);
 
     LiveData<Integer> observeNeedsReviewCount();
 
-    /** Transfers count here, because they really do move money between accounts. */
-    LiveData<List<AccountBalance>> observeAccountBalances();
+    /** Transfers count here, because they really do move money. Keyed by fund id, one per currency. */
+    LiveData<List<Balance>> observeFundBalances();
+
+    /** Keyed by account id. */
+    LiveData<List<Balance>> observeAccountBalances();
 }

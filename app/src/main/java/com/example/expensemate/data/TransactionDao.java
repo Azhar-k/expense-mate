@@ -9,6 +9,10 @@ import androidx.room.Query;
 import java.util.Date;
 import java.util.List;
 
+/**
+ * Every row has a fund, what the money is for, and an account, where it is. Fund ids and account ids
+ * come from separate tables and can be equal, so a query never matches one against the other.
+ */
 @Dao
 public interface TransactionDao {
         @Insert(onConflict = OnConflictStrategy.REPLACE)
@@ -24,38 +28,37 @@ public interface TransactionDao {
                         +
                         "linkedRecurringPaymentId = :linkedRecurringPaymentId, isExcludedFromSummary = :isExcludedFromSummary, "
                         +
-                        "accountId = :accountId, realAccountId = :realAccountId, needsReview = :needsReview, currency = :currency WHERE id = :id")
+                        "fundId = :fundId, accountId = :accountId, needsReview = :needsReview, currency = :currency WHERE id = :id")
         void updateTransaction(long id, double amount, String description, Date date, String transactionType,
                         String receiverName,
                         String smsBody, String smsSender, String category, Long linkedRecurringPaymentId,
-                        Long accountId, Long realAccountId, boolean isExcludedFromSummary, boolean needsReview,
+                        Long fundId, Long accountId, boolean isExcludedFromSummary, boolean needsReview,
                         String currency);
 
         @Query("UPDATE transactions SET category = :category, needsReview = 0 WHERE id = :id")
         void setCategory(long id, String category);
 
-        @Query("UPDATE transactions SET accountId = :accountId WHERE id = :id")
+        @Query("UPDATE transactions SET fundId = :fundId WHERE id = :id")
+        void setFund(long id, long fundId);
+
+        // A row's amount is always in its account's currency, so the currency moves with it
+        String ACCOUNT_CURRENCY = "COALESCE((SELECT a.currency FROM accounts a WHERE a.id = :accountId), currency)";
+
+        @Query("UPDATE transactions SET accountId = :accountId, currency = " + ACCOUNT_CURRENCY
+                        + " WHERE id = :id")
         void setAccount(long id, long accountId);
 
-        // A row's amount is always in its real account's currency, so the currency moves with it
-        String REAL_ACCOUNT_CURRENCY = "COALESCE((SELECT a.currency FROM accounts a WHERE a.id = :accountId), currency)";
-
-        @Query("UPDATE transactions SET realAccountId = :accountId, currency = " + REAL_ACCOUNT_CURRENCY
-                        + " WHERE id = :id")
-        void setRealAccount(long id, long accountId);
-
         // Relabels, never converts: for fixing the currency an account was set up with
-        @Query("UPDATE transactions SET currency = :currency WHERE realAccountId = :accountId")
-        void setCurrencyForRealAccount(long accountId, String currency);
+        @Query("UPDATE transactions SET currency = :currency WHERE accountId = :accountId")
+        void setCurrencyForAccount(long accountId, String currency);
 
-        @Query("UPDATE transactions SET accountId = :toAccountId WHERE accountId = :fromAccountId")
-        void moveToAccount(long fromAccountId, long toAccountId);
+        @Query("UPDATE transactions SET fundId = :toFundId WHERE fundId = :fromFundId")
+        void moveToFund(long fromFundId, long toFundId);
 
-        @Query("UPDATE transactions SET realAccountId = :toAccountId, "
+        @Query("UPDATE transactions SET accountId = :toAccountId, "
                         + "currency = COALESCE((SELECT a.currency FROM accounts a WHERE a.id = :toAccountId), currency) "
-                        + "WHERE realAccountId = :fromAccountId")
-        void moveToRealAccount(long fromAccountId, long toAccountId);
-
+                        + "WHERE accountId = :fromAccountId")
+        void moveToAccount(long fromAccountId, long toAccountId);
 
         @Query("UPDATE transactions SET isExcludedFromSummary = :excluded WHERE id = :id")
         void setExcludedFromSummary(long id, boolean excluded);
@@ -67,7 +70,7 @@ public interface TransactionDao {
         Transaction getTransactionSync(long id);
 
         /****************************************************************************************************/
-        // Transfers: two rows that move money between accounts and are never income or spending
+        // Transfers: two rows that move money between funds, accounts or both, and are never income or spending
 
         @Query("SELECT * FROM transactions WHERE transferGroupId = :groupId")
         LiveData<List<Transaction>> getTransferLegs(String groupId);
@@ -82,7 +85,7 @@ public interface TransactionDao {
         default void updateRow(Transaction row) {
                 updateTransaction(row.getId(), row.getAmount(), row.getDescription(), row.getDate(),
                                 row.getTransactionType(), row.getReceiverName(), row.getSmsBody(), row.getSmsSender(),
-                                row.getCategory(), row.getLinkedRecurringPaymentId(), row.getAccountId(), row.getRealAccountId(),
+                                row.getCategory(), row.getLinkedRecurringPaymentId(), row.getFundId(), row.getAccountId(),
                                 row.isExcludedFromSummary(), row.isNeedsReview(), row.getCurrency());
         }
 
@@ -110,6 +113,7 @@ public interface TransactionDao {
         /****************************************************************************************************/
         // Home screen: months are local-time ranges, so a payment just after midnight lands in the right month.
         // Amounts in different currencies are never added together, so every total comes one per currency.
+        // A null fund or account means any.
 
         @Query("SELECT currency, " +
                         "COALESCE(SUM(CASE WHEN transactionType = 'DEBIT' AND transferGroupId IS NULL AND isExcludedFromSummary = 0 THEN amount END), 0) AS expense, "
@@ -121,55 +125,64 @@ public interface TransactionDao {
                         "COALESCE(SUM(CASE WHEN transactionType = 'CREDIT' AND transferGroupId IS NOT NULL AND isExcludedFromSummary = 0 THEN amount END), 0) AS movedIn "
                         +
                         "FROM transactions WHERE date >= :fromDate AND date < :toDate " +
-                        "AND (:accountId IS NULL OR accountId = :accountId OR realAccountId = :accountId) " +
+                        "AND (:fundId IS NULL OR fundId = :fundId) AND (:accountId IS NULL OR accountId = :accountId) " +
                         "GROUP BY currency ORDER BY currency")
-        LiveData<List<SummaryTotals>> getSummaryTotals(Date fromDate, Date toDate, Long accountId);
+        LiveData<List<SummaryTotals>> getSummaryTotals(Date fromDate, Date toDate, Long fundId, Long accountId);
 
         @Query("SELECT category, SUM(amount) as total FROM transactions " +
                         "WHERE transactionType = :transactionType AND isExcludedFromSummary = 0 " +
                         "AND transferGroupId IS NULL AND currency = :currency " +
                         "AND date >= :fromDate AND date < :toDate " +
-                        "AND (:accountId IS NULL OR accountId = :accountId OR realAccountId = :accountId) " +
+                        "AND (:fundId IS NULL OR fundId = :fundId) AND (:accountId IS NULL OR accountId = :accountId) " +
                         "GROUP BY category ORDER BY total DESC")
         LiveData<List<CategorySum>> getCategorySums(String transactionType, String currency, Date fromDate,
-                        Date toDate, Long accountId);
+                        Date toDate, Long fundId, Long accountId);
 
         @Query("SELECT COUNT(*) FROM transactions WHERE needsReview = 1 AND isExcludedFromSummary = 0 " +
                         "AND transferGroupId IS NULL")
         LiveData<Integer> getNeedsReviewCount();
 
         /****************************************************************************************************/
-        // Balances: transfers count here, because they really do move money between accounts
+        // Balances: transfers count here, because they really do move money between funds and accounts.
+        // Funds and accounts are two views of the same rows, so in each currency the two lists add up the same.
 
-        @Query("SELECT NULL AS accountId, currency, COALESCE(SUM(CASE WHEN transactionType = 'CREDIT' THEN amount "
+        @Query("SELECT 0 AS id, currency, COALESCE(SUM(CASE WHEN transactionType = 'CREDIT' THEN amount "
                         + "WHEN transactionType = 'DEBIT' THEN -amount END), 0) AS balance "
                         + "FROM transactions WHERE isExcludedFromSummary = 0 GROUP BY currency ORDER BY currency")
-        LiveData<List<AccountBalance>> getNetBalances();
+        LiveData<List<Balance>> getNetBalances();
 
-        // A row counts once for its fund and once for its real account; their ids never overlap.
-        // A real account holds one currency; a fund gets a balance for each currency it holds.
-        @Query("SELECT accountId, currency, COALESCE(SUM(CASE WHEN transactionType = 'CREDIT' THEN amount WHEN transactionType = 'DEBIT' THEN -amount END), 0) AS balance "
-                        + "FROM (SELECT accountId, currency, amount, transactionType FROM transactions WHERE isExcludedFromSummary = 0 "
-                        + "UNION ALL SELECT realAccountId, currency, amount, transactionType FROM transactions WHERE isExcludedFromSummary = 0) "
-                        + "WHERE accountId IS NOT NULL GROUP BY accountId, currency ORDER BY accountId, currency")
-        LiveData<List<AccountBalance>> getAccountBalances();
+        // A fund gets a balance for each currency it holds
+        @Query("SELECT fundId AS id, currency, COALESCE(SUM(CASE WHEN transactionType = 'CREDIT' THEN amount "
+                        + "WHEN transactionType = 'DEBIT' THEN -amount END), 0) AS balance "
+                        + "FROM transactions WHERE isExcludedFromSummary = 0 AND fundId IS NOT NULL "
+                        + "GROUP BY fundId, currency ORDER BY fundId, currency")
+        LiveData<List<Balance>> getFundBalances();
+
+        // An account holds one currency, so it gets one balance
+        @Query("SELECT accountId AS id, currency, COALESCE(SUM(CASE WHEN transactionType = 'CREDIT' THEN amount "
+                        + "WHEN transactionType = 'DEBIT' THEN -amount END), 0) AS balance "
+                        + "FROM transactions WHERE isExcludedFromSummary = 0 AND accountId IS NOT NULL "
+                        + "GROUP BY accountId, currency ORDER BY accountId, currency")
+        LiveData<List<Balance>> getAccountBalances();
 
         /****************************************************************************************************/
-        // Account details screen
+        // Fund and account details screens
 
-        @Query("SELECT * FROM transactions " +
-                        "WHERE date BETWEEN :startDate AND :endDate " +
-                        "AND (accountId = :accountId OR realAccountId = :accountId) " +
-                        "ORDER BY date DESC")
-        LiveData<List<Transaction>> getTransactionsForAccountDetailsScreen(Date startDate, Date endDate,
-                        long accountId);
+        @Query("SELECT * FROM transactions WHERE date BETWEEN :startDate AND :endDate AND fundId = :fundId "
+                        + "ORDER BY date DESC")
+        LiveData<List<Transaction>> getTransactionsForFund(Date startDate, Date endDate, long fundId);
+
+        @Query("SELECT * FROM transactions WHERE date BETWEEN :startDate AND :endDate AND accountId = :accountId "
+                        + "ORDER BY date DESC")
+        LiveData<List<Transaction>> getTransactionsForAccount(Date startDate, Date endDate, long accountId);
 
         /****************************************************************************************************/
         // Activity screen
 
         @Query("SELECT * FROM transactions " +
                         "WHERE date BETWEEN :fromDate AND :toDate " +
-                        "AND (:accountId IS NULL OR accountId = :accountId OR realAccountId = :accountId) " +
+                        "AND (:fundId IS NULL OR fundId = :fundId) " +
+                        "AND (:accountId IS NULL OR accountId = :accountId) " +
                         "AND (:search IS NULL OR description LIKE '%' || :search || '%' " +
                         "OR receiverName LIKE '%' || :search || '%' " +
                         "OR CAST(amount AS TEXT) LIKE :search || '%') " +
@@ -187,10 +200,10 @@ public interface TransactionDao {
                         "AND (:needsReview IS NULL OR (needsReview = :needsReview AND isExcludedFromSummary = 0 " +
                         "AND transferGroupId IS NULL)) " +
                         "ORDER BY date DESC")
-        LiveData<List<Transaction>> getFilteredTransactions(Date fromDate, Date toDate, Long accountId, String search,
-                        String description, String receiverName, String category, Double amount, String currency,
-                        String transactionType, Boolean isExcludedFromSummary, Long linkedRecurringPaymentId,
-                        Boolean transfers, Boolean needsReview);
+        LiveData<List<Transaction>> getFilteredTransactions(Date fromDate, Date toDate, Long fundId, Long accountId,
+                        String search, String description, String receiverName, String category, Double amount,
+                        String currency, String transactionType, Boolean isExcludedFromSummary,
+                        Long linkedRecurringPaymentId, Boolean transfers, Boolean needsReview);
 
         @Query("SELECT * FROM transactions WHERE date BETWEEN :fromDate AND :toDate ORDER BY date DESC")
         List<Transaction> getTransactionsBetweenSync(Date fromDate, Date toDate);
@@ -217,8 +230,8 @@ public interface TransactionDao {
         List<Transaction> getAllTransactionsSyncOrderByDateAsc();
 
         // Transfers are left out: they say nothing about where a payment goes or what it was for.
-        @Query("SELECT id, receiverName, smsSender, transactionType, category, needsReview, accountId, " +
-                        "realAccountId, linkedRecurringPaymentId FROM transactions WHERE transferGroupId IS NULL " +
+        @Query("SELECT id, receiverName, smsSender, transactionType, category, needsReview, fundId, " +
+                        "accountId, linkedRecurringPaymentId FROM transactions WHERE transferGroupId IS NULL " +
                         "ORDER BY date DESC LIMIT :limit")
         List<PastTransaction> getHistory(int limit);
 }

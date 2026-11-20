@@ -72,17 +72,17 @@ final class LocalBillService implements BillService {
     @Override
     public CompletableFuture<Void> payByTransfer(RecurringPayment bill) {
         Date now = new Date();
-        Transaction[] legs = Transfers.newPair(bill.getAmount(), bill.getFromAccountId(), bill.getToAccountId(),
+        Transaction[] legs = Transfers.newPair(bill.getAmount(), bill.getFromFundId(), bill.getToFundId(),
                 now, bill.getName());
         legs[0].setLinkedRecurringPaymentId(bill.getId());
         bill.setCompleted(true);
         bill.setLastCompletedDate(now);
         return writer.run(() -> {
-            // Both sides stay in one real account that holds the bill's currency, so only fund balances move
-            Long real = rules.realAccountIn(bill.getCurrency());
+            // Both sides stay in one account that holds the bill's currency, so only fund balances move
+            Long account = rules.accountIn(bill.getCurrency());
             for (Transaction leg : legs) {
-                leg.setRealAccountId(real);
-                rules.fillDefaultAccounts(leg);
+                leg.setAccountId(account);
+                rules.fillDefaults(leg);
                 leg.setCurrency(bill.getCurrency());
                 transactions.insert(leg);
             }

@@ -6,6 +6,8 @@ public interface Stores {
 
     AccountStore accounts();
 
+    FundStore funds();
+
     CategoryStore categories();
 
     CounterpartyCategoryStore counterpartyCategories();

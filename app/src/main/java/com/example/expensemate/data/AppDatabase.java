@@ -19,7 +19,7 @@ import java.util.List;
 import androidx.annotation.NonNull;
 import com.example.expensemate.util.Currencies;
 
-@Database(entities = {Transaction.class, Category.class, RecurringPayment.class, Account.class, CounterpartyCategory.class, Loan.class, MessagePattern.class, Budget.class, BudgetCategory.class}, version = 17, exportSchema = false)
+@Database(entities = {Transaction.class, Category.class, RecurringPayment.class, Account.class, CounterpartyCategory.class, Loan.class, MessagePattern.class, Budget.class, BudgetCategory.class, Fund.class}, version = 18, exportSchema = false)
 @TypeConverters(Converters.class)
 public abstract class AppDatabase extends RoomDatabase {
     private static volatile AppDatabase INSTANCE;
@@ -119,7 +119,7 @@ public abstract class AppDatabase extends RoomDatabase {
             database.execSQL("CREATE INDEX IF NOT EXISTS `index_transactions_transferGroupId` "
                     + "ON `transactions` (`transferGroupId`)");
 
-            int linked = Transfers.linkLegacyPairs(database);
+            int linked = LegacySchema.linkLegacyPairs(database);
             Log.i("AppDatabase", "Linked " + linked + " existing transfers");
 
             // Recent captured rows that never got a category start in the review list. Older
@@ -158,7 +158,7 @@ public abstract class AppDatabase extends RoomDatabase {
             // Every account so far is virtual
             database.execSQL("ALTER TABLE accounts ADD COLUMN type TEXT NOT NULL DEFAULT 'VIRTUAL'");
             database.execSQL("ALTER TABLE transactions ADD COLUMN realAccountId INTEGER");
-            Account.ensureDefaultRealAccount(database);
+            LegacySchema.ensureDefaultRealAccount(database);
         }
     };
 
@@ -209,7 +209,7 @@ public abstract class AppDatabase extends RoomDatabase {
         @Override
         public void migrate(SupportSQLiteDatabase database) {
             database.execSQL("ALTER TABLE accounts ADD COLUMN currency TEXT");
-            Account.ensureRealAccountCurrencies(database, Currencies.LEGACY);
+            LegacySchema.ensureRealAccountCurrencies(database, Currencies.LEGACY);
             database.execSQL("ALTER TABLE transactions ADD COLUMN currency TEXT NOT NULL DEFAULT '"
                     + Currencies.LEGACY + "'");
             database.execSQL("ALTER TABLE loans ADD COLUMN currency TEXT NOT NULL DEFAULT '"
@@ -242,6 +242,105 @@ public abstract class AppDatabase extends RoomDatabase {
         }
     };
 
+    // Funds and accounts get a table each. Every row keeps its id, so transactions, bills and transfer
+    // legs still point at the same fund and account. SQLite cannot drop or rename columns on every
+    // phone, so accounts, transactions and bills are rebuilt and copied across.
+    static final Migration MIGRATION_17_18 = new Migration(17, 18) {
+        @Override
+        public void migrate(SupportSQLiteDatabase database) {
+            database.execSQL("CREATE TABLE IF NOT EXISTS `funds` ("
+                    + "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, "
+                    + "`name` TEXT NOT NULL, "
+                    + "`description` TEXT, "
+                    + "`isDefault` INTEGER NOT NULL, "
+                    + "`sortOrder` INTEGER NOT NULL DEFAULT 0, "
+                    + "`target` REAL, "
+                    + "`targetDate` INTEGER)");
+            // Funds used to show their bank as a note when they had none of their own
+            database.execSQL("INSERT INTO funds (id, name, description, isDefault, sortOrder, target, targetDate) "
+                    + "SELECT id, COALESCE(name, ''), "
+                    + "CASE WHEN COALESCE(description, '') = '' THEN bank ELSE description END, "
+                    + "isDefault, sortOrder, target, targetDate FROM accounts WHERE type <> 'REAL'");
+
+            database.execSQL("CREATE TABLE `accounts_new` ("
+                    + "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, "
+                    + "`name` TEXT, "
+                    + "`accountNumber` TEXT, "
+                    + "`bank` TEXT, "
+                    + "`expiryDate` INTEGER, "
+                    + "`description` TEXT, "
+                    + "`isDefault` INTEGER NOT NULL, "
+                    + "`sortOrder` INTEGER NOT NULL DEFAULT 0, "
+                    + "`currency` TEXT)");
+            database.execSQL("INSERT INTO accounts_new (id, name, accountNumber, bank, expiryDate, description, "
+                    + "isDefault, sortOrder, currency) SELECT id, name, accountNumber, bank, expiryDate, description, "
+                    + "isDefault, sortOrder, currency FROM accounts WHERE type = 'REAL'");
+            database.execSQL("DROP TABLE accounts");
+            database.execSQL("ALTER TABLE accounts_new RENAME TO accounts");
+
+            database.execSQL("CREATE TABLE `transactions_new` ("
+                    + "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, "
+                    + "`amount` REAL NOT NULL, "
+                    + "`description` TEXT, "
+                    + "`date` INTEGER, "
+                    + "`transactionType` TEXT, "
+                    + "`receiverName` TEXT, "
+                    + "`smsBody` TEXT, "
+                    + "`smsSender` TEXT, "
+                    + "`category` TEXT, "
+                    + "`linkedRecurringPaymentId` INTEGER, "
+                    + "`smsHash` TEXT, "
+                    + "`fundId` INTEGER, "
+                    + "`accountId` INTEGER, "
+                    + "`isExcludedFromSummary` INTEGER NOT NULL, "
+                    + "`dedupKey` TEXT, "
+                    + "`matchKey` TEXT, "
+                    + "`messageTime` INTEGER, "
+                    + "`source` TEXT, "
+                    + "`transferGroupId` TEXT, "
+                    + "`needsReview` INTEGER NOT NULL, "
+                    + "`loanId` INTEGER, "
+                    + "`currency` TEXT NOT NULL DEFAULT '" + Currencies.LEGACY + "')");
+            String kept = "amount, description, date, transactionType, receiverName, smsBody, smsSender, category, "
+                    + "linkedRecurringPaymentId, smsHash, isExcludedFromSummary, dedupKey, matchKey, messageTime, "
+                    + "source, transferGroupId, needsReview, loanId, currency";
+            database.execSQL("INSERT INTO transactions_new (id, fundId, accountId, " + kept + ") "
+                    + "SELECT id, accountId, realAccountId, " + kept + " FROM transactions");
+            database.execSQL("DROP TABLE transactions");
+            database.execSQL("ALTER TABLE transactions_new RENAME TO transactions");
+            database.execSQL("CREATE INDEX IF NOT EXISTS `index_transactions_dedupKey_messageTime` "
+                    + "ON `transactions` (`dedupKey`, `messageTime`)");
+            database.execSQL("CREATE INDEX IF NOT EXISTS `index_transactions_matchKey_messageTime` "
+                    + "ON `transactions` (`matchKey`, `messageTime`)");
+            database.execSQL("CREATE INDEX IF NOT EXISTS `index_transactions_transferGroupId` "
+                    + "ON `transactions` (`transferGroupId`)");
+            database.execSQL("CREATE INDEX IF NOT EXISTS `index_transactions_loanId` ON `transactions` (`loanId`)");
+            database.execSQL("CREATE INDEX IF NOT EXISTS `index_transactions_date` ON `transactions` (`date`)");
+            database.execSQL("CREATE INDEX IF NOT EXISTS `index_transactions_smsHash` ON `transactions` (`smsHash`)");
+
+            database.execSQL("CREATE TABLE `recurring_payments_new` ("
+                    + "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, "
+                    + "`name` TEXT, "
+                    + "`amount` REAL NOT NULL, "
+                    + "`dueDay` INTEGER NOT NULL, "
+                    + "`expiryDate` INTEGER, "
+                    + "`isCompleted` INTEGER NOT NULL, "
+                    + "`lastCompletedDate` INTEGER, "
+                    + "`fromFundId` INTEGER, "
+                    + "`toFundId` INTEGER, "
+                    + "`currency` TEXT NOT NULL DEFAULT '" + Currencies.LEGACY + "')");
+            database.execSQL("INSERT INTO recurring_payments_new (id, name, amount, dueDay, expiryDate, isCompleted, "
+                    + "lastCompletedDate, fromFundId, toFundId, currency) SELECT id, name, amount, dueDay, expiryDate, "
+                    + "isCompleted, lastCompletedDate, fromAccountId, toAccountId, currency FROM recurring_payments");
+            database.execSQL("DROP TABLE recurring_payments");
+            database.execSQL("ALTER TABLE recurring_payments_new RENAME TO recurring_payments");
+
+            Fund.ensureDefault(database);
+            Account.ensureDefault(database);
+            Account.ensureCurrencies(database, Currencies.LEGACY);
+        }
+    };
+
     private static final long REVIEW_BACKFILL_MS = 30L * 24 * 60 * 60 * 1000;
 
     public abstract TransactionDao transactionDao();
@@ -251,6 +350,7 @@ public abstract class AppDatabase extends RoomDatabase {
     public abstract LoanDao loanDao();
     public abstract MessagePatternDao messagePatternDao();
     public abstract BudgetDao budgetDao();
+    public abstract FundDao fundDao();
 
     private static void insertDefaultCategories(CategoryDao categoryDao) {
         // Insert default expense categories
@@ -278,16 +378,15 @@ public abstract class AppDatabase extends RoomDatabase {
         categoryDao.insertCategory(category);
     }
 
-    private static void insertDefaultAccount(AccountDao accountDao) {
-        Account defaultAccount = new Account("Everyday", "", "", null, "Day-to-day money; budgets track spending from it");
-        defaultAccount.setDefault(true);
-        accountDao.insert(defaultAccount);
+    private static void insertDefaultFundAndAccount(AppDatabase database) {
+        Fund everyday = new Fund(Fund.DEFAULT_NAME, "Day-to-day money; budgets track spending from it");
+        everyday.setDefault(true);
+        database.fundDao().insert(everyday);
 
-        Account realAccount = new Account(Account.DEFAULT_REAL_NAME, "", "", null, "");
-        realAccount.setType(Account.TYPE_REAL);
-        realAccount.setCurrency(Currencies.fromLocale());
-        realAccount.setDefault(true);
-        accountDao.insert(realAccount);
+        Account account = new Account(Account.DEFAULT_NAME, "", "", null, "");
+        account.setCurrency(Currencies.fromLocale());
+        account.setDefault(true);
+        database.accountDao().insert(account);
     }
 
     public static AppDatabase getDatabase(final Context context) {
@@ -296,7 +395,7 @@ public abstract class AppDatabase extends RoomDatabase {
                 if (INSTANCE == null) {
                     INSTANCE = Room.databaseBuilder(context.getApplicationContext(),
                             AppDatabase.class, "expense_mate_database")
-                            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17)
+                            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18)
                             .addCallback(new RoomDatabase.Callback() {
                                 @Override
                                 public void onCreate(@NonNull SupportSQLiteDatabase db) {
@@ -306,7 +405,7 @@ public abstract class AppDatabase extends RoomDatabase {
                                     // Insert default data when database is created
                                     new Thread(() -> {
                                         insertDefaultCategories(INSTANCE.categoryDao());
-                                        insertDefaultAccount(INSTANCE.accountDao());
+                                        insertDefaultFundAndAccount(INSTANCE);
                                     }).start();
                                 }
 
@@ -322,7 +421,7 @@ public abstract class AppDatabase extends RoomDatabase {
 //
 //                                        List<Account> accounts = INSTANCE.accountDao().getAllAccountsSync();
 //                                        if (accounts == null || accounts.isEmpty()) {
-//                                            insertDefaultAccount(INSTANCE.accountDao());
+//                                            insertDefaultFundAndAccount(INSTANCE);
 //                                        }
                                     }).start();
                                 }

@@ -14,6 +14,8 @@ import java.util.concurrent.CompletableFuture;
 public interface TransactionService {
     LiveData<List<Transaction>> find(TransactionQuery query);
 
+    LiveData<List<Transaction>> findForFund(long fundId, Date from, Date to);
+
     LiveData<List<Transaction>> findForAccount(long accountId, Date from, Date to);
 
     LiveData<Transaction> get(long id);
@@ -22,18 +24,18 @@ public interface TransactionService {
 
     LiveData<List<Transaction>> transferLegsBetween(Date from, Date to);
 
-    /** From inclusive, to exclusive; a null account means all accounts. */
-    LiveData<List<SummaryTotals>> summary(Date from, Date to, Long accountId);
+    /** From inclusive, to exclusive; a null fund or account means any. */
+    LiveData<List<SummaryTotals>> summary(Date from, Date to, Long fundId, Long accountId);
 
     LiveData<List<CategorySum>> categoryTotals(String transactionType, String currency, Date from, Date to,
-            Long accountId);
+            Long fundId, Long accountId);
 
     LiveData<Integer> needsReviewCount();
 
     /** The id of the unpaid bill this payment most likely pays, or null. Links nothing. */
     CompletableFuture<Long> suggestBill(Transaction transaction);
 
-    /** Fills in missing accounts, remembers the category for the counterparty, and marks a newly linked bill paid. */
+    /** Fills in a missing fund and account, remembers the category for the counterparty, and marks a newly linked bill paid. */
     CompletableFuture<Void> add(Transaction transaction);
 
     /** Same rules as add; a category kept from before is not a new choice. */
@@ -41,9 +43,10 @@ public interface TransactionService {
 
     CompletableFuture<Void> chooseCategory(long id, String category);
 
-    CompletableFuture<Void> setAccount(long id, long accountId);
+    CompletableFuture<Void> setFund(long id, long fundId);
 
-    CompletableFuture<Void> setRealAccount(long id, long accountId);
+    /** The row takes on the account's currency. */
+    CompletableFuture<Void> setAccount(long id, long accountId);
 
     CompletableFuture<Void> setExcludedFromSummary(long id, boolean excluded);
 

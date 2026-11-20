@@ -24,7 +24,7 @@ import com.example.expensemate.viewmodel.TransactionViewModel;
 import java.util.ArrayList;
 import java.util.List;
 
-/** The filters used less often than search, date, account and category. */
+/** The filters used less often than search, date, fund or account, and category. */
 public class FilterSheet extends ExpandedSheet {
     private static final String ANY_BILL = "Any";
     private static final String ANY_CURRENCY = "Any";

@@ -26,13 +26,20 @@ public final class TransactionText {
         return hasText(transaction.getCategory()) ? transaction.getCategory() : "Transaction";
     }
 
-    public static String accountName(java.util.Map<Long, String> names, Long accountId) {
-        String name = accountId != null ? names.get(accountId) : null;
+    /** Names from the accounts table only: fund and account ids can be equal. */
+    public static String accountName(java.util.Map<Long, String> accountNames, Long accountId) {
+        String name = accountId != null ? accountNames.get(accountId) : null;
         return name != null ? name : "No account";
     }
 
+    /** Names from the funds table only. */
+    public static String fundName(java.util.Map<Long, String> fundNames, Long fundId) {
+        String name = fundId != null ? fundNames.get(fundId) : null;
+        return name != null ? name : "No fund";
+    }
+
     /**
-     * What a transfer moved: one amount, or what left and what arrived when the two real accounts hold
+     * What a transfer moved: one amount, or what left and what arrived when the two accounts hold
      * different currencies, such as "₹2,270 → AED 100".
      */
     public static String transferAmount(Transaction shown, Transaction debit, Transaction credit) {
@@ -43,15 +50,18 @@ public final class TransactionText {
         return Money.format(shown.getAmount(), shown.getCurrency());
     }
 
-    /** Names the side the money moved on: a transfer can stay in one fund and change real account. */
-    public static String transferRoute(java.util.Map<Long, String> names, Transaction debit, Transaction credit) {
+    /** Names the side the money moved on: a transfer can stay in one fund and change account. */
+    public static String transferRoute(java.util.Map<Long, String> fundNames, java.util.Map<Long, String> accountNames,
+            Transaction debit, Transaction credit) {
         if (debit == null || credit == null) {
-            return (debit != null ? accountName(names, debit.getAccountId()) : "Unknown") + " → "
-                    + (credit != null ? accountName(names, credit.getAccountId()) : "Unknown");
+            return (debit != null ? fundName(fundNames, debit.getFundId()) : "Unknown") + " → "
+                    + (credit != null ? fundName(fundNames, credit.getFundId()) : "Unknown");
         }
-        boolean sameVirtual = java.util.Objects.equals(debit.getAccountId(), credit.getAccountId());
-        return accountName(names, sameVirtual ? debit.getRealAccountId() : debit.getAccountId()) + " → "
-                + accountName(names, sameVirtual ? credit.getRealAccountId() : credit.getAccountId());
+        if (java.util.Objects.equals(debit.getFundId(), credit.getFundId())) {
+            return accountName(accountNames, debit.getAccountId()) + " → "
+                    + accountName(accountNames, credit.getAccountId());
+        }
+        return fundName(fundNames, debit.getFundId()) + " → " + fundName(fundNames, credit.getFundId());
     }
 
     public static int categoryIcon(String category) {

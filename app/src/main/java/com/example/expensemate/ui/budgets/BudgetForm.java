@@ -31,11 +31,11 @@ import java.util.List;
 import java.util.Set;
 
 /** Adds a budget, or changes or deletes one. */
-final class BudgetForm {
+public final class BudgetForm {
     private BudgetForm() {
     }
 
-    static void show(FragmentActivity activity, @Nullable BudgetProgress editing) {
+    public static void show(FragmentActivity activity, @Nullable BudgetProgress editing) {
         DialogBudgetFormBinding form = DialogBudgetFormBinding.inflate(LayoutInflater.from(activity));
         Budget budget = editing != null ? editing.budget : null;
         Set<String> chosen = new HashSet<>(editing != null ? editing.categories() : new ArrayList<>());

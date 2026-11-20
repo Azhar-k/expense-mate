@@ -8,12 +8,16 @@ import androidx.annotation.Nullable;
 
 import com.example.expensemate.R;
 import com.example.expensemate.data.Account;
+import com.example.expensemate.data.Fund;
 import com.example.expensemate.databinding.ItemChipPickerBinding;
 import com.google.android.material.chip.Chip;
 
 import java.util.List;
 
-/** A labelled row of account chips that scrolls sideways, holding one choice by account id. */
+/**
+ * A labelled row of chips that scrolls sideways, holding one choice by id. One row holds either funds
+ * or accounts, never both, since their ids can be equal.
+ */
 final class AccountChips {
     private final ItemChipPickerBinding row;
     private final String label;
@@ -32,30 +36,50 @@ final class AccountChips {
         });
     }
 
-    /** Takes the accounts of one kind, keeping the current choice if it is still among them. */
-    void setAccounts(List<Account> accounts) {
-        Context context = new ContextThemeWrapper(row.getRoot().getContext(), R.style.ThemeOverlay_ExpenseMate_FormChips);
+    /** Takes the funds, keeping the current choice if it is still among them. */
+    void setFunds(List<Fund> funds) {
+        Context context = themed();
         Long keep = selectedId;
         row.chips.removeAllViews();
         selectedId = null;
-        for (Account account : accounts) {
-            Chip chip = new Chip(context, null, com.google.android.material.R.attr.chipStyle);
-            chip.setId(View.generateViewId());
-            chip.setTag(account.getId());
-            chip.setText(account.getName());
-            chip.setCheckable(true);
-            row.chips.addView(chip);
+        for (Fund fund : funds) {
+            row.chips.addView(chip(context, fund.getId(), fund.getName()));
         }
         select(keep);
     }
 
-    void select(@Nullable Long accountId) {
+    /** Takes the accounts, keeping the current choice if it is still among them. */
+    void setAccounts(List<Account> accounts) {
+        Context context = themed();
+        Long keep = selectedId;
+        row.chips.removeAllViews();
+        selectedId = null;
+        for (Account account : accounts) {
+            row.chips.addView(chip(context, account.getId(), account.getName()));
+        }
+        select(keep);
+    }
+
+    private Context themed() {
+        return new ContextThemeWrapper(row.getRoot().getContext(), R.style.ThemeOverlay_ExpenseMate_FormChips);
+    }
+
+    private static Chip chip(Context context, long id, String name) {
+        Chip chip = new Chip(context, null, com.google.android.material.R.attr.chipStyle);
+        chip.setId(View.generateViewId());
+        chip.setTag(id);
+        chip.setText(name);
+        chip.setCheckable(true);
+        return chip;
+    }
+
+    void select(@Nullable Long id) {
         for (int i = 0; i < row.chips.getChildCount(); i++) {
             Chip chip = (Chip) row.chips.getChildAt(i);
-            if (accountId != null && accountId.equals(chip.getTag())) {
+            if (id != null && id.equals(chip.getTag())) {
                 chip.setChecked(true);
-                selectedId = accountId;
-                // An account far down the order would otherwise be chosen but out of sight
+                selectedId = id;
+                // A choice far down the order would otherwise be chosen but out of sight
                 row.scroll.post(() -> row.scroll.smoothScrollTo(Math.max(0, chip.getLeft() - row.chips.getPaddingStart()), 0));
                 return;
             }

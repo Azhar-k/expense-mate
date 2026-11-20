@@ -70,9 +70,9 @@ public class ActivityRowTest {
     }
 
     @Test
-    public void namesTheOtherSideWhenAnAccountFilterHidesIt() {
+    public void namesTheOtherSideWhenAFundFilterHidesIt() {
         Transaction[] transfer = Transfers.newPair(5000, 1, 2, at(12, 10), "");
-        // Filtered to account 2, so only the credit side is in the list
+        // Filtered to fund 2, so only the credit side is in the list
         List<ActivityRow> built = ActivityRow.build(Collections.singletonList(transfer[1]), Arrays.asList(transfer), NOW);
 
         assertEquals(2, built.size());

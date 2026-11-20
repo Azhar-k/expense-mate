@@ -35,8 +35,8 @@ public class Transaction {
     private String category; // New field for transaction category
     private Long linkedRecurringPaymentId; // ID of the linked recurring payment, null if not linked
     private String smsHash; // Hash of SMS body and sender for duplicate detection
-    private Long accountId; // ID of the linked fund
-    private Long realAccountId; // ID of the linked real account
+    private Long fundId; // What the money is for; the default fund when none is chosen
+    private Long accountId; // Where the money is; its currency is the row's currency
     private boolean isExcludedFromSummary; // Whether this transaction should be excluded from summary calculations
     private String dedupKey; // Hash of the normalized message text, null for manual entries
     private String matchKey; // Amount, type and merchant, for alerts that have no full text
@@ -54,7 +54,7 @@ public class Transaction {
         this.date = new Date(); // Initialize with current date
         this.linkedRecurringPaymentId = null;
         this.smsHash = null;
-        this.accountId = null;
+        this.fundId = null;
         this.isExcludedFromSummary = false; // Default to included
     }
 
@@ -173,20 +173,20 @@ public class Transaction {
         this.smsHash = smsHash;
     }
 
+    public Long getFundId() {
+        return fundId;
+    }
+
+    public void setFundId(Long fundId) {
+        this.fundId = fundId;
+    }
+
     public Long getAccountId() {
         return accountId;
     }
 
     public void setAccountId(Long accountId) {
         this.accountId = accountId;
-    }
-
-    public Long getRealAccountId() {
-        return realAccountId;
-    }
-
-    public void setRealAccountId(Long realAccountId) {
-        this.realAccountId = realAccountId;
     }
 
     public boolean isExcludedFromSummary() {
@@ -280,8 +280,8 @@ public class Transaction {
         copy.category = category;
         copy.linkedRecurringPaymentId = linkedRecurringPaymentId;
         copy.smsHash = smsHash;
+        copy.fundId = fundId;
         copy.accountId = accountId;
-        copy.realAccountId = realAccountId;
         copy.isExcludedFromSummary = isExcludedFromSummary;
         copy.dedupKey = dedupKey;
         copy.matchKey = matchKey;

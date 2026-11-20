@@ -7,7 +7,7 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.FragmentActivity;
 import androidx.lifecycle.ViewModelProvider;
 
-import com.example.expensemate.data.Account;
+import com.example.expensemate.data.Fund;
 import com.example.expensemate.data.RecurringPayment;
 import com.example.expensemate.databinding.DialogBillFormBinding;
 import com.example.expensemate.ui.common.CurrencyField;
@@ -17,6 +17,7 @@ import com.example.expensemate.ui.common.Ui;
 import com.example.expensemate.util.Currencies;
 import com.example.expensemate.util.Money;
 import com.example.expensemate.viewmodel.AccountViewModel;
+import com.example.expensemate.viewmodel.FundViewModel;
 import com.example.expensemate.viewmodel.RecurringPaymentsViewModel;
 
 import java.text.SimpleDateFormat;
@@ -27,7 +28,7 @@ import java.util.Locale;
 
 /** Adds or edits a recurring payment. Editing is also how an ended one gets renewed. */
 public final class BillForm {
-    private static final String NO_ACCOUNT = "None";
+    private static final String NO_FUND = "None";
 
     private BillForm() {
     }
@@ -50,26 +51,25 @@ public final class BillForm {
         form.etEnds.setOnClickListener(v -> Pickers.pickDate(activity.getSupportFragmentManager(), "Ends on", ends,
                 () -> form.etEnds.setText(dateFormat.format(ends.getTime()))));
 
-        List<Account> accounts = new ArrayList<>();
-        Ui.observeOnce(new ViewModelProvider(activity).get(AccountViewModel.class).getAllAccounts(), activity, list -> {
+        // A fund top-up moves money from one fund to another
+        List<Fund> funds = new ArrayList<>();
+        Ui.observeOnce(new ViewModelProvider(activity).get(FundViewModel.class).getAllFunds(), activity, list -> {
             List<String> names = new ArrayList<>();
-            names.add(NO_ACCOUNT);
-            for (Account account : list) {
-                // A fund top-up moves money from one fund to another
-                if (account.isReal()) {
-                    continue;
+            names.add(NO_FUND);
+            for (Fund fund : list) {
+                funds.add(fund);
+                names.add(fund.getName());
+                if (bill != null && bill.getFromFundId() != null && bill.getFromFundId() == fund.getId()) {
+                    form.etFrom.setText(fund.getName(), false);
                 }
-                accounts.add(account);
-                names.add(account.getName());
-                if (bill != null && bill.getFromAccountId() != null && bill.getFromAccountId() == account.getId()) {
-                    form.etFrom.setText(account.getName(), false);
-                }
-                if (bill != null && bill.getToAccountId() != null && bill.getToAccountId() == account.getId()) {
-                    form.etTo.setText(account.getName(), false);
+                if (bill != null && bill.getToFundId() != null && bill.getToFundId() == fund.getId()) {
+                    form.etTo.setText(fund.getName(), false);
                 }
             }
             Ui.setDropdownItems(form.etFrom, names);
             Ui.setDropdownItems(form.etTo, names);
+        });
+        Ui.observeOnce(new ViewModelProvider(activity).get(AccountViewModel.class).getAllAccounts(), activity, list -> {
             String main = Currencies.main(list);
             CurrencyField.setUp(form.etCurrency, bill != null ? bill.getCurrency() : main, main, Currencies.inUse(list));
         });
@@ -81,25 +81,25 @@ public final class BillForm {
             String name = form.etName.getText().toString().trim();
             Double amount = parseAllowingZero(form.etAmount.getText().toString());
             Integer dueDay = parseDay(form.etDueDay.getText().toString());
-            Long fromId = idOf(form.etFrom, accounts);
-            Long toId = idOf(form.etTo, accounts);
+            Long fromId = idOf(form.etFrom, funds);
+            Long toId = idOf(form.etTo, funds);
             String currency = CurrencyField.read(form.etCurrency);
-            boolean sameAccount = fromId != null && fromId.equals(toId);
+            boolean sameFund = fromId != null && fromId.equals(toId);
 
             form.tilName.setError(name.isEmpty() ? "Enter a name" : null);
             form.tilAmount.setError(amount == null ? "Enter an amount" : null);
             form.tilDueDay.setError(dueDay == null ? "1 to 31" : null);
-            form.tilTo.setError(sameAccount ? "Pick another" : null);
+            form.tilTo.setError(sameFund ? "Pick another" : null);
             form.tilCurrency.setError(currency == null ? "Pick a currency" : null);
-            if (name.isEmpty() || amount == null || dueDay == null || sameAccount || currency == null) {
+            if (name.isEmpty() || amount == null || dueDay == null || sameFund || currency == null) {
                 return;
             }
 
             RecurringPaymentsViewModel viewModel = new ViewModelProvider(activity).get(RecurringPaymentsViewModel.class);
             if (bill == null) {
                 RecurringPayment created = new RecurringPayment(name, amount, dueDay, ends.getTime());
-                created.setFromAccountId(fromId);
-                created.setToAccountId(toId);
+                created.setFromFundId(fromId);
+                created.setToFundId(toId);
                 created.setCurrency(currency);
                 viewModel.insert(created);
             } else {
@@ -107,8 +107,8 @@ public final class BillForm {
                 bill.setAmount(amount);
                 bill.setDueDay(dueDay);
                 bill.setExpiryDate(ends.getTime());
-                bill.setFromAccountId(fromId);
-                bill.setToAccountId(toId);
+                bill.setFromFundId(fromId);
+                bill.setToFundId(toId);
                 bill.setCurrency(currency);
                 viewModel.update(bill);
             }
@@ -117,11 +117,11 @@ public final class BillForm {
         sheet.show();
     }
 
-    private static Long idOf(AutoCompleteTextView view, List<Account> accounts) {
+    private static Long idOf(AutoCompleteTextView view, List<Fund> funds) {
         String name = view.getText().toString();
-        for (Account account : accounts) {
-            if (account.getName().equals(name)) {
-                return account.getId();
+        for (Fund fund : funds) {
+            if (fund.getName().equals(name)) {
+                return fund.getId();
             }
         }
         return null;

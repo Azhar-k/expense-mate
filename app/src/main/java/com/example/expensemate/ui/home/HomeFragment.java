@@ -22,6 +22,7 @@ import com.example.expensemate.MainActivity;
 import com.example.expensemate.R;
 import com.example.expensemate.data.Account;
 import com.example.expensemate.data.CategorySum;
+import com.example.expensemate.data.Fund;
 import com.example.expensemate.data.RecurringPayment;
 import com.example.expensemate.data.SummaryTotals;
 import com.example.expensemate.databinding.FragmentHomeBinding;
@@ -33,6 +34,7 @@ import com.example.expensemate.util.Bills;
 import com.example.expensemate.util.Currencies;
 import com.example.expensemate.util.Money;
 import com.example.expensemate.viewmodel.AccountViewModel;
+import com.example.expensemate.viewmodel.FundViewModel;
 import com.example.expensemate.viewmodel.RecurringPaymentsViewModel;
 import com.example.expensemate.viewmodel.TransactionViewModel;
 import com.google.android.material.chip.Chip;
@@ -52,6 +54,7 @@ public class HomeFragment extends Fragment {
     private List<CategorySum> expenses = new ArrayList<>();
     private List<CategorySum> income = new ArrayList<>();
     private List<RecurringPayment> bills = new ArrayList<>();
+    private List<Fund> funds = new ArrayList<>();
     private List<Account> accounts = new ArrayList<>();
     private List<SummaryTotals> currencyTotals = new ArrayList<>();
     private final SimpleDateFormat monthFormat = new SimpleDateFormat("MMMM yyyy", Locale.getDefault());
@@ -110,15 +113,20 @@ public class HomeFragment extends Fragment {
             renderBreakdown();
         });
 
+        provider.get(FundViewModel.class).getAllFunds().observe(getViewLifecycleOwner(), list -> {
+            funds = list;
+            buildAccountChips();
+        });
         AccountViewModel accountViewModel = provider.get(AccountViewModel.class);
         accountViewModel.getAllAccounts().observe(getViewLifecycleOwner(), list -> {
             accounts = list;
             buildAccountChips();
             renderTotals(currencyTotals);
         });
-        accountViewModel.getDefaultAccount().observe(getViewLifecycleOwner(), account -> {
-            if (account != null) {
-                viewModel.applyDefaultHomeAccount(account.getId());
+        // Home has always opened on everyday money, which is now the default fund
+        provider.get(FundViewModel.class).getDefaultFund().observe(getViewLifecycleOwner(), fund -> {
+            if (fund != null) {
+                viewModel.applyDefaultHomeFund(fund.getId());
                 buildAccountChips();
             }
         });
@@ -175,23 +183,34 @@ public class HomeFragment extends Fragment {
         }
     }
 
+    // One row: everything, then each fund, then each account. Ids can repeat across the two kinds,
+    // so each chip knows which kind it is.
     private void buildAccountChips() {
         binding.chipsAccount.removeAllViews();
-        addAccountChip("All accounts", null);
+        Long fundId = viewModel.getHomeFundId();
+        Long accountId = viewModel.getHomeAccountId();
+        addMoneyChip("All", fundId == null && accountId == null, () -> {
+            viewModel.setHomeFund(null);
+            viewModel.setHomeAccount(null);
+        });
+        for (Fund fund : funds) {
+            addMoneyChip(fund.getName(), Long.valueOf(fund.getId()).equals(fundId),
+                    () -> viewModel.setHomeFund(fund.getId()));
+        }
         for (Account account : accounts) {
-            addAccountChip(account.getName(), account.getId());
+            addMoneyChip(account.getName(), Long.valueOf(account.getId()).equals(accountId),
+                    () -> viewModel.setHomeAccount(account.getId()));
         }
     }
 
-    private void addAccountChip(String label, Long accountId) {
+    private void addMoneyChip(String label, boolean checked, Runnable onPick) {
         Chip chip = new Chip(requireContext(), null, com.google.android.material.R.attr.chipStyle);
         chip.setText(label);
         chip.setCheckable(true);
         chip.setCheckedIconVisible(false);
-        Long selected = viewModel.getHomeAccountId();
-        chip.setChecked(accountId == null ? selected == null : accountId.equals(selected));
-        if (chip.isChecked()) {
-            // The selected account can be far along the row, so bring it into view
+        chip.setChecked(checked);
+        if (checked) {
+            // The chosen one can be far along the row, so bring it into view
             chip.post(() -> {
                 if (binding != null) {
                     binding.scrollAccounts.smoothScrollTo(chip.getLeft(), 0);
@@ -199,8 +218,8 @@ public class HomeFragment extends Fragment {
             });
         }
         chip.setOnClickListener(v -> {
-            chip.setChecked(true);
-            viewModel.setHomeAccount(accountId);
+            onPick.run();
+            buildAccountChips();
         });
         binding.chipsAccount.addView(chip);
     }
@@ -216,7 +235,7 @@ public class HomeFragment extends Fragment {
             }
         }
         double left = totals.left();
-        boolean singleAccount = viewModel.getHomeAccountId() != null;
+        boolean singleAccount = viewModel.getHomeFundId() != null || viewModel.getHomeAccountId() != null;
         String month = showingCurrentMonth() ? "this month"
                 : "in " + new SimpleDateFormat("MMMM", Locale.getDefault()).format(viewModel.getHomeMonth().getTime());
         binding.tvLeftLabel.setText((left >= 0 ? "Left " : singleAccount ? "Down " : "Overspent ") + month);
@@ -231,7 +250,7 @@ public class HomeFragment extends Fragment {
         binding.tvSpent.setText("Spent " + Money.format(totals.expense, currency));
         binding.tvIncome.setText("Income " + Money.format(totals.income, currency));
 
-        // A single account's balance also changes through transfers, so say how much moved
+        // A single fund's or account's balance also changes through transfers, so say how much moved
         boolean showMoved = singleAccount && (totals.movedIn > 0 || totals.movedOut > 0);
         binding.tvMoved.setVisibility(showMoved ? View.VISIBLE : View.GONE);
         binding.tvMoved.setText("Moved in " + Money.format(totals.movedIn, currency) + " · Moved out "

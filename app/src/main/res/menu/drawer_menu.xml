@@ -4,10 +4,6 @@
     <!-- Ids match the destinations, so the drawer navigates on its own -->
     <group android:id="@+id/drawer_main">
         <item
-            android:id="@+id/navigation_budgets"
-            android:icon="@drawable/ic_bag"
-            android:title="Budgets" />
-        <item
             android:id="@+id/navigation_loans"
             android:icon="@drawable/ic_handshake"
             android:title="Money lent"

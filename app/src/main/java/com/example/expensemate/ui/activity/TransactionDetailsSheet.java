@@ -13,6 +13,7 @@ import androidx.lifecycle.ViewModelProvider;
 import com.example.expensemate.R;
 import com.example.expensemate.data.Account;
 import com.example.expensemate.data.Category;
+import com.example.expensemate.data.Fund;
 import com.example.expensemate.data.LoanSummary;
 import com.example.expensemate.data.RecurringPayment;
 import com.example.expensemate.data.Transaction;
@@ -26,6 +27,7 @@ import com.example.expensemate.ui.loans.LoanForm;
 import com.example.expensemate.util.Money;
 import com.example.expensemate.viewmodel.AccountViewModel;
 import com.example.expensemate.viewmodel.CategoryViewModel;
+import com.example.expensemate.viewmodel.FundViewModel;
 import com.example.expensemate.viewmodel.LoanViewModel;
 import com.example.expensemate.viewmodel.RecurringPaymentsViewModel;
 import com.example.expensemate.viewmodel.TransactionViewModel;
@@ -51,7 +53,10 @@ public class TransactionDetailsSheet extends ExpandedSheet {
     private List<Transaction> legs = new ArrayList<>();
     private List<Category> categories = new ArrayList<>();
     private List<RecurringPayment> bills = new ArrayList<>();
+    // Fund and account ids can be equal, so each kind keeps its own list and names
+    private Map<Long, String> fundNames = new HashMap<>();
     private Map<Long, String> accountNames = new HashMap<>();
+    private List<Fund> funds = new ArrayList<>();
     private List<Account> accounts = new ArrayList<>();
     private List<LoanSummary> loans = new ArrayList<>();
     private LoanViewModel loanViewModel;
@@ -100,6 +105,15 @@ public class TransactionDetailsSheet extends ExpandedSheet {
             }
             accountNames = names;
             this.accounts = accounts;
+            render();
+        });
+        provider.get(FundViewModel.class).getAllFunds().observe(getViewLifecycleOwner(), funds -> {
+            Map<Long, String> names = new HashMap<>();
+            for (Fund fund : funds) {
+                names.put(fund.getId(), fund.getName());
+            }
+            fundNames = names;
+            this.funds = funds;
             render();
         });
         provider.get(CategoryViewModel.class).getAllCategories().observe(getViewLifecycleOwner(), list -> {
@@ -156,7 +170,7 @@ public class TransactionDetailsSheet extends ExpandedSheet {
                 credit = leg;
             }
         }
-        binding.tvTitle.setText(TransactionText.transferRoute(accountNames, debit, credit));
+        binding.tvTitle.setText(TransactionText.transferRoute(fundNames, accountNames, debit, credit));
         binding.tvAmount.setText(TransactionText.transferAmount(transaction, debit, credit));
         binding.tvAmount.setTextColor(requireContext().getColor(R.color.transfer));
         binding.groupCategory.setVisibility(View.GONE);
@@ -164,15 +178,15 @@ public class TransactionDetailsSheet extends ExpandedSheet {
         binding.rowCount.setVisibility(View.GONE);
         binding.tvMessage.setVisibility(View.GONE);
         if (debit != null && credit != null) {
-            Ui.addKeyValue(binding.details, "From fund", TransactionText.accountName(accountNames, debit.getAccountId()));
-            Ui.addKeyValue(binding.details, "To fund", TransactionText.accountName(accountNames, credit.getAccountId()));
-            Ui.addKeyValue(binding.details, "From real", TransactionText.accountName(accountNames, debit.getRealAccountId()));
-            Ui.addKeyValue(binding.details, "To real", TransactionText.accountName(accountNames, credit.getRealAccountId()));
+            Ui.addKeyValue(binding.details, "From fund", TransactionText.fundName(fundNames, debit.getFundId()));
+            Ui.addKeyValue(binding.details, "To fund", TransactionText.fundName(fundNames, credit.getFundId()));
+            Ui.addKeyValue(binding.details, "From account", TransactionText.accountName(accountNames, debit.getAccountId()));
+            Ui.addKeyValue(binding.details, "To account", TransactionText.accountName(accountNames, credit.getAccountId()));
         }
         if (TransactionText.hasText(transaction.getDescription())) {
             Ui.addKeyValue(binding.details, "Note", transaction.getDescription());
         }
-        Ui.addKeyValue(binding.details, "In your totals", "No, it only moves money between accounts");
+        Ui.addKeyValue(binding.details, "In your totals", "No, it only moves your own money around");
     }
 
     private void renderTransaction() {
@@ -186,8 +200,8 @@ public class TransactionDetailsSheet extends ExpandedSheet {
 
         binding.groupCategory.setVisibility(View.VISIBLE);
         buildCategoryChips(credit);
-        buildAccountChips(binding.chipsAccount, false, transaction.getAccountId());
-        buildAccountChips(binding.chipsRealAccount, true, transaction.getRealAccountId());
+        buildFundChips(transaction.getFundId());
+        buildAccountChips(transaction.getAccountId());
 
         if (TransactionText.hasText(transaction.getReceiverName())) {
             Ui.addKeyValue(binding.details, credit ? "Received from" : "Paid to", transaction.getReceiverName());
@@ -286,34 +300,46 @@ public class TransactionDetailsSheet extends ExpandedSheet {
         }
     }
 
-    private void buildAccountChips(ChipGroup group, boolean real, Long selected) {
+    // The current choice comes first, so it is in view without scrolling
+    private void buildFundChips(Long selected) {
+        ChipGroup group = binding.chipsFund;
         group.removeAllViews();
-        // The current account comes first, so it is in view without scrolling
-        for (Account account : accounts) {
-            if (account.isReal() == real && selected != null && account.getId() == selected) {
-                addAccountChip(group, account, true);
+        for (Fund fund : funds) {
+            if (selected != null && fund.getId() == selected) {
+                addChip(group, fund.getName(), true, () -> viewModel.setFund(transaction.getId(), fund.getId()));
             }
         }
-        for (Account account : accounts) {
-            if (account.isReal() == real && (selected == null || account.getId() != selected)) {
-                addAccountChip(group, account, false);
+        for (Fund fund : funds) {
+            if (selected == null || fund.getId() != selected) {
+                addChip(group, fund.getName(), false, () -> viewModel.setFund(transaction.getId(), fund.getId()));
             }
         }
     }
 
-    private void addAccountChip(ChipGroup group, Account account, boolean checked) {
+    private void buildAccountChips(Long selected) {
+        ChipGroup group = binding.chipsAccount;
+        group.removeAllViews();
+        for (Account account : accounts) {
+            if (selected != null && account.getId() == selected) {
+                addChip(group, account.getName(), true,
+                        () -> viewModel.setAccount(transaction.getId(), account.getId()));
+            }
+        }
+        for (Account account : accounts) {
+            if (selected == null || account.getId() != selected) {
+                addChip(group, account.getName(), false,
+                        () -> viewModel.setAccount(transaction.getId(), account.getId()));
+            }
+        }
+    }
+
+    private void addChip(ChipGroup group, String name, boolean checked, Runnable onPick) {
         Chip chip = new Chip(requireContext(), null, com.google.android.material.R.attr.chipStyle);
-        chip.setText(account.getName());
+        chip.setText(name);
         chip.setCheckable(true);
         chip.setCheckedIconVisible(false);
         chip.setChecked(checked);
-        chip.setOnClickListener(v -> {
-            if (account.isReal()) {
-                viewModel.setRealAccount(transaction.getId(), account.getId());
-            } else {
-                viewModel.setAccount(transaction.getId(), account.getId());
-            }
-        });
+        chip.setOnClickListener(v -> onPick.run());
         group.addView(chip);
     }
 

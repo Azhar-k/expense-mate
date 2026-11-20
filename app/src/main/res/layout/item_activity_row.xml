@@ -87,15 +87,15 @@
                         tools:text="Groceries" />
 
                     <TextView
-                        android:id="@+id/pillAccount"
-                        style="@style/Text.ExpenseMate.Pill.Account"
+                        android:id="@+id/pillFund"
+                        style="@style/Text.ExpenseMate.Pill.Fund"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         tools:text="Daily" />
 
                     <TextView
-                        android:id="@+id/pillReal"
-                        style="@style/Text.ExpenseMate.Pill.Real"
+                        android:id="@+id/pillAccount"
+                        style="@style/Text.ExpenseMate.Pill.Account"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         tools:text="Bank account" />

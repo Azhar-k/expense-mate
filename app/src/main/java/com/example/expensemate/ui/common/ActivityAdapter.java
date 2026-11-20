@@ -13,6 +13,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.expensemate.R;
 import com.example.expensemate.data.Account;
+import com.example.expensemate.data.Fund;
 import com.example.expensemate.data.Transaction;
 import com.example.expensemate.databinding.ItemActivityRowBinding;
 import com.example.expensemate.databinding.ItemDayHeaderBinding;
@@ -26,7 +27,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
-/** Compact transaction rows grouped by day, used by Activity and by account details. */
+/** Compact transaction rows grouped by day, used by Activity and by fund and account details. */
 public class ActivityAdapter extends ListAdapter<ActivityRow, RecyclerView.ViewHolder> {
     private static final int TYPE_HEADER = 0;
     private static final int TYPE_ROW = 1;
@@ -37,6 +38,8 @@ public class ActivityAdapter extends ListAdapter<ActivityRow, RecyclerView.ViewH
 
     private final OnRowClickListener listener;
     private final SimpleDateFormat timeFormat = new SimpleDateFormat("HH:mm", Locale.getDefault());
+    // Fund and account ids can be equal, so each kind has its own names
+    private Map<Long, String> fundNames = new HashMap<>();
     private Map<Long, String> accountNames = new HashMap<>();
     private String mainCurrency;
 
@@ -53,6 +56,15 @@ public class ActivityAdapter extends ListAdapter<ActivityRow, RecyclerView.ViewH
             }
         });
         this.listener = listener;
+    }
+
+    public void setFunds(List<Fund> funds) {
+        Map<Long, String> names = new HashMap<>();
+        for (Fund fund : funds) {
+            names.put(fund.getId(), fund.getName());
+        }
+        fundNames = names;
+        notifyDataSetChanged();
     }
 
     public void setAccounts(List<Account> accounts) {
@@ -189,10 +201,10 @@ public class ActivityAdapter extends ListAdapter<ActivityRow, RecyclerView.ViewH
                     binding.pillCategory.setBackgroundResource(R.drawable.bg_pill_category);
                     binding.pillCategory.setTextColor(ContextCompat.getColor(context, R.color.on_primary_container));
                 }
-                binding.pillAccount.setText(TransactionText.accountName(accountNames, transaction.getAccountId()));
-                Long realId = transaction.getRealAccountId();
-                binding.pillReal.setVisibility(realId != null ? View.VISIBLE : View.GONE);
-                binding.pillReal.setText(TransactionText.accountName(accountNames, realId));
+                binding.pillFund.setText(TransactionText.fundName(fundNames, transaction.getFundId()));
+                Long accountId = transaction.getAccountId();
+                binding.pillAccount.setVisibility(accountId != null ? View.VISIBLE : View.GONE);
+                binding.pillAccount.setText(TransactionText.accountName(accountNames, accountId));
                 binding.tvAmount.setText(credit ? Money.credit(transaction.getAmount(), transaction.getCurrency())
                         : Money.debit(transaction.getAmount(), transaction.getCurrency()));
                 if (credit) {
@@ -207,7 +219,7 @@ public class ActivityAdapter extends ListAdapter<ActivityRow, RecyclerView.ViewH
         }
 
         private String transferTitle(ActivityRow row) {
-            return TransactionText.transferRoute(accountNames, row.debitLeg, row.creditLeg);
+            return TransactionText.transferRoute(fundNames, accountNames, row.debitLeg, row.creditLeg);
         }
     }
 }

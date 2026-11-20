@@ -33,21 +33,21 @@ public class Migration16To17Test {
         createVersion16(file);
 
         AppDatabase database = Room.databaseBuilder(context, AppDatabase.class, file.getPath())
-                .addMigrations(AppDatabase.MIGRATION_16_17)
+                .addMigrations(AppDatabase.MIGRATION_16_17, AppDatabase.MIGRATION_17_18)
                 .allowMainThreadQueries()
                 .build();
         try {
-            Account daily = database.accountDao().getDefaultAccountSync();
+            Fund daily = database.fundDao().getDefaultFundSync();
             assertEquals("Daily", daily.getName());
-            assertTrue(daily.isFund());
             assertNull(daily.getTarget());
             assertNull(daily.getTargetDate());
+            assertEquals("Bank account", database.accountDao().getDefaultAccountSync().getName());
             assertTrue(database.budgetDao().getAllSync().isEmpty());
 
-            Account trip = database.accountDao().getAccountByIdSync(2);
+            Fund trip = database.fundDao().getFundByIdSync(2);
             trip.setTarget(20000.0);
-            database.accountDao().update(trip);
-            assertEquals(20000.0, database.accountDao().getAccountByIdSync(2).getTarget(), 0);
+            database.fundDao().update(trip);
+            assertEquals(20000.0, database.fundDao().getFundByIdSync(2).getTarget(), 0);
 
             Budget food = new Budget();
             food.setName("Food");

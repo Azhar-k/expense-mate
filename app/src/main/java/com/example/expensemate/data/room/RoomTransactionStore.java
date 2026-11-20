@@ -2,7 +2,7 @@ package com.example.expensemate.data.room;
 
 import androidx.lifecycle.LiveData;
 
-import com.example.expensemate.data.AccountBalance;
+import com.example.expensemate.data.Balance;
 import com.example.expensemate.data.CategorySum;
 import com.example.expensemate.data.PastTransaction;
 import com.example.expensemate.data.SummaryTotals;
@@ -68,14 +68,19 @@ final class RoomTransactionStore implements TransactionStore {
 
     @Override
     public LiveData<List<Transaction>> observe(TransactionQuery q) {
-        return dao.getFilteredTransactions(new Date(q.fromMillis), new Date(q.toMillis), q.accountId, q.search,
-                q.description, q.receiver, q.category, q.amount, q.currency, q.transactionType, q.excluded, q.billId,
-                q.transfers, q.needsReview);
+        return dao.getFilteredTransactions(new Date(q.fromMillis), new Date(q.toMillis), q.fundId, q.accountId,
+                q.search, q.description, q.receiver, q.category, q.amount, q.currency, q.transactionType, q.excluded,
+                q.billId, q.transfers, q.needsReview);
+    }
+
+    @Override
+    public LiveData<List<Transaction>> observeForFund(long fundId, Date from, Date to) {
+        return dao.getTransactionsForFund(from, to, fundId);
     }
 
     @Override
     public LiveData<List<Transaction>> observeForAccount(long accountId, Date from, Date to) {
-        return dao.getTransactionsForAccountDetailsScreen(from, to, accountId);
+        return dao.getTransactionsForAccount(from, to, accountId);
     }
 
     @Override
@@ -84,13 +89,13 @@ final class RoomTransactionStore implements TransactionStore {
     }
 
     @Override
-    public void setAccount(long id, long accountId) {
-        dao.setAccount(id, accountId);
+    public void setFund(long id, long fundId) {
+        dao.setFund(id, fundId);
     }
 
     @Override
-    public void setRealAccount(long id, long accountId) {
-        dao.setRealAccount(id, accountId);
+    public void setAccount(long id, long accountId) {
+        dao.setAccount(id, accountId);
     }
 
     @Override
@@ -99,18 +104,18 @@ final class RoomTransactionStore implements TransactionStore {
     }
 
     @Override
+    public void moveFund(long fromFundId, long toFundId) {
+        dao.moveToFund(fromFundId, toFundId);
+    }
+
+    @Override
     public void moveAccount(long fromAccountId, long toAccountId) {
         dao.moveToAccount(fromAccountId, toAccountId);
     }
 
     @Override
-    public void moveRealAccount(long fromAccountId, long toAccountId) {
-        dao.moveToRealAccount(fromAccountId, toAccountId);
-    }
-
-    @Override
-    public void setCurrencyForRealAccount(long accountId, String currency) {
-        dao.setCurrencyForRealAccount(accountId, currency);
+    public void setCurrencyForAccount(long accountId, String currency) {
+        dao.setCurrencyForAccount(accountId, currency);
     }
 
     @Override
@@ -139,14 +144,14 @@ final class RoomTransactionStore implements TransactionStore {
     }
 
     @Override
-    public LiveData<List<SummaryTotals>> observeSummary(Date from, Date to, Long accountId) {
-        return dao.getSummaryTotals(from, to, accountId);
+    public LiveData<List<SummaryTotals>> observeSummary(Date from, Date to, Long fundId, Long accountId) {
+        return dao.getSummaryTotals(from, to, fundId, accountId);
     }
 
     @Override
     public LiveData<List<CategorySum>> observeCategorySums(String transactionType, String currency, Date from, Date to,
-            Long accountId) {
-        return dao.getCategorySums(transactionType, currency, from, to, accountId);
+            Long fundId, Long accountId) {
+        return dao.getCategorySums(transactionType, currency, from, to, fundId, accountId);
     }
 
     @Override
@@ -155,7 +160,12 @@ final class RoomTransactionStore implements TransactionStore {
     }
 
     @Override
-    public LiveData<List<AccountBalance>> observeAccountBalances() {
+    public LiveData<List<Balance>> observeFundBalances() {
+        return dao.getFundBalances();
+    }
+
+    @Override
+    public LiveData<List<Balance>> observeAccountBalances() {
         return dao.getAccountBalances();
     }
 }

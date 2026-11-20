@@ -48,10 +48,12 @@ public class SortOrderTest {
         return TestServices.over(database);
     }
 
-    private void account(AppDatabase db, String name, String type) {
-        Account account = new Account(name, "", "", null, "");
-        account.setType(type);
-        TestServices.over(db).accounts().add(account).join();
+    private void account(AppDatabase db, String name) {
+        TestServices.over(db).accounts().add(new Account(name, "", "", null, "")).join();
+    }
+
+    private void fund(AppDatabase db, String name) {
+        TestServices.over(db).funds().add(new Fund(name, "")).join();
     }
 
     private static List<String> accountNames(AppDatabase db) {
@@ -60,6 +62,23 @@ public class SortOrderTest {
             names.add(account.getName());
         }
         return names;
+    }
+
+    private static List<String> fundNames(AppDatabase db) {
+        List<String> names = new ArrayList<>();
+        for (Fund fund : db.fundDao().getAllFundsSync()) {
+            names.add(fund.getName());
+        }
+        return names;
+    }
+
+    private static long fundId(AppDatabase db, String name) {
+        for (Fund fund : db.fundDao().getAllFundsSync()) {
+            if (fund.getName().equals(name)) {
+                return fund.getId();
+            }
+        }
+        throw new AssertionError(name);
     }
 
     private static List<String> categoryNames(AppDatabase db) {
@@ -90,20 +109,37 @@ public class SortOrderTest {
 
     @Test
     public void accountsStayAlphabeticalUntilReordered() {
-        account(database, "Trip", Account.TYPE_FUND);
-        account(database, "Daily", Account.TYPE_FUND);
-        account(database, "Wallet", Account.TYPE_REAL);
-        account(database, "Bank", Account.TYPE_REAL);
-        assertEquals(Arrays.asList("Daily", "Trip", "Bank", "Wallet"), accountNames(database));
+        account(database, "Wallet");
+        account(database, "Bank");
+        assertEquals(Arrays.asList("Bank", "Wallet"), accountNames(database));
 
-        services().accounts().reorder(Arrays.asList(accountId(database, "Trip"), accountId(database, "Daily"))).join();
-        // Virtual still comes first, and the real ones keep their own order
-        assertEquals(Arrays.asList("Trip", "Daily", "Bank", "Wallet"), accountNames(database));
+        services().accounts().reorder(Arrays.asList(accountId(database, "Wallet"), accountId(database, "Bank")))
+                .join();
+        assertEquals(Arrays.asList("Wallet", "Bank"), accountNames(database));
 
-        account(database, "Gold", Account.TYPE_FUND);
-        account(database, "Cash", Account.TYPE_REAL);
-        assertEquals("A new account goes last in an ordered list, alphabetically in one that is not",
-                Arrays.asList("Trip", "Daily", "Gold", "Bank", "Cash", "Wallet"), accountNames(database));
+        account(database, "Cash");
+        assertEquals("A new account goes last in an ordered list",
+                Arrays.asList("Wallet", "Bank", "Cash"), accountNames(database));
+    }
+
+    @Test
+    public void fundsStayAlphabeticalUntilReorderedApartFromAccounts() {
+        fund(database, "Trip");
+        fund(database, "Daily");
+        account(database, "Bank");
+        account(database, "Wallet");
+        assertEquals(Arrays.asList("Daily", "Trip"), fundNames(database));
+
+        services().funds().reorder(Arrays.asList(fundId(database, "Trip"), fundId(database, "Daily"))).join();
+        assertEquals(Arrays.asList("Trip", "Daily"), fundNames(database));
+        assertEquals("Accounts keep their own order", Arrays.asList("Bank", "Wallet"), accountNames(database));
+
+        fund(database, "Gold");
+        account(database, "Cash");
+        assertEquals("A new fund goes last in an ordered list",
+                Arrays.asList("Trip", "Daily", "Gold"), fundNames(database));
+        assertEquals("A new account goes alphabetically in a list that is not ordered",
+                Arrays.asList("Bank", "Cash", "Wallet"), accountNames(database));
     }
 
     @Test
@@ -121,9 +157,13 @@ public class SortOrderTest {
 
     @Test
     public void theOrderSurvivesABackupAndAnOlderBackupStaysAlphabetical() throws Exception {
-        account(database, "Daily", Account.TYPE_FUND);
-        account(database, "Trip", Account.TYPE_FUND);
-        services().accounts().reorder(Arrays.asList(accountId(database, "Trip"), accountId(database, "Daily"))).join();
+        fund(database, "Daily");
+        fund(database, "Trip");
+        services().funds().reorder(Arrays.asList(fundId(database, "Trip"), fundId(database, "Daily"))).join();
+        account(database, "Bank");
+        account(database, "Wallet");
+        services().accounts().reorder(Arrays.asList(accountId(database, "Wallet"), accountId(database, "Bank")))
+                .join();
         services().categories().add(new Category("Food", "EXPENSE")).join();
         services().categories().add(new Category("Fuel", "EXPENSE")).join();
         services().categories().reorder(Arrays.asList(categoryId(database, "Fuel"), categoryId(database, "Food")))
@@ -131,10 +171,11 @@ public class SortOrderTest {
 
         AppDatabase restored = newDatabase();
         try {
-            for (String section : new String[] { "CATEGORIES", "ACCOUNTS" }) {
+            for (String section : new String[] { "CATEGORIES", "FUNDS", "ACCOUNTS" }) {
                 load(restored, section, BackupDataLoader.entityText(section, database));
             }
-            assertEquals(Arrays.asList("Trip", "Daily"), accountNames(restored));
+            assertEquals(Arrays.asList("Trip", "Daily"), fundNames(restored));
+            assertEquals(Arrays.asList("Wallet", "Bank"), accountNames(restored));
             assertEquals(Arrays.asList("Fuel", "Food"), categoryNames(restored));
         } finally {
             restored.close();

@@ -17,14 +17,17 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 
 import com.example.expensemate.data.Account;
 import com.example.expensemate.data.Category;
+import com.example.expensemate.data.Fund;
 import com.example.expensemate.databinding.FragmentActivityBinding;
 import com.example.expensemate.ui.common.ActivityAdapter;
+import com.example.expensemate.ui.common.MoneyPicker;
 import com.example.expensemate.ui.common.Pickers;
 import com.example.expensemate.ui.common.RowSwipe;
 import com.example.expensemate.ui.common.Ui;
 import com.example.expensemate.viewmodel.AccountViewModel;
 import com.example.expensemate.viewmodel.ActivityRow;
 import com.example.expensemate.viewmodel.CategoryViewModel;
+import com.example.expensemate.viewmodel.FundViewModel;
 import com.example.expensemate.viewmodel.TransactionFilter;
 import com.example.expensemate.viewmodel.TransactionViewModel;
 import com.google.android.material.chip.Chip;
@@ -44,6 +47,7 @@ public class ActivityFragment extends Fragment {
 
     private FragmentActivityBinding binding;
     private TransactionViewModel viewModel;
+    private List<Fund> funds = new ArrayList<>();
     private List<Account> accounts = new ArrayList<>();
     private List<Category> categories = new ArrayList<>();
     private final Handler handler = new Handler(Looper.getMainLooper());
@@ -111,6 +115,11 @@ public class ActivityFragment extends Fragment {
             }
         });
 
+        provider.get(FundViewModel.class).getAllFunds().observe(getViewLifecycleOwner(), list -> {
+            funds = list;
+            adapter.setFunds(list);
+            renderFilter(viewModel.getFilter().getValue());
+        });
         provider.get(AccountViewModel.class).getAllAccounts().observe(getViewLifecycleOwner(), list -> {
             accounts = list;
             adapter.setAccounts(list);
@@ -160,14 +169,19 @@ public class ActivityFragment extends Fragment {
         binding.chipRange.setText(filter.rangeLabel);
         binding.chipRange.setChecked(true);
 
-        String accountName = null;
-        for (Account account : accounts) {
-            if (filter.accountId != null && account.getId() == filter.accountId) {
-                accountName = account.getName();
+        String shownName = null;
+        for (Fund fund : funds) {
+            if (filter.fundId != null && fund.getId() == filter.fundId) {
+                shownName = fund.getName();
             }
         }
-        binding.chipAccount.setText(accountName != null ? accountName : "Account");
-        binding.chipAccount.setChecked(filter.accountId != null);
+        for (Account account : accounts) {
+            if (filter.accountId != null && account.getId() == filter.accountId) {
+                shownName = account.getName();
+            }
+        }
+        binding.chipAccount.setText(shownName != null ? shownName : "Fund or account");
+        binding.chipAccount.setChecked(filter.fundId != null || filter.accountId != null);
 
         binding.chipCategory.setText(filter.category != null ? filter.category : "Category");
         binding.chipCategory.setChecked(filter.category != null);
@@ -231,19 +245,14 @@ public class ActivityFragment extends Fragment {
     }
 
     private void chooseAccount() {
-        List<String> names = new ArrayList<>();
-        names.add("All accounts");
-        for (Account account : accounts) {
-            names.add(account.getName());
-        }
-        new MaterialAlertDialogBuilder(requireContext())
-                .setTitle("Account")
-                .setItems(names.toArray(new String[0]), (dialog, which) -> {
+        TransactionFilter current = viewModel.getFilter().getValue();
+        MoneyPicker.show(requireContext(), "Show", "Everything", funds, accounts, current.fundId, current.accountId,
+                (fundId, accountId) -> {
                     TransactionFilter filter = viewModel.getFilter().getValue().copy();
-                    filter.accountId = which == 0 ? null : accounts.get(which - 1).getId();
+                    filter.fundId = fundId;
+                    filter.accountId = accountId;
                     viewModel.setFilter(filter);
-                })
-                .show();
+                });
     }
 
     private void chooseCategory() {

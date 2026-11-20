@@ -11,8 +11,8 @@ erDiagram
         String category "Refers to Category.name"
         long linkedRecurringPaymentId FK "Logical FK to RecurringPayment"
         String smsHash
-        long accountId FK "Logical FK to a fund (Account of type VIRTUAL)"
-        long realAccountId FK "Logical FK to a real Account"
+        long fundId FK "Logical FK to Fund: what the money is for"
+        long accountId FK "Logical FK to Account: where the money is"
         boolean isExcludedFromSummary
         long loanId FK "Logical FK to Loan: a debit lent it, a credit returns it"
     }
@@ -44,6 +44,18 @@ erDiagram
         long expiryDate "Timestamp"
         boolean isCompleted
         long lastCompletedDate "Timestamp"
+        long fromFundId FK "Logical FK to Fund: a top-up moves money from it"
+        long toFundId FK "Logical FK to Fund: a top-up moves money into it"
+    }
+
+    FUND {
+        long id PK "Auto-generated"
+        String name
+        String description
+        boolean isDefault "Exactly one: everyday money, which budgets track"
+        int sortOrder "User's order, 0 until reordered"
+        double target "Amount to save up to, optional"
+        long targetDate "When to reach the target, optional"
     }
 
     ACCOUNT {
@@ -53,12 +65,9 @@ erDiagram
         String bank
         long expiryDate "Timestamp"
         String description
-        boolean isDefault "One per type"
-        String type "VIRTUAL (a fund) or REAL"
-        int sortOrder "User's order within the type, 0 until reordered"
-        String currency "Real accounts only"
-        double target "Funds only: amount to save up to, optional"
-        long targetDate "Funds only: when to reach the target, optional"
+        boolean isDefault "Exactly one"
+        int sortOrder "User's order, 0 until reordered"
+        String currency "ISO 4217; every transaction in it is in this currency"
     }
 
     BUDGET {
@@ -77,9 +86,13 @@ erDiagram
     %% Relationships
     %% A budget counts debits from the default fund in its categories, excluding transfers and excluded rows
     BUDGET ||--o{ BUDGET_CATEGORY : "budgetId"
-    %% Transaction links to a fund via accountId and a real Account via realAccountId
+    %% Transaction links to a Fund via fundId and an Account via accountId; the ids come from separate tables
+    FUND ||--o{ TRANSACTION : "fundId"
     ACCOUNT ||--o{ TRANSACTION : "accountId"
-    ACCOUNT ||--o{ TRANSACTION : "realAccountId"
+
+    %% A bill's top-up moves money between two funds
+    FUND |o--o{ RECURRING_PAYMENT : "fromFundId"
+    FUND |o--o{ RECURRING_PAYMENT : "toFundId"
     
     %% Transaction links to RecurringPayment via linkedRecurringPaymentId
     RECURRING_PAYMENT |o--o{ TRANSACTION : "linkedRecurringPaymentId"

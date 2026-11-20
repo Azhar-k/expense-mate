@@ -19,8 +19,8 @@ public class RecurringPayment {
     private Date expiryDate;
     private boolean isCompleted;
     private Date lastCompletedDate;
-    private Long fromAccountId;
-    private Long toAccountId;
+    private Long fromFundId;
+    private Long toFundId;
     @NonNull
     @ColumnInfo(defaultValue = Currencies.LEGACY) // Matches the migration
     private String currency = Currencies.LEGACY; // ISO 4217 code of amount
@@ -35,8 +35,8 @@ public class RecurringPayment {
         this.dueDay = dueDay;
         this.expiryDate = expiryDate;
         this.isCompleted = false;
-        this.fromAccountId = null;
-        this.toAccountId = null;
+        this.fromFundId = null;
+        this.toFundId = null;
     }
 
     // Getters and Setters
@@ -61,9 +61,9 @@ public class RecurringPayment {
     public Date getLastCompletedDate() { return lastCompletedDate; }
     public void setLastCompletedDate(Date lastCompletedDate) { this.lastCompletedDate = lastCompletedDate; }
 
-    public Long getFromAccountId() { return fromAccountId; }
-    public void setFromAccountId(Long fromAccountId) { this.fromAccountId = fromAccountId; }
+    public Long getFromFundId() { return fromFundId; }
+    public void setFromFundId(Long fromFundId) { this.fromFundId = fromFundId; }
 
-    public Long getToAccountId() { return toAccountId; }
-    public void setToAccountId(Long toAccountId) { this.toAccountId = toAccountId; }
+    public Long getToFundId() { return toFundId; }
+    public void setToFundId(Long toFundId) { this.toFundId = toFundId; }
 } 

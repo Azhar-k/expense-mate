@@ -3,11 +3,11 @@ package com.example.expensemate.domain.local;
 import androidx.lifecycle.LiveData;
 
 import com.example.expensemate.data.Account;
-import com.example.expensemate.util.Currencies;
-import com.example.expensemate.data.AccountBalance;
+import com.example.expensemate.data.Balance;
 import com.example.expensemate.data.store.AccountStore;
 import com.example.expensemate.data.store.TransactionStore;
 import com.example.expensemate.domain.AccountService;
+import com.example.expensemate.util.Currencies;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -34,15 +34,15 @@ final class LocalAccountService implements AccountService {
     }
 
     @Override
-    public LiveData<List<AccountBalance>> balances() {
+    public LiveData<List<Balance>> balances() {
         return transactions.observeAccountBalances();
     }
 
     @Override
     public CompletableFuture<Void> add(Account account) {
         return writer.run(() -> {
-            account.setCurrency(account.isReal() ? currencyOrMain(account.getCurrency()) : null);
-            int last = store.lastSortOrder(account.getType());
+            account.setCurrency(currencyOrMain(account.getCurrency()));
+            int last = store.lastSortOrder();
             account.setSortOrder(last == 0 ? 0 : last + 1);
             store.insert(account);
         });
@@ -52,11 +52,11 @@ final class LocalAccountService implements AccountService {
     public CompletableFuture<Void> update(Account account) {
         return writer.run(() -> {
             Account before = store.findById(account.getId());
-            account.setCurrency(account.isReal() ? currencyOrMain(account.getCurrency()) : null);
+            account.setCurrency(currencyOrMain(account.getCurrency()));
             store.update(account);
             // Relabels, never converts: this is for fixing what an account was set up with
-            if (account.isReal() && before != null && !account.getCurrency().equals(before.getCurrency())) {
-                transactions.setCurrencyForRealAccount(account.getId(), account.getCurrency());
+            if (before != null && !account.getCurrency().equals(before.getCurrency())) {
+                transactions.setCurrencyForAccount(account.getId(), account.getCurrency());
             }
         });
     }
@@ -78,24 +78,20 @@ final class LocalAccountService implements AccountService {
     @Override
     public CompletableFuture<Void> makeDefault(Account account) {
         return writer.run(() -> {
-            store.clearDefault(account.getType());
+            store.clearDefault();
             store.setDefault(account.getId());
         });
     }
 
-    // A transaction always keeps both accounts, so the deleted account's rows go to the default of its type.
+    // A transaction always has an account, so the deleted account's rows go to the default one.
     @Override
     public CompletableFuture<Void> delete(Account account) {
         return writer.run(() -> {
-            if (account.isDefault()) {
+            Account fallback = store.findDefault();
+            if (account.isDefault() || fallback == null || fallback.getId() == account.getId()) {
                 return;
             }
-            long replacement = store.findDefault(account.getType()).getId();
-            if (account.isReal()) {
-                transactions.moveRealAccount(account.getId(), replacement);
-            } else {
-                transactions.moveAccount(account.getId(), replacement);
-            }
+            transactions.moveAccount(account.getId(), fallback.getId());
             store.delete(account);
         });
     }

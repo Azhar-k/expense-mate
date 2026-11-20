@@ -6,6 +6,7 @@ import com.example.expensemate.domain.BillService;
 import com.example.expensemate.domain.BudgetService;
 import com.example.expensemate.domain.CaptureService;
 import com.example.expensemate.domain.CategoryService;
+import com.example.expensemate.domain.FundService;
 import com.example.expensemate.domain.LoanService;
 import com.example.expensemate.domain.PatternService;
 import com.example.expensemate.domain.Services;
@@ -18,6 +19,7 @@ public final class LocalServices implements Services {
     private final TransactionService transactions;
     private final CaptureService capture;
     private final AccountService accounts;
+    private final FundService funds;
     private final CategoryService categories;
     private final LoanService loans;
     private final BillService bills;
@@ -27,12 +29,13 @@ public final class LocalServices implements Services {
     /** @param executor runs the writes; pass a direct executor to finish them on the calling thread */
     public LocalServices(Stores stores, Executor executor) {
         Writer writer = new Writer(stores.unitOfWork(), executor);
-        TransactionRules rules = new TransactionRules(stores.accounts(), stores.categories(),
+        TransactionRules rules = new TransactionRules(stores.funds(), stores.accounts(), stores.categories(),
                 stores.counterpartyCategories(), stores.bills(), stores.transactions());
         transactions = new LocalTransactionService(stores.transactions(), rules, writer);
         patterns = new LocalPatternService(stores.patterns(), writer);
         capture = new LocalCaptureService(stores.transactions(), rules, stores.unitOfWork(), patterns);
         accounts = new LocalAccountService(stores.accounts(), stores.transactions(), writer);
+        funds = new LocalFundService(stores.funds(), stores.transactions(), stores.bills(), writer);
         categories = new LocalCategoryService(stores.categories(), writer);
         loans = new LocalLoanService(stores.loans(), writer);
         bills = new LocalBillService(stores.bills(), stores.transactions(), rules, writer);
@@ -52,6 +55,11 @@ public final class LocalServices implements Services {
     @Override
     public AccountService accounts() {
         return accounts;
+    }
+
+    @Override
+    public FundService funds() {
+        return funds;
     }
 
     @Override

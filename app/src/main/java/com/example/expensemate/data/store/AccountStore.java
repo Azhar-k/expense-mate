@@ -6,29 +6,30 @@ import com.example.expensemate.data.Account;
 
 import java.util.List;
 
+/** Where money is. Funds, what it is for, are in {@link FundStore}. */
 public interface AccountStore {
     LiveData<List<Account>> observeAll();
 
     LiveData<Account> observeDefault();
 
-    /** @param type Account.TYPE_FUND or Account.TYPE_REAL */
-    Account findDefault(String type);
+    Account findDefault();
 
     List<Account> findAll();
 
     Account findById(long id);
 
-    void insert(Account account);
+    /** @return the new row's id */
+    long insert(Account account);
 
     void update(Account account);
 
     void delete(Account account);
 
-    int lastSortOrder(String type);
+    int lastSortOrder();
 
     void setSortOrder(long id, int sortOrder);
 
-    void clearDefault(String type);
+    void clearDefault();
 
     void setDefault(long id);
 }

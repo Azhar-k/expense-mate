@@ -49,7 +49,7 @@ public class RecurringPaymentsViewModel extends AndroidViewModel {
         Writes.log(TAG, "marking bill unpaid", bills.resetPaid(payment));
     }
 
-    /** Moves the bill's amount between its accounts and marks it paid. */
+    /** Moves the bill's amount between its funds and marks it paid. */
     public void payByTransfer(RecurringPayment payment) {
         Writes.log(TAG, "moving bill amount", bills.payByTransfer(payment));
     }

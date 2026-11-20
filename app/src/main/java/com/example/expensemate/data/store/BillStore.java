@@ -22,4 +22,7 @@ public interface BillStore {
     void update(RecurringPayment bill);
 
     void delete(RecurringPayment bill);
+
+    /** Bills that top up from or into one fund point at another instead, for when that fund goes. */
+    void moveFund(long fromFundId, long toFundId);
 }

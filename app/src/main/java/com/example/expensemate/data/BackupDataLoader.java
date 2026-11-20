@@ -34,21 +34,28 @@ import java.util.zip.ZipOutputStream;
 /**
  * Backs up to Google Drive as one text file per table and restores from them.
  *
- * Each record is a block of "Key: value" lines ending with "---". Files written by this version
- * start with a {@value #FORMAT_LINE} record: their values are escaped, so text can hold line
- * breaks, null is written as \N, and dates are milliseconds. Files without that line come from
- * older versions and are read the way those versions wrote them.
+ * Each record is a block of "Key: value" lines ending with "---". Files from format 2 on start
+ * with a "Format: n" record (this version writes {@value #FORMAT_LINE}): their values are escaped,
+ * so text can hold line breaks, null is written as \N, and dates are milliseconds. Files without
+ * that line come from older versions and are read the way those versions wrote them.
+ *
+ * Format 3 keeps funds in their own file. Format 2 and older kept them in the accounts file, as rows
+ * whose Account Type was not REAL, and named a transaction's fund "Account id" and its account
+ * "Real account id", and a bill's funds "From Account ID" and "To Account ID".
  */
 public class BackupDataLoader {
     private static final String TAG = "BackupDataLoader";
-    static final String FORMAT_LINE = "Format: 2";
+    static final int FORMAT = 3;
+    static final String FORMAT_LINE = "Format: " + FORMAT;
+    private static final String FORMAT_PREFIX = "Format: ";
     private static final String NULL = "\\N";
 
-    /** Restore order: transactions refer to accounts, bills and loans, mappings to categories. */
+    /** Restore order: transactions refer to funds, accounts, bills and loans, mappings to categories. */
     static final String[][] FILES = {
             { "CATEGORIES", "categories.txt" },
-            { "RECURRING PAYMENTS", "recurring_payments.txt" },
+            { "FUNDS", "funds.txt" },
             { "ACCOUNTS", "accounts.txt" },
+            { "RECURRING PAYMENTS", "recurring_payments.txt" },
             { "LOANS", "loans.txt" },
             { "TRANSACTIONS", "transactions.txt" },
             { "COUNTERPARTY CATEGORIES", "counterparty_categories.txt" },
@@ -56,8 +63,11 @@ public class BackupDataLoader {
             { "BUDGETS", "budgets.txt" },
     };
     private static final String[] TABLES = {
-            "transactions", "categories", "recurring_payments", "accounts", "counterparty_categories", "loans",
-            "message_patterns", "budgets", "budget_categories" };
+            "transactions", "categories", "recurring_payments", "funds", "accounts", "counterparty_categories",
+            "loans", "message_patterns", "budgets", "budget_categories" };
+
+    // How older backups marked the rows of the accounts file that were accounts; the rest were funds
+    private static final String OLD_ACCOUNT_TYPE = "REAL";
 
     private final AppDatabase database;
     private final SimpleDateFormat dateFormat;
@@ -100,9 +110,21 @@ public class BackupDataLoader {
                     put(data, "Expiry Date", p.getExpiryDate());
                     put(data, "Is Completed", p.isCompleted());
                     put(data, "Last Completed Date", p.getLastCompletedDate());
-                    put(data, "From Account ID", p.getFromAccountId());
-                    put(data, "To Account ID", p.getToAccountId());
+                    put(data, "From Fund ID", p.getFromFundId());
+                    put(data, "To Fund ID", p.getToFundId());
                     put(data, "Currency", p.getCurrency());
+                    data.append("---\n");
+                }
+                break;
+            case "FUNDS":
+                for (Fund f : database.fundDao().getAllFundsSync()) {
+                    put(data, "ID", f.getId());
+                    put(data, "Name", f.getName());
+                    put(data, "Description", f.getDescription());
+                    put(data, "Is Default", f.isDefault());
+                    put(data, "Sort Order", f.getSortOrder());
+                    put(data, "Target", f.getTarget());
+                    put(data, "Target Date", f.getTargetDate());
                     data.append("---\n");
                 }
                 break;
@@ -115,11 +137,8 @@ public class BackupDataLoader {
                     put(data, "Expiry Date", a.getExpiryDate());
                     put(data, "Description", a.getDescription());
                     put(data, "Is Default", a.isDefault());
-                    put(data, "Account Type", a.getType());
                     put(data, "Sort Order", a.getSortOrder());
                     put(data, "Currency", a.getCurrency());
-                    put(data, "Target", a.getTarget());
-                    put(data, "Target Date", a.getTargetDate());
                     data.append("---\n");
                 }
                 break;
@@ -147,8 +166,8 @@ public class BackupDataLoader {
                     put(data, "Receiver", t.getReceiverName());
                     put(data, "Category", t.getCategory());
                     put(data, "Is excluded from summary", t.isExcludedFromSummary());
-                    put(data, "Account id", t.getAccountId());
-                    put(data, "Real account id", t.getRealAccountId());
+                    put(data, "Fund ID", t.getFundId());
+                    put(data, "Account ID", t.getAccountId());
                     put(data, "Linked Payment ID", t.getLinkedRecurringPaymentId());
                     put(data, "Loan ID", t.getLoanId());
                     put(data, "SMS Body", t.getSmsBody());
@@ -268,28 +287,40 @@ public class BackupDataLoader {
         try (BufferedReader reader = new BufferedReader(
                 new InputStreamReader(new FileInputStream(file), StandardCharsets.UTF_8))) {
             String line = reader.readLine();
-            boolean escaped = FORMAT_LINE.equals(line);
-            if (escaped) {
+            int format = formatOf(line);
+            if (format > 0) {
                 line = reader.readLine(); // The "---" that closes the format record
                 line = reader.readLine();
             }
             List<String> record = new java.util.ArrayList<>();
             for (; line != null; line = reader.readLine()) {
                 if (line.equals("---")) {
-                    processEntity(section, record, escaped);
+                    processEntity(section, record, format);
                     record = new java.util.ArrayList<>();
                 } else {
                     record.add(line);
                 }
             }
             if (!record.isEmpty()) {
-                processEntity(section, record, escaped);
+                processEntity(section, record, format);
             }
         }
     }
 
-    private void processEntity(String section, List<String> lines, boolean escaped) {
-        Record record = new Record(lines, escaped);
+    /** The format a file's first line names, or 0 for files from before formats were written. */
+    private static int formatOf(String firstLine) {
+        if (firstLine == null || !firstLine.startsWith(FORMAT_PREFIX)) {
+            return 0;
+        }
+        try {
+            return Integer.parseInt(firstLine.substring(FORMAT_PREFIX.length()).trim());
+        } catch (NumberFormatException e) {
+            return 0;
+        }
+    }
+
+    private void processEntity(String section, List<String> lines, int format) {
+        Record record = new Record(lines, format);
         try {
             switch (section) {
                 case "TRANSACTIONS":
@@ -301,8 +332,15 @@ public class BackupDataLoader {
                 case "RECURRING PAYMENTS":
                     processRecurringPayment(record);
                     break;
+                case "FUNDS":
+                    processFund(record);
+                    break;
                 case "ACCOUNTS":
-                    processAccount(record);
+                    if (record.format >= 3) {
+                        processAccount(record);
+                    } else {
+                        processOldAccount(record);
+                    }
                     break;
                 case "COUNTERPARTY CATEGORIES":
                     processCounterpartyCategory(record);
@@ -325,10 +363,12 @@ public class BackupDataLoader {
     /** One record's values. Older files wrote null as the word null and trimmed every value. */
     private final class Record {
         private final Map<String, String> values = new LinkedHashMap<>();
+        private final int format; // 0 for files from before formats were written
         private final boolean escaped;
 
-        Record(List<String> lines, boolean escaped) {
-            this.escaped = escaped;
+        Record(List<String> lines, int format) {
+            this.format = format;
+            this.escaped = format > 0;
             for (String line : lines) {
                 String[] parts = line.split(": ", 2);
                 if (parts.length != 2) {
@@ -387,8 +427,13 @@ public class BackupDataLoader {
         transaction.setTransactionType(record.text("Transaction Type"));
         transaction.setReceiverName(record.text("Receiver"));
         transaction.setCategory(record.text("Category"));
-        transaction.setAccountId(record.number("Account id"));
-        transaction.setRealAccountId(record.number("Real account id"));
+        if (record.format >= 3) {
+            transaction.setFundId(record.number("Fund ID"));
+            transaction.setAccountId(record.number("Account ID"));
+        } else {
+            transaction.setFundId(record.number("Account id"));
+            transaction.setAccountId(record.number("Real account id"));
+        }
         transaction.setExcludedFromSummary(record.flag("Is excluded from summary"));
         transaction.setLinkedRecurringPaymentId(record.number("Linked Payment ID"));
         transaction.setLoanId(record.number("Loan ID"));
@@ -406,8 +451,9 @@ public class BackupDataLoader {
             transaction.setMessageTime(record.number("Message Time"));
         } else {
             // Only older backups need this; a newer one comes back exactly as it was saved
-            if (transaction.getAccountId() == null && !record.has("Real account id")) {
-                transaction.setAccountId(database.accountDao().getDefaultAccountSync().getId());
+            Fund everyday = database.fundDao().getDefaultFundSync();
+            if (transaction.getFundId() == null && !record.has("Real account id") && everyday != null) {
+                transaction.setFundId(everyday.getId());
             }
             if (transaction.getTransactionType() != null && transaction.getTransactionType().trim().isEmpty()) {
                 transaction.setTransactionType("DEBIT");
@@ -456,10 +502,19 @@ public class BackupDataLoader {
         }
         payment.setCompleted(record.flag("Is Completed"));
         payment.setLastCompletedDate(record.date("Last Completed Date"));
-        payment.setFromAccountId(record.number("From Account ID"));
-        payment.setToAccountId(record.number("To Account ID"));
+        boolean fundKeys = record.format >= 3;
+        payment.setFromFundId(record.number(fundKeys ? "From Fund ID" : "From Account ID"));
+        payment.setToFundId(record.number(fundKeys ? "To Fund ID" : "To Account ID"));
         payment.setCurrency(currencyOf(record));
         database.recurringPaymentDao().insert(payment);
+    }
+
+    private void processFund(Record record) throws ParseException {
+        String name = record.text("Name");
+        if (name == null || name.isEmpty()) {
+            return;
+        }
+        insertFund(record, new Fund(name, record.text("Description")));
     }
 
     private void processAccount(Record record) throws ParseException {
@@ -470,26 +525,59 @@ public class BackupDataLoader {
         Account account = new Account(name, orEmpty(record, "Account Number"), orEmpty(record, "Bank"),
                 record.date("Expiry Date"), orEmpty(record, "Description"));
         account.setDefault(record.flag("Is Default"));
-        account.setType(Account.TYPE_REAL.equals(record.text("Account Type")) ? Account.TYPE_REAL : Account.TYPE_FUND);
-        account.setCurrency(account.isReal() ? currencyOf(record) : null);
+        account.setCurrency(currencyOf(record));
         account.setSortOrder(record.integer("Sort Order", 0));
-        if (account.isFund()) {
-            account.setTarget(record.has("Target") && record.text("Target") != null ? record.amount("Target") : null);
-            account.setTargetDate(record.date("Target Date"));
-        }
 
-        // The original id keeps transactions and bills pointing at the right account
+        // The original id keeps transactions pointing at the right account
         Long originalId = record.number("ID");
         if (originalId != null) {
-            for (Account existing : database.accountDao().getAllAccountsSync()) {
-                if (existing.getId() == originalId) {
-                    Log.i(TAG, "Account with ID " + originalId + " already exists");
-                    return;
-                }
+            if (database.accountDao().getAccountByIdSync(originalId) != null) {
+                Log.i(TAG, "Account with ID " + originalId + " already exists");
+                return;
             }
             account.setId(originalId);
         }
         database.accountDao().insert(account);
+    }
+
+    /**
+     * Format 2 and older kept funds and accounts in one file. A row whose type is REAL is an account;
+     * any other, including rows from before types, is a fund, and keeps its id either way.
+     */
+    private void processOldAccount(Record record) throws ParseException {
+        if (OLD_ACCOUNT_TYPE.equals(record.text("Account Type"))) {
+            processAccount(record);
+            return;
+        }
+        String name = record.text("Name");
+        if (name == null || name.isEmpty()) {
+            return;
+        }
+        // Funds had a bank field once; it stays as the note when the fund had none of its own
+        String description = orEmpty(record, "Description");
+        if (description == null || description.isEmpty()) {
+            String bank = orEmpty(record, "Bank");
+            description = bank != null && !bank.isEmpty() ? bank : description;
+        }
+        insertFund(record, new Fund(name, description));
+    }
+
+    private void insertFund(Record record, Fund fund) throws ParseException {
+        fund.setDefault(record.flag("Is Default"));
+        fund.setSortOrder(record.integer("Sort Order", 0));
+        fund.setTarget(record.text("Target") != null ? record.amount("Target") : null);
+        fund.setTargetDate(record.date("Target Date"));
+
+        // The original id keeps transactions, bills and transfers pointing at the right fund
+        Long originalId = record.number("ID");
+        if (originalId != null) {
+            if (database.fundDao().getFundByIdSync(originalId) != null) {
+                Log.i(TAG, "Fund with ID " + originalId + " already exists");
+                return;
+            }
+            fund.setId(originalId);
+        }
+        database.fundDao().insert(fund);
     }
 
     // The original id keeps returns pointing at the right loan
@@ -634,8 +722,9 @@ public class BackupDataLoader {
                 MessagePattern.ensureBuiltIns(db);
             }
             Category.ensureDefaults(db);
-            Account.ensureDefaultRealAccount(db);
-            Account.ensureRealAccountCurrencies(db, Currencies.LEGACY);
+            Fund.ensureDefault(db);
+            Account.ensureDefault(db);
+            Account.ensureCurrencies(db, Currencies.LEGACY);
             Transfers.linkLegacyPairs(db);
             // Backups from before the mappings file are rebuilt from the transactions
             if (rebuildMappings) {

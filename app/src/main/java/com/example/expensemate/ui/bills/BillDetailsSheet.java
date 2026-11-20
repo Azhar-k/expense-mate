@@ -17,7 +17,7 @@ import com.example.expensemate.ui.common.TransactionText;
 import com.example.expensemate.ui.common.Ui;
 import com.example.expensemate.util.Bills;
 import com.example.expensemate.util.Money;
-import com.example.expensemate.viewmodel.AccountViewModel;
+import com.example.expensemate.viewmodel.FundViewModel;
 import com.example.expensemate.viewmodel.RecurringPaymentsViewModel;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
@@ -53,11 +53,11 @@ public class BillDetailsSheet extends ExpandedSheet {
         RecurringPaymentsViewModel billsViewModel = provider.get(RecurringPaymentsViewModel.class);
         long id = requireArguments().getLong(ARG_ID);
 
-        provider.get(AccountViewModel.class).getAllAccounts().observe(getViewLifecycleOwner(),
-                accounts -> Ui.observeOnce(billsViewModel.getRecurringPayments(), getViewLifecycleOwner(), bills -> {
+        provider.get(FundViewModel.class).getAllFunds().observe(getViewLifecycleOwner(),
+                funds -> Ui.observeOnce(billsViewModel.getRecurringPayments(), getViewLifecycleOwner(), bills -> {
                     for (RecurringPayment bill : bills) {
                         if (bill.getId() == id) {
-                            render(bill, BillActions.names(accounts), billsViewModel);
+                            render(bill, BillActions.names(funds), billsViewModel);
                             return;
                         }
                     }
@@ -80,8 +80,8 @@ public class BillDetailsSheet extends ExpandedSheet {
                     dateFormat.format(bill.getExpiryDate()));
         }
         if (Bills.isTransfer(bill)) {
-            Ui.addKeyValue(binding.details, "From", TransactionText.accountName(names, bill.getFromAccountId()));
-            Ui.addKeyValue(binding.details, "To", TransactionText.accountName(names, bill.getToAccountId()));
+            Ui.addKeyValue(binding.details, "From", TransactionText.fundName(names, bill.getFromFundId()));
+            Ui.addKeyValue(binding.details, "To", TransactionText.fundName(names, bill.getToFundId()));
         }
         if (bill.getLastCompletedDate() != null) {
             Ui.addKeyValue(binding.details, "Last done", dateFormat.format(bill.getLastCompletedDate()));
@@ -89,7 +89,7 @@ public class BillDetailsSheet extends ExpandedSheet {
 
         FragmentActivity activity = requireActivity();
         boolean canMove = Bills.isTransfer(bill) && status != Bills.Status.PAID && status != Bills.Status.ENDED
-                && !bill.getFromAccountId().equals(bill.getToAccountId());
+                && !bill.getFromFundId().equals(bill.getToFundId());
         binding.btnMove.setVisibility(canMove ? View.VISIBLE : View.GONE);
         binding.btnMove.setText("Top up " + Money.format(bill.getAmount(), bill.getCurrency()));
         binding.btnMove.setOnClickListener(v -> {

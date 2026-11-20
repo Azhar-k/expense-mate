@@ -23,7 +23,8 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 
 import com.example.expensemate.R;
 import com.example.expensemate.data.Account;
-import com.example.expensemate.data.AccountBalance;
+import com.example.expensemate.data.Balance;
+import com.example.expensemate.data.Fund;
 import com.example.expensemate.databinding.FragmentAccountDetailsBinding;
 import com.example.expensemate.ui.activity.TransactionDetailsSheet;
 import com.example.expensemate.ui.common.ActivityAdapter;
@@ -34,29 +35,47 @@ import com.example.expensemate.util.Currencies;
 import com.example.expensemate.util.CurrencyTotals;
 import com.example.expensemate.viewmodel.AccountViewModel;
 import com.example.expensemate.viewmodel.ActivityRow;
+import com.example.expensemate.viewmodel.FundViewModel;
 import com.example.expensemate.viewmodel.TransactionFilter;
 import com.example.expensemate.viewmodel.TransactionViewModel;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 
+/** The history and balance of one fund or one account. Their ids can be equal, so the kind is always passed. */
 public class AccountDetailsFragment extends Fragment {
+    public static final String ARG_KIND = "kind";
+    public static final String ARG_ID = "id";
+    public static final String KIND_FUND = "fund";
+    public static final String KIND_ACCOUNT = "account";
+
     private static final int MENU_EDIT = 1;
     private static final int MENU_DEFAULT = 2;
     private static final int MENU_DELETE = 3;
 
     private FragmentAccountDetailsBinding binding;
     private AccountViewModel accountViewModel;
+    private FundViewModel fundViewModel;
     private TransactionViewModel transactionViewModel;
     private final MutableLiveData<TransactionFilter> range = new MutableLiveData<>(TransactionFilter.lastDays(30));
-    private long accountId;
+    private boolean isFund;
+    private long id;
+    private Fund fund;
     private Account account;
-    private List<Account> allAccounts = new java.util.ArrayList<>();
-    private List<AccountBalance> lastBalances = new java.util.ArrayList<>();
+    private String mainCurrency = Currencies.fromLocale();
+    private List<Balance> lastBalances = new ArrayList<>();
     private TransactionFilter shownRange;
+
+    public static Bundle args(String kind, long id) {
+        Bundle args = new Bundle();
+        args.putString(ARG_KIND, kind);
+        args.putLong(ARG_ID, id);
+        return args;
+    }
 
     @Nullable
     @Override
@@ -68,40 +87,24 @@ public class AccountDetailsFragment extends Fragment {
 
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
-        accountId = requireArguments().getLong("accountId");
+        isFund = KIND_FUND.equals(requireArguments().getString(ARG_KIND));
+        id = requireArguments().getLong(ARG_ID);
         ViewModelProvider provider = new ViewModelProvider(requireActivity());
         accountViewModel = provider.get(AccountViewModel.class);
+        fundViewModel = provider.get(FundViewModel.class);
         transactionViewModel = provider.get(TransactionViewModel.class);
 
         requireActivity().addMenuProvider(new MenuProvider() {
             @Override
             public void onCreateMenu(@NonNull Menu menu, @NonNull MenuInflater inflater) {
                 menu.add(Menu.NONE, MENU_EDIT, Menu.NONE, "Edit");
-                menu.add(Menu.NONE, MENU_DEFAULT, Menu.NONE, "Set as default");
+                menu.add(Menu.NONE, MENU_DEFAULT, Menu.NONE, isFund ? "Set as everyday fund" : "Set as default");
                 menu.add(Menu.NONE, MENU_DELETE, Menu.NONE, "Delete");
             }
 
             @Override
             public boolean onMenuItemSelected(@NonNull MenuItem item) {
-                if (account == null) {
-                    return false;
-                }
-                switch (item.getItemId()) {
-                    case MENU_EDIT:
-                        AccountForm.show(requireActivity(), account);
-                        return true;
-                    case MENU_DEFAULT:
-                        accountViewModel.setDefaultAccount(account);
-                        Ui.snackbar(requireActivity(), account.getName() + " is now your default "
-                                + AccountForm.typeLabel(account));
-                        return true;
-                    case MENU_DELETE:
-                        AccountForm.confirmDelete(requireActivity(), account,
-                                () -> NavHostFragment.findNavController(AccountDetailsFragment.this).navigateUp());
-                        return true;
-                    default:
-                        return false;
-                }
+                return isFund ? onFundMenu(item.getItemId()) : onAccountMenu(item.getItemId());
             }
         }, getViewLifecycleOwner(), Lifecycle.State.RESUMED);
 
@@ -122,27 +125,88 @@ public class AccountDetailsFragment extends Fragment {
         });
 
         binding.chipRange.setOnClickListener(v -> chooseRange());
-        accountViewModel.getAllAccounts().observe(getViewLifecycleOwner(), accounts -> {
-            adapter.setAccounts(accounts);
-            allAccounts = accounts;
-            for (Account candidate : accounts) {
-                if (candidate.getId() == accountId) {
-                    account = candidate;
-                    updateHeader();
-                }
-            }
+        accountViewModel.getMainCurrency().observe(getViewLifecycleOwner(), main -> {
+            mainCurrency = main;
             renderBalance(lastBalances);
         });
-        transactionViewModel.getAccountBalances().observe(getViewLifecycleOwner(), this::renderBalance);
+        fundViewModel.getAllFunds().observe(getViewLifecycleOwner(), funds -> {
+            adapter.setFunds(funds);
+            if (isFund) {
+                for (Fund candidate : funds) {
+                    if (candidate.getId() == id) {
+                        fund = candidate;
+                        updateHeader();
+                    }
+                }
+                renderBalance(lastBalances);
+            }
+        });
+        accountViewModel.getAllAccounts().observe(getViewLifecycleOwner(), accounts -> {
+            adapter.setAccounts(accounts);
+            if (!isFund) {
+                for (Account candidate : accounts) {
+                    if (candidate.getId() == id) {
+                        account = candidate;
+                        updateHeader();
+                    }
+                }
+                renderBalance(lastBalances);
+            }
+        });
+        (isFund ? fundViewModel.getBalances() : accountViewModel.getBalances())
+                .observe(getViewLifecycleOwner(), this::renderBalance);
 
-        LiveData<List<ActivityRow>> rows = Transformations.switchMap(range,
-                r -> transactionViewModel.getRowsForAccount(accountId, r.fromMillis, r.toMillis));
+        LiveData<List<ActivityRow>> rows = Transformations.switchMap(range, r -> isFund
+                ? transactionViewModel.getRowsForFund(id, r.fromMillis, r.toMillis)
+                : transactionViewModel.getRowsForAccount(id, r.fromMillis, r.toMillis));
         rows.observe(getViewLifecycleOwner(), list -> {
             adapter.submit(list, range.getValue() != shownRange, binding.recyclerView);
             shownRange = range.getValue();
             binding.tvEmpty.setVisibility(list.isEmpty() ? View.VISIBLE : View.GONE);
         });
         range.observe(getViewLifecycleOwner(), r -> binding.chipRange.setText(r.rangeLabel));
+    }
+
+    private boolean onFundMenu(int itemId) {
+        if (fund == null) {
+            return false;
+        }
+        switch (itemId) {
+            case MENU_EDIT:
+                FundForm.show(requireActivity(), fund);
+                return true;
+            case MENU_DEFAULT:
+                fundViewModel.setDefaultFund(fund);
+                Ui.snackbar(requireActivity(), fund.getName() + " is now your everyday fund");
+                return true;
+            case MENU_DELETE:
+                FundForm.confirmDelete(requireActivity(), fund,
+                        () -> NavHostFragment.findNavController(this).navigateUp());
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    private boolean onAccountMenu(int itemId) {
+        if (account == null) {
+            return false;
+        }
+        switch (itemId) {
+            case MENU_EDIT:
+                AccountForm.show(requireActivity(), account);
+                return true;
+            case MENU_DEFAULT:
+                accountViewModel.setDefaultAccount(account);
+                Ui.snackbar(requireActivity(), account.getName() + " is now your default account");
+                return true;
+            case MENU_DELETE:
+                AccountForm.confirmDelete(requireActivity(), account,
+                        () -> NavHostFragment.findNavController(this).navigateUp());
+                return true;
+            default:
+                return false;
+        }
     }
 
     @Override
@@ -152,33 +216,41 @@ public class AccountDetailsFragment extends Fragment {
     }
 
     private void updateHeader() {
-        if (account == null || binding == null) {
+        if (binding == null || (isFund ? fund == null : account == null)) {
             return;
         }
         if (isResumed()) {
-            ((AppCompatActivity) requireActivity()).getSupportActionBar().setTitle(account.getName());
+            ((AppCompatActivity) requireActivity()).getSupportActionBar()
+                    .setTitle(isFund ? fund.getName() : account.getName());
         }
-        String detail = AccountForm.detailLine(account);
+        String detail = isFund ? FundForm.detailLine(fund) : AccountForm.detailLine(account);
         binding.tvDetail.setText(detail);
         binding.tvDetail.setVisibility(detail.isEmpty() ? View.GONE : View.VISIBLE);
     }
 
-    private void renderBalance(List<AccountBalance> balances) {
-        lastBalances = balances;
-        if (account == null) {
+    private void renderBalance(List<Balance> balances) {
+        lastBalances = balances != null ? balances : new ArrayList<>();
+        if (binding == null || (isFund ? fund == null : account == null)) {
             return;
         }
         CurrencyTotals value = new CurrencyTotals();
-        for (AccountBalance balance : balances) {
-            if (balance.accountId == accountId) {
+        for (Balance balance : lastBalances) {
+            if (balance.id == id) {
                 value.add(balance.currency, balance.balance);
             }
         }
-        // A real account is in its own currency; a fund shows each currency it holds
-        String main = Currencies.main(allAccounts);
-        String own = account.isReal() && account.getCurrency() != null ? account.getCurrency() : main;
+        // An account is in its own currency; a fund shows each currency it holds, the main one first
+        String own = !isFund && account.getCurrency() != null ? account.getCurrency() : mainCurrency;
         binding.tvBalance.setText(value.format(own, own));
         binding.tvBalance.setTextColor(requireContext().getColor(value.allNegative() ? R.color.alert : R.color.on_surface));
+        if (isFund) {
+            // Saving towards something: say how far it has got
+            String targetLine = FundForm.targetLine(fund, value.get(mainCurrency), mainCurrency);
+            if (targetLine != null) {
+                binding.tvDetail.setText(targetLine);
+                binding.tvDetail.setVisibility(View.VISIBLE);
+            }
+        }
     }
 
     private void chooseRange() {

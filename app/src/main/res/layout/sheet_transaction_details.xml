@@ -99,7 +99,7 @@
                 android:scrollbars="none">
 
                 <com.google.android.material.chip.ChipGroup
-                    android:id="@+id/chipsAccount"
+                    android:id="@+id/chipsFund"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     app:singleLine="true"
@@ -111,7 +111,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="6dp"
-                android:text="Real account" />
+                android:text="Account" />
 
             <HorizontalScrollView
                 android:layout_width="match_parent"
@@ -119,7 +119,7 @@
                 android:scrollbars="none">
 
                 <com.google.android.material.chip.ChipGroup
-                    android:id="@+id/chipsRealAccount"
+                    android:id="@+id/chipsAccount"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     app:singleLine="true"

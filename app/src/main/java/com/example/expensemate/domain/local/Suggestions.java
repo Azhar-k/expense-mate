@@ -53,8 +53,8 @@ final class Suggestions {
     private Suggestions() {
     }
 
-    /** The one real account whose number ends in digits the message shows, or null if none or several match. */
-    static Long realAccountFromMessage(String body, List<Account> accounts) {
+    /** The one account whose number ends in digits the message shows, or null if none or several match. */
+    static Long accountFromMessage(String body, List<Account> accounts) {
         if (body == null) {
             return null;
         }
@@ -64,7 +64,7 @@ final class Suggestions {
         Set<Long> matches = new LinkedHashSet<>();
         for (String digits : shown) {
             for (Account account : accounts) {
-                if (Account.TYPE_REAL.equals(account.getType()) && sameNumber(account.getAccountNumber(), digits)) {
+                if (sameNumber(account.getAccountNumber(), digits)) {
                     matches.add(account.getId());
                 }
             }
@@ -72,8 +72,8 @@ final class Suggestions {
         return matches.size() == 1 ? matches.iterator().next() : null;
     }
 
-    /** The real account that reviewed messages from the same bank sender all went to. */
-    static Long realAccountFromSender(String sender, List<PastTransaction> history) {
+    /** The account that reviewed messages from the same bank sender all went to. */
+    static Long accountFromSender(String sender, List<PastTransaction> history) {
         String key = senderKey(sender);
         if (key == null) {
             return null;
@@ -81,14 +81,14 @@ final class Suggestions {
         List<Long> votes = new ArrayList<>();
         for (PastTransaction row : history) {
             if (!row.needsReview && key.equals(senderKey(row.smsSender))) {
-                votes.add(row.realAccountId);
+                votes.add(row.accountId);
             }
         }
         return agreed(votes);
     }
 
-    /** The account that reviewed payments to or from the same payee all went to. */
-    static Long accountFromPayee(String receiverName, List<PastTransaction> history) {
+    /** The fund that reviewed payments to or from the same payee all went to. */
+    static Long fundFromPayee(String receiverName, List<PastTransaction> history) {
         String payee = payeeName(receiverName);
         if (payee == null) {
             return null;
@@ -96,7 +96,7 @@ final class Suggestions {
         List<Long> votes = new ArrayList<>();
         for (PastTransaction row : history) {
             if (!row.needsReview && payee.equals(payeeName(row.receiverName))) {
-                votes.add(row.accountId);
+                votes.add(row.fundId);
             }
         }
         return agreed(votes);

@@ -26,8 +26,8 @@ final class RoomAccountStore implements AccountStore {
     }
 
     @Override
-    public Account findDefault(String type) {
-        return Account.TYPE_REAL.equals(type) ? dao.getDefaultRealAccountSync() : dao.getDefaultAccountSync();
+    public Account findDefault() {
+        return dao.getDefaultAccountSync();
     }
 
     @Override
@@ -41,8 +41,8 @@ final class RoomAccountStore implements AccountStore {
     }
 
     @Override
-    public void insert(Account account) {
-        dao.insert(account);
+    public long insert(Account account) {
+        return dao.insert(account);
     }
 
     @Override
@@ -56,8 +56,8 @@ final class RoomAccountStore implements AccountStore {
     }
 
     @Override
-    public int lastSortOrder(String type) {
-        return dao.lastSortOrder(type);
+    public int lastSortOrder() {
+        return dao.lastSortOrder();
     }
 
     @Override
@@ -66,8 +66,8 @@ final class RoomAccountStore implements AccountStore {
     }
 
     @Override
-    public void clearDefault(String type) {
-        dao.clearDefaultAccount(type);
+    public void clearDefault() {
+        dao.clearDefaultAccount();
     }
 
     @Override

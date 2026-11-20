@@ -9,6 +9,7 @@ public class TransactionFilter {
     public long fromMillis;
     public long toMillis;
     public String rangeLabel;
+    public Long fundId;
     public Long accountId;
     public String search;
     public String description;
@@ -50,6 +51,7 @@ public class TransactionFilter {
         copy.fromMillis = fromMillis;
         copy.toMillis = toMillis;
         copy.rangeLabel = rangeLabel;
+        copy.fundId = fundId;
         copy.accountId = accountId;
         copy.search = search;
         copy.description = description;
@@ -69,6 +71,7 @@ public class TransactionFilter {
         TransactionQuery query = new TransactionQuery();
         query.fromMillis = fromMillis;
         query.toMillis = toMillis;
+        query.fundId = fundId;
         query.accountId = accountId;
         query.search = search;
         query.description = description;
@@ -92,8 +95,8 @@ public class TransactionFilter {
 
     /** True when the list differs from the default view of the last 30 days. */
     public boolean isCustomized() {
-        return !"Last 30 days".equals(rangeLabel) || accountId != null || search != null || category != null
-                || hasMoreFilters();
+        return !"Last 30 days".equals(rangeLabel) || fundId != null || accountId != null || search != null
+                || category != null || hasMoreFilters();
     }
 
     public static void startOfDay(Calendar day) {

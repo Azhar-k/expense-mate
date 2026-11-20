@@ -67,7 +67,7 @@ public class MainActivity extends AppCompatActivity {
 
         drawerLayout = findViewById(R.id.drawer_layout);
         appBarConfiguration = new AppBarConfiguration.Builder(
-                R.id.navigation_home, R.id.navigation_activity, R.id.navigation_bills, R.id.navigation_accounts)
+                R.id.navigation_home, R.id.navigation_activity, R.id.navigation_bills, R.id.navigation_money)
                 .setOpenableLayout(drawerLayout)
                 .build();
         NavigationUI.setupActionBarWithNavController(this, navController, appBarConfiguration);
@@ -77,7 +77,7 @@ public class MainActivity extends AppCompatActivity {
         navController.addOnDestinationChangedListener((controller, destination, arguments) -> {
             int id = destination.getId();
             boolean topLevel = id == R.id.navigation_home || id == R.id.navigation_activity
-                    || id == R.id.navigation_bills || id == R.id.navigation_accounts;
+                    || id == R.id.navigation_bills || id == R.id.navigation_money;
             bottomNavView.setVisibility(topLevel ? View.VISIBLE : View.GONE);
             drawerLayout.setDrawerLockMode(topLevel ? DrawerLayout.LOCK_MODE_UNLOCKED
                     : DrawerLayout.LOCK_MODE_LOCKED_CLOSED);

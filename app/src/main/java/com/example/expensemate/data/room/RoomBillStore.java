@@ -54,4 +54,10 @@ final class RoomBillStore implements BillStore {
     public void delete(RecurringPayment bill) {
         dao.delete(bill);
     }
+
+    @Override
+    public void moveFund(long fromFundId, long toFundId) {
+        dao.moveFromFund(fromFundId, toFundId);
+        dao.moveToFund(fromFundId, toFundId);
+    }
 }

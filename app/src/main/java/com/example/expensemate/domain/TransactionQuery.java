@@ -4,6 +4,7 @@ package com.example.expensemate.domain;
 public class TransactionQuery {
     public long fromMillis;
     public long toMillis;
+    public Long fundId;
     public Long accountId;
     public String search;
     public String description;

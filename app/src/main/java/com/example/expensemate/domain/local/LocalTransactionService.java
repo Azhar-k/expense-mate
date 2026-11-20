@@ -2,7 +2,6 @@ package com.example.expensemate.domain.local;
 
 import androidx.lifecycle.LiveData;
 
-import com.example.expensemate.data.Account;
 import com.example.expensemate.data.CategorySum;
 import com.example.expensemate.data.SummaryTotals;
 import com.example.expensemate.data.Transaction;
@@ -33,6 +32,11 @@ final class LocalTransactionService implements TransactionService {
     }
 
     @Override
+    public LiveData<List<Transaction>> findForFund(long fundId, Date from, Date to) {
+        return store.observeForFund(fundId, from, to);
+    }
+
+    @Override
     public LiveData<List<Transaction>> findForAccount(long accountId, Date from, Date to) {
         return store.observeForAccount(accountId, from, to);
     }
@@ -53,14 +57,14 @@ final class LocalTransactionService implements TransactionService {
     }
 
     @Override
-    public LiveData<List<SummaryTotals>> summary(Date from, Date to, Long accountId) {
-        return store.observeSummary(from, to, accountId);
+    public LiveData<List<SummaryTotals>> summary(Date from, Date to, Long fundId, Long accountId) {
+        return store.observeSummary(from, to, fundId, accountId);
     }
 
     @Override
     public LiveData<List<CategorySum>> categoryTotals(String transactionType, String currency, Date from, Date to,
-            Long accountId) {
-        return store.observeCategorySums(transactionType, currency, from, to, accountId);
+            Long fundId, Long accountId) {
+        return store.observeCategorySums(transactionType, currency, from, to, fundId, accountId);
     }
 
     @Override
@@ -76,7 +80,7 @@ final class LocalTransactionService implements TransactionService {
     @Override
     public CompletableFuture<Void> add(Transaction transaction) {
         return writer.run(() -> {
-            rules.fillDefaultAccounts(transaction);
+            rules.fillDefaults(transaction);
             rules.applyCurrency(transaction);
             store.insert(transaction);
             rules.rememberCategory(transaction);
@@ -120,21 +124,13 @@ final class LocalTransactionService implements TransactionService {
     }
 
     @Override
-    public CompletableFuture<Void> setAccount(long id, long accountId) {
-        return writer.run(() -> {
-            store.setAccount(id, accountId);
-            // A row that had no fund has no real one either, so it gets the default real account now.
-            Transaction row = store.findById(id);
-            Long defaultReal = rules.defaultAccountId(Account.TYPE_REAL);
-            if (row != null && row.getRealAccountId() == null && defaultReal != null) {
-                store.setRealAccount(id, defaultReal);
-            }
-        });
+    public CompletableFuture<Void> setFund(long id, long fundId) {
+        return writer.run(() -> store.setFund(id, fundId));
     }
 
     @Override
-    public CompletableFuture<Void> setRealAccount(long id, long accountId) {
-        return writer.run(() -> store.setRealAccount(id, accountId));
+    public CompletableFuture<Void> setAccount(long id, long accountId) {
+        return writer.run(() -> store.setAccount(id, accountId));
     }
 
     @Override
@@ -171,8 +167,8 @@ final class LocalTransactionService implements TransactionService {
     @Override
     public CompletableFuture<Void> addTransfer(Transaction debit, Transaction credit) {
         return writer.run(() -> {
-            rules.fillDefaultAccounts(debit);
-            rules.fillDefaultAccounts(credit);
+            rules.fillDefaults(debit);
+            rules.fillDefaults(credit);
             rules.applyCurrency(debit);
             rules.applyCurrency(credit);
             store.insert(debit);

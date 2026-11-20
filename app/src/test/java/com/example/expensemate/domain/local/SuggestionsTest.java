@@ -35,10 +35,9 @@ public class SuggestionsTest {
         return row;
     }
 
-    private static Account real(long id, String number) {
+    private static Account account(long id, String number) {
         Account account = new Account("Bank " + id, number, "Bank", null, null);
         account.setId(id);
-        account.setType(Account.TYPE_REAL);
         return account;
     }
 
@@ -77,46 +76,57 @@ public class SuggestionsTest {
     }
 
     @Test
-    public void realAccountComesFromTheMaskedNumberInTheMessage() {
-        List<Account> accounts = Arrays.asList(real(1, "50100012341234"), real(2, "9876"));
-        assertEquals(Long.valueOf(1), Suggestions.realAccountFromMessage(
+    public void accountComesFromTheMaskedNumberInTheMessage() {
+        List<Account> accounts = Arrays.asList(account(1, "50100012341234"), account(2, "9876"));
+        assertEquals(Long.valueOf(1), Suggestions.accountFromMessage(
                 "ICICI Bank Acct XX1234 debited for Rs 500.00", accounts));
-        assertEquals(Long.valueOf(2), Suggestions.realAccountFromMessage(
+        assertEquals(Long.valueOf(2), Suggestions.accountFromMessage(
                 "Spent Rs 200 on your card ending 9876 at AMAZON", accounts));
-        assertNull(Suggestions.realAccountFromMessage("Rs 500 debited from XX5555", accounts));
+        assertNull(Suggestions.accountFromMessage("Rs 500 debited from XX5555", accounts));
     }
 
     @Test
     public void twoOfYourAccountsInOneMessageSuggestNeither() {
-        List<Account> accounts = Arrays.asList(real(1, "1234"), real(2, "9876"));
-        assertNull(Suggestions.realAccountFromMessage("Acct XX1234 debited, XX9876 credited", accounts));
+        List<Account> accounts = Arrays.asList(account(1, "1234"), account(2, "9876"));
+        assertNull(Suggestions.accountFromMessage("Acct XX1234 debited, XX9876 credited", accounts));
     }
 
     @Test
-    public void virtualAccountsAreNotMatchedByNumber() {
-        Account budget = real(3, "1234");
-        budget.setType(Account.TYPE_FUND);
-        assertNull(Suggestions.realAccountFromMessage("Acct XX1234 debited", Collections.singletonList(budget)));
+    public void anAccountWithoutANumberIsNotMatched() {
+        Account cash = account(3, "");
+        assertNull(Suggestions.accountFromMessage("Acct XX1234 debited", Collections.singletonList(cash)));
     }
 
     @Test
-    public void realAccountFollowsTheBankSenderWhenPastMessagesAgree() {
+    public void accountFollowsTheBankSenderWhenPastMessagesAgree() {
         List<PastTransaction> history = new ArrayList<>();
         for (String sender : new String[] { "AX-ICICIT-S", "JD-ICICIT", "VM-ICICIT-T" }) {
             PastTransaction row = reviewed("X", "DEBIT", "Food");
             row.smsSender = sender;
-            row.realAccountId = 7L;
+            row.accountId = 7L;
             history.add(row);
         }
-        assertEquals(Long.valueOf(7), Suggestions.realAccountFromSender("BZ-ICICIT-S", history));
-        assertNull(Suggestions.realAccountFromSender("AX-KOTAKB-S", history));
+        assertEquals(Long.valueOf(7), Suggestions.accountFromSender("BZ-ICICIT-S", history));
+        assertNull(Suggestions.accountFromSender("AX-KOTAKB-S", history));
     }
 
     @Test
-    public void oneEarlierMessageIsNotEnoughToPickAnAccount() {
+    public void oneEarlierPaymentIsNotEnoughToPickAFund() {
         PastTransaction row = reviewed("SWIGGY", "DEBIT", "Food");
-        row.accountId = 4L;
-        assertNull(Suggestions.accountFromPayee("SWIGGY", Collections.singletonList(row)));
+        row.fundId = 4L;
+        assertNull(Suggestions.fundFromPayee("SWIGGY", Collections.singletonList(row)));
+    }
+
+    @Test
+    public void fundFollowsThePayeeAndIgnoresTheAccount() {
+        List<PastTransaction> history = new ArrayList<>();
+        for (int i = 0; i < 3; i++) {
+            PastTransaction row = reviewed("SWIGGY", "DEBIT", "Food");
+            row.fundId = 4L;
+            row.accountId = (long) (10 + i); // Different accounts must not split the fund vote
+            history.add(row);
+        }
+        assertEquals(Long.valueOf(4), Suggestions.fundFromPayee("SWIGGY", history));
     }
 
     @Test
@@ -184,8 +194,8 @@ public class SuggestionsTest {
         paid.setCompleted(true);
         paid.setLastCompletedDate(day(1));
         RecurringPayment transfer = bill(6, "Savings", 15000, 1);
-        transfer.setFromAccountId(1L);
-        transfer.setToAccountId(2L);
+        transfer.setFromFundId(1L);
+        transfer.setToFundId(2L);
         List<RecurringPayment> bills = Arrays.asList(paid, transfer);
         assertNull(Suggestions.bill(spend("MR LANDLORD", 15000, 2), bills, Collections.emptyList()));
 

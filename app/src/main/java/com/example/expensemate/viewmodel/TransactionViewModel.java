@@ -9,11 +9,9 @@ import androidx.lifecycle.MediatorLiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.Transformations;
 import com.example.expensemate.AppServices;
-import com.example.expensemate.data.AccountBalance;
 import com.example.expensemate.data.CategorySum;
 import com.example.expensemate.data.SummaryTotals;
 import com.example.expensemate.data.Transaction;
-import com.example.expensemate.domain.AccountService;
 import com.example.expensemate.domain.CaptureService;
 import com.example.expensemate.domain.Services;
 import com.example.expensemate.domain.TransactionService;
@@ -25,7 +23,6 @@ import java.util.function.Consumer;
 public class TransactionViewModel extends AndroidViewModel {
     private static final String TAG = "TransactionViewModel";
     private final TransactionService transactions;
-    private final AccountService accounts;
     private final CaptureService capture;
     private final Handler mainThread = new Handler(Looper.getMainLooper());
 
@@ -37,18 +34,23 @@ public class TransactionViewModel extends AndroidViewModel {
     private final LiveData<List<CategorySum>> homeExpenses;
     private final LiveData<List<CategorySum>> homeIncome;
     private boolean homeShowingExpenses = true;
-    private boolean homeAccountChosen = false;
+    private boolean homeFilterChosen = false;
 
-    /** The month and account the Home screen is showing; a null account means all accounts. */
+    /**
+     * The month the Home screen is showing, and at most one of a fund or an account to narrow it to;
+     * both null means everything. Their ids come from separate tables, so they are kept apart.
+     */
     private static final class HomePeriod {
         final Date from;
         final Date to;
+        final Long fundId;
         final Long accountId;
         final String currency; // The breakdown shows one currency at a time
 
-        HomePeriod(Date from, Date to, Long accountId, String currency) {
+        HomePeriod(Date from, Date to, Long fundId, Long accountId, String currency) {
             this.from = from;
             this.to = to;
+            this.fundId = fundId;
             this.accountId = accountId;
             this.currency = currency;
         }
@@ -58,18 +60,17 @@ public class TransactionViewModel extends AndroidViewModel {
         super(application);
         Services services = AppServices.get(application);
         transactions = services.transactions();
-        accounts = services.accounts();
         capture = services.capture();
 
         activityRows = Transformations.switchMap(filter, this::rowsFor);
 
-        homePeriod = new MutableLiveData<>(periodOf(Calendar.getInstance(), null, null));
+        homePeriod = new MutableLiveData<>(periodOf(Calendar.getInstance(), null, null, null));
         homeTotals = Transformations.switchMap(homePeriod,
-                p -> transactions.summary(p.from, p.to, p.accountId));
+                p -> transactions.summary(p.from, p.to, p.fundId, p.accountId));
         homeExpenses = Transformations.switchMap(homePeriod,
-                p -> transactions.categoryTotals("DEBIT", p.currency, p.from, p.to, p.accountId));
+                p -> transactions.categoryTotals("DEBIT", p.currency, p.from, p.to, p.fundId, p.accountId));
         homeIncome = Transformations.switchMap(homePeriod,
-                p -> transactions.categoryTotals("CREDIT", p.currency, p.from, p.to, p.accountId));
+                p -> transactions.categoryTotals("CREDIT", p.currency, p.from, p.to, p.fundId, p.accountId));
     }
 
     private LiveData<List<ActivityRow>> rowsFor(TransactionFilter f) {
@@ -90,13 +91,13 @@ public class TransactionViewModel extends AndroidViewModel {
         return rows;
     }
 
-    private static HomePeriod periodOf(Calendar month, Long accountId, String currency) {
+    private static HomePeriod periodOf(Calendar month, Long fundId, Long accountId, String currency) {
         Calendar start = (Calendar) month.clone();
         start.set(Calendar.DAY_OF_MONTH, 1);
         TransactionFilter.startOfDay(start);
         Calendar end = (Calendar) start.clone();
         end.add(Calendar.MONTH, 1);
-        return new HomePeriod(start.getTime(), end.getTime(), accountId, currency);
+        return new HomePeriod(start.getTime(), end.getTime(), fundId, accountId, currency);
     }
 
     /** For scans started from a screen; it blocks, so call it off the main thread. */
@@ -128,25 +129,45 @@ public class TransactionViewModel extends AndroidViewModel {
         homeShowingExpenses = showingExpenses;
     }
 
+    /** The fund Home is narrowed to, or null. */
+    public Long getHomeFundId() {
+        return homePeriod.getValue().fundId;
+    }
+
+    /** The account Home is narrowed to, or null. */
     public Long getHomeAccountId() {
         return homePeriod.getValue().accountId;
     }
 
-    public void setHomeAccount(Long accountId) {
-        homeAccountChosen = true;
-        showHomeAccount(accountId);
+    /** Narrows Home to one fund, or to everything when null. Any account choice is cleared. */
+    public void setHomeFund(Long fundId) {
+        homeFilterChosen = true;
+        showHome(fundId, null);
     }
 
-    /** Home opens on the default account, until the person picks one themselves. */
+    /** Narrows Home to one account, or to everything when null. Any fund choice is cleared. */
+    public void setHomeAccount(Long accountId) {
+        homeFilterChosen = true;
+        showHome(null, accountId);
+    }
+
+    /** Home opens on the default account, until the person picks a fund or an account themselves. */
     public void applyDefaultHomeAccount(long accountId) {
-        if (!homeAccountChosen) {
-            showHomeAccount(accountId);
+        if (!homeFilterChosen) {
+            showHome(null, accountId);
         }
     }
 
-    private void showHomeAccount(Long accountId) {
+    /** Home opens on everyday money, the default fund, until the person picks a fund or an account themselves. */
+    public void applyDefaultHomeFund(long fundId) {
+        if (!homeFilterChosen) {
+            showHome(fundId, null);
+        }
+    }
+
+    private void showHome(Long fundId, Long accountId) {
         HomePeriod current = homePeriod.getValue();
-        homePeriod.setValue(new HomePeriod(current.from, current.to, accountId, current.currency));
+        homePeriod.setValue(new HomePeriod(current.from, current.to, fundId, accountId, current.currency));
     }
 
     /** Null until Home picks one: the main currency, or another the person chose. */
@@ -157,7 +178,8 @@ public class TransactionViewModel extends AndroidViewModel {
     public void setHomeCurrency(String currency) {
         HomePeriod current = homePeriod.getValue();
         if (!java.util.Objects.equals(current.currency, currency)) {
-            homePeriod.setValue(new HomePeriod(current.from, current.to, current.accountId, currency));
+            homePeriod.setValue(new HomePeriod(current.from, current.to, current.fundId, current.accountId,
+                    currency));
         }
     }
 
@@ -170,7 +192,7 @@ public class TransactionViewModel extends AndroidViewModel {
     public void moveHomeMonth(int months) {
         Calendar month = getHomeMonth();
         month.add(Calendar.MONTH, months);
-        homePeriod.setValue(periodOf(month, getHomeAccountId(), getHomeCurrency()));
+        homePeriod.setValue(periodOf(month, getHomeFundId(), getHomeAccountId(), getHomeCurrency()));
     }
 
     public LiveData<Integer> getNeedsReviewCount() {
@@ -184,6 +206,7 @@ public class TransactionViewModel extends AndroidViewModel {
         f.fromMillis = period.from.getTime();
         f.toMillis = period.to.getTime() - 1;
         f.rangeLabel = new java.text.SimpleDateFormat("MMMM yyyy", java.util.Locale.getDefault()).format(period.from);
+        f.fundId = period.fundId;
         f.accountId = period.accountId;
         f.category = category;
         f.currency = period.currency;
@@ -219,10 +242,12 @@ public class TransactionViewModel extends AndroidViewModel {
     }
 
     /****************************************************************************************************/
-    // Accounts
+    // Fund and account details
 
-    public LiveData<List<AccountBalance>> getAccountBalances() {
-        return accounts.balances();
+    public LiveData<List<ActivityRow>> getRowsForFund(long fundId, long fromMillis, long toMillis) {
+        Date from = new Date(fromMillis);
+        Date to = new Date(toMillis);
+        return combine(transactions.findForFund(fundId, from, to), transactions.transferLegsBetween(from, to));
     }
 
     public LiveData<List<ActivityRow>> getRowsForAccount(long accountId, long fromMillis, long toMillis) {
@@ -254,12 +279,13 @@ public class TransactionViewModel extends AndroidViewModel {
         Writes.log(TAG, "choosing category", transactions.chooseCategory(transaction.getId(), category));
     }
 
-    public void setAccount(long id, long accountId) {
-        Writes.log(TAG, "moving transaction", transactions.setAccount(id, accountId));
+    public void setFund(long id, long fundId) {
+        Writes.log(TAG, "moving transaction to fund", transactions.setFund(id, fundId));
     }
 
-    public void setRealAccount(long id, long accountId) {
-        Writes.log(TAG, "moving transaction", transactions.setRealAccount(id, accountId));
+    /** The row takes on the account's currency. */
+    public void setAccount(long id, long accountId) {
+        Writes.log(TAG, "moving transaction to account", transactions.setAccount(id, accountId));
     }
 
     public void setExcludedFromSummary(long id, boolean excluded) {

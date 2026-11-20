@@ -11,7 +11,6 @@ import android.app.Dialog;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
-import android.os.Bundle;
 import android.os.Looper;
 import android.view.View;
 import android.widget.TextView;
@@ -26,11 +25,14 @@ import com.example.expensemate.data.AppDatabase;
 import com.example.expensemate.data.Budget;
 import com.example.expensemate.data.BudgetCategory;
 import com.example.expensemate.data.Category;
+import com.example.expensemate.data.Fund;
 import com.example.expensemate.data.RecurringPayment;
 import com.example.expensemate.data.Transaction;
 import com.example.expensemate.data.Transfers;
+import com.example.expensemate.ui.accounts.AccountDetailsFragment;
 import com.example.expensemate.ui.activity.TransactionDetailsSheet;
 import com.example.expensemate.ui.activity.TransactionFormSheet;
+import com.example.expensemate.util.Money;
 import com.google.android.material.tabs.TabLayout;
 
 import org.junit.After;
@@ -124,7 +126,10 @@ public class ScreensTest {
         return Math.max(1, Math.min(day, calendar.getActualMaximum(Calendar.DAY_OF_MONTH)));
     }
 
-    private long salaryId;
+    // Funds and accounts come from separate tables, so their ids can be equal
+    private long everydayId;
+    private long savingsFundId;
+    private long salaryAccountId;
 
     private void seed() throws Exception {
         Thread seeder = new Thread(() -> {
@@ -135,42 +140,50 @@ public class ScreensTest {
             for (String name : new String[] { "Default", "Salary", "Business" }) {
                 database.categoryDao().insertCategory(new Category(name, "INCOME"));
             }
+            // What money is for
+            Fund everyday = new Fund("Everyday", "");
+            everyday.setDefault(true);
+            everydayId = database.fundDao().insert(everyday);
+            Fund savingsFund = new Fund("Savings", "For a rainy day");
+            savingsFund.setTarget(300000.0);
+            savingsFundId = database.fundDao().insert(savingsFund);
+            database.fundDao().insert(new Fund("Trip", "Goa in December"));
+
+            // Where money is
             Account salary = new Account("Salary", "000011114821", "State Bank", null, "");
+            salary.setCurrency("INR");
             salary.setDefault(true);
-            database.accountDao().insert(salary);
-            database.accountDao().insert(new Account("Household", "000022227730", "Axis Bank", null, ""));
-            database.accountDao().insert(new Account("Savings", "000033331096", "HDFC Bank", null, ""));
-            database.accountDao().insert(new Account("Credit card", "", "", daysAgo(-900, 9), ""));
-            Account bank = new Account("Bank account", "", "", null, "");
-            bank.setType(Account.TYPE_REAL);
-            bank.setCurrency("INR");
-            bank.setDefault(true);
-            database.accountDao().insert(bank);
+            salaryAccountId = database.accountDao().insert(salary);
+            Account householdAccount = new Account("Household", "000022227730", "Axis Bank", null, "");
+            householdAccount.setCurrency("INR");
+            long household = database.accountDao().insert(householdAccount);
+            Account card = new Account("Credit card", "", "", daysAgo(-900, 9), "");
+            card.setCurrency("INR");
+            long credit = database.accountDao().insert(card);
 
-            List<Account> accounts = database.accountDao().getAllAccountsSync();
-            long credit = idOf(accounts, "Credit card");
-            long household = idOf(accounts, "Household");
-            long savings = idOf(accounts, "Savings");
-            salaryId = idOf(accounts, "Salary");
-
-            insert(1240, "DEBIT", "Groceries", household, daysAgo(0, 17), "Corner Grocery", false, null);
-            insert(600, "DEBIT", "Default", salaryId, daysAgo(0, 11), "Ravi K.", true,
+            insert(1240, "DEBIT", "Groceries", everydayId, household, daysAgo(0, 17), "Corner Grocery", false, null);
+            insert(600, "DEBIT", "Default", everydayId, salaryAccountId, daysAgo(0, 11), "Ravi K.", true,
                     "Acct XX821 debited for Rs 600.00 to RAVI K");
-            insert(85000, "CREDIT", "Salary", salaryId, daysAgo(1, 9), "Monthly salary", false, null);
-            insert(320, "DEBIT", "Transport", household, daysAgo(1, 8), "City Metro", false, null);
-            insert(450, "DEBIT", "Eating out", household, daysAgo(2, 20), "Noodle House", false, null);
-            insert(24000, "DEBIT", "Home and rent", salaryId, daysAgo(3, 10), "Rent", false, null);
-            insert(23000, "DEBIT", "Groceries", credit, daysAgo(4, 10), "Superstore", false, null);
-            insert(2000, "DEBIT", "Charity", household, daysAgo(4, 12), "Food bank", false, null);
+            insert(85000, "CREDIT", "Salary", everydayId, salaryAccountId, daysAgo(1, 9), "Monthly salary", false, null);
+            insert(320, "DEBIT", "Transport", everydayId, household, daysAgo(1, 8), "City Metro", false, null);
+            insert(450, "DEBIT", "Eating out", everydayId, household, daysAgo(2, 20), "Noodle House", false, null);
+            insert(24000, "DEBIT", "Home and rent", everydayId, salaryAccountId, daysAgo(3, 10), "Rent", false, null);
+            insert(23000, "DEBIT", "Groceries", everydayId, credit, daysAgo(4, 10), "Superstore", false, null);
+            insert(2000, "DEBIT", "Charity", everydayId, household, daysAgo(4, 12), "Food bank", false, null);
 
-            Transaction[] transfer = Transfers.newPair(5000, household, savings, daysAgo(0, 15), "");
+            // Setting money aside: it moves between funds and stays in the same account
+            Transaction[] transfer = Transfers.newPair(5000, everydayId, savingsFundId, daysAgo(0, 15), "");
+            transfer[0].setAccountId(household);
+            transfer[1].setAccountId(household);
             database.transactionDao().insertTransaction(transfer[0]);
             database.transactionDao().insertTransaction(transfer[1]);
-            Transaction[] start = Transfers.newPair(245000, salaryId, savings, daysAgo(5, 9), "Opening");
+            Transaction[] start = Transfers.newPair(245000, everydayId, savingsFundId, daysAgo(5, 9), "Opening");
+            start[0].setAccountId(salaryAccountId);
+            start[1].setAccountId(salaryAccountId);
             database.transactionDao().insertTransaction(start[0]);
             database.transactionDao().insertTransaction(start[1]);
-            insert(290000, "CREDIT", "Salary", salaryId, daysAgo(40, 9), "Opening balance", false, null);
-            insert(25000, "CREDIT", "Business", household, daysAgo(40, 9), "Opening balance", false, null);
+            insert(290000, "CREDIT", "Salary", everydayId, salaryAccountId, daysAgo(40, 9), "Opening balance", false, null);
+            insert(25000, "CREDIT", "Business", everydayId, household, daysAgo(40, 9), "Opening balance", false, null);
 
             Date farOff = daysAgo(-300, 9);
             database.recurringPaymentDao().insert(new RecurringPayment("Phone bill", 799, dayOffset(-4), farOff));
@@ -182,8 +195,8 @@ public class ScreensTest {
             database.recurringPaymentDao().insert(rent);
             database.recurringPaymentDao().insert(new RecurringPayment("Old gym plan", 900, 5, daysAgo(60, 9)));
             RecurringPayment savingsPlan = new RecurringPayment("Monthly savings", 10000, dayOffset(8), farOff);
-            savingsPlan.setFromAccountId(salaryId);
-            savingsPlan.setToAccountId(savings);
+            savingsPlan.setFromFundId(everydayId);
+            savingsPlan.setToFundId(savingsFundId);
             database.recurringPaymentDao().insert(savingsPlan);
 
             Budget eating = new Budget();
@@ -198,28 +211,21 @@ public class ScreensTest {
         seeder.join();
     }
 
-    private void insert(double amount, String type, String category, long account, Date date, String receiver,
-            boolean review, String message) {
+    private void insert(double amount, String type, String category, long fund, long account, Date date,
+            String receiver, boolean review, String message) {
         Transaction row = new Transaction();
         row.setAmount(amount);
         row.setTransactionType(type);
         row.setCategory(category);
+        row.setFundId(fund);
         row.setAccountId(account);
+        row.setCurrency("INR");
         row.setDate(date);
         row.setReceiverName(receiver);
         row.setDescription("");
         row.setNeedsReview(review);
         row.setSmsBody(message);
         database.transactionDao().insertTransaction(row);
-    }
-
-    private static long idOf(List<Account> accounts, String name) {
-        for (Account account : accounts) {
-            if (account.getName().equals(name)) {
-                return account.getId();
-            }
-        }
-        throw new AssertionError(name);
     }
 
     private void shoot(String name) throws Exception {
@@ -300,8 +306,9 @@ public class ScreensTest {
     }
 
     private void runAllScreens() throws Exception {
-        // Home opens on the default account, and this month's money leaves transfers out
-        assertAccountChipChecked("Salary");
+        // Home opens on everyday money, the default fund, and this month's money leaves transfers out.
+        // Its chips hold every fund and every account; only the default fund is chosen.
+        assertAccountChipChecked("Everyday");
         assertShows("Spent ₹51,010".replace("51,010", spentThisMonth()));
         assertShows("Income ₹85,000");
         assertShows("1 transaction needs a category");
@@ -313,7 +320,7 @@ public class ScreensTest {
         settle();
         assertEquals("Activity", title());
         assertShows("Corner Grocery");
-        assertShows("Household → Savings");
+        assertShows("Everyday → Savings");
         assertShows("Today");
         shoot("activity");
 
@@ -325,30 +332,55 @@ public class ScreensTest {
         assertShows("Ended");
         shoot("bills");
 
-        activity.openTab(R.id.navigation_accounts);
+        // Money opens on funds; funds and accounts add up to the same total
+        String savingsTarget = Money.format(50000, "INR") + " to go of " + Money.format(300000, "INR");
+        activity.openTab(R.id.navigation_money);
         settle();
-        assertEquals("Accounts", title());
-        assertShows("State Bank ••4821");
-        assertShows("Everyday");
-        shoot("accounts");
-
-        assertShows("Net balance, funds");
+        assertEquals("Money", title());
+        assertShows("Net balance");
         assertShows("₹3,48,390");
+        assertShows("Everyday");
+        assertShows("Trip");
+        assertShows(savingsTarget);
+        assertShows("Fund");
+        assertFalse(visibleTexts().contains("State Bank ••4821"));
+        shoot("money_funds");
+
         TabLayout tabs = activity.findViewById(R.id.tabs);
         tabs.selectTab(tabs.getTabAt(1));
         settle();
-        assertShows("Net balance, real accounts");
-        assertShows("Bank account");
-        assertFalse(visibleTexts().contains("State Bank ••4821"));
+        assertShows("Eating");
+        assertShows("Eating out, Groceries");
+        assertShows("Budget");
+        assertFalse(visibleTexts().contains("Trip"));
+        shoot("money_budgets");
+
+        tabs.selectTab(tabs.getTabAt(2));
+        settle();
+        assertShows("₹3,48,390");
+        assertShows("State Bank ••4821");
+        assertShows("Default");
+        assertShows("Account");
+        assertFalse(visibleTexts().contains(savingsTarget));
+        shoot("money_accounts");
         tabs.selectTab(tabs.getTabAt(0));
         settle();
 
-        Bundle args = new Bundle();
-        args.putLong("accountId", salaryId);
-        nav.navigate(R.id.account_details_fragment, args);
+        // The same id can name a fund and an account, so details are opened by kind
+        nav.navigate(R.id.account_details_fragment,
+                AccountDetailsFragment.args(AccountDetailsFragment.KIND_FUND, savingsFundId));
+        settle();
+        assertEquals("Savings", title());
+        assertEquals(View.GONE, activity.findViewById(R.id.nav_view).getVisibility());
+        shoot("fund_details");
+        nav.popBackStack();
+        settle();
+
+        nav.navigate(R.id.account_details_fragment,
+                AccountDetailsFragment.args(AccountDetailsFragment.KIND_ACCOUNT, salaryAccountId));
         settle();
         assertEquals("Salary", title());
-        assertEquals(View.GONE, activity.findViewById(R.id.nav_view).getVisibility());
+        assertShows("State Bank ••4821");
         shoot("account_details");
 
         nav.popBackStack();
@@ -377,15 +409,6 @@ public class ScreensTest {
         shoot("scan");
 
         nav.popBackStack();
-        settle();
-        nav.navigate(R.id.navigation_budgets);
-        settle();
-        assertEquals("Budgets", title());
-        assertShows("Eating");
-        assertShows("Eating out, Groceries");
-        shoot("budgets");
-
-        nav.popBackStack();
         nav.popBackStack();
         settle();
         TransactionFormSheet.showAdd(activity);
@@ -411,7 +434,7 @@ public class ScreensTest {
                 Calendar when = Calendar.getInstance();
                 when.setTime(row.getDate());
                 if ("DEBIT".equals(row.getTransactionType()) && row.getTransferGroupId() == null
-                        && Long.valueOf(salaryId).equals(row.getAccountId())
+                        && Long.valueOf(everydayId).equals(row.getFundId())
                         && when.get(Calendar.MONTH) == now.get(Calendar.MONTH)
                         && when.get(Calendar.YEAR) == now.get(Calendar.YEAR)) {
                     total[0] += row.getAmount();
@@ -509,8 +532,8 @@ public class ScreensTest {
         assertEquals(250.50, saved.getAmount(), 0.001);
         assertEquals("Eating out", saved.getCategory());
         assertEquals("DEBIT", saved.getTransactionType());
-        assertEquals(Long.valueOf(salaryId), saved.getAccountId());
-        assertNotNull("Goes to the default real account", saved.getRealAccountId());
+        assertEquals("Goes to the everyday fund", Long.valueOf(everydayId), saved.getFundId());
+        assertEquals("Goes to the default account", Long.valueOf(salaryAccountId), saved.getAccountId());
     }
 
     @Test
@@ -532,12 +555,13 @@ public class ScreensTest {
         ((TextView) dialog.findViewById(R.id.etAmount)).setText("777");
         assertEquals("Move ₹777", ((TextView) dialog.findViewById(R.id.btnSave)).getText().toString());
 
-        clickChip(dialog, R.id.pickTo, "Salary");
+        // Same fund and same account on both sides: nothing would move
+        clickChip(dialog, R.id.pickToFund, "Everyday");
         dialog.findViewById(R.id.btnSave).performClick();
         settle();
-        assertEquals("Same account", before, allRows().size());
+        assertEquals("Nothing moves", before, allRows().size());
 
-        clickChip(dialog, R.id.pickTo, "Savings");
+        clickChip(dialog, R.id.pickToFund, "Savings");
         dialog.findViewById(R.id.btnSave).performClick();
         settle();
 

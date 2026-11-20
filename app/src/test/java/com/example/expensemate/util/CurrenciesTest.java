@@ -16,29 +16,32 @@ import java.util.List;
 import java.util.Map;
 
 public class CurrenciesTest {
-    private static Account real(String currency, boolean isDefault) {
+    private static Account account(String currency, boolean isDefault) {
         Account account = new Account("Bank", "", "", null, "");
-        account.setType(Account.TYPE_REAL);
         account.setCurrency(currency);
         account.setDefault(isDefault);
         return account;
     }
 
     @Test
-    public void mainCurrencyIsTheDefaultRealAccounts() {
-        Account virtual = new Account("Daily", "", "", null, "");
-        virtual.setDefault(true);
-        assertEquals("AED", Currencies.main(Arrays.asList(virtual, real("INR", false), real("AED", true))));
-        assertEquals("Without a default, the first real account", "INR",
-                Currencies.main(Arrays.asList(real("INR", false), real("AED", false))));
+    public void mainCurrencyIsTheDefaultAccounts() {
+        assertEquals("AED", Currencies.main(Arrays.asList(account("INR", false), account("AED", true))));
+        assertEquals("Without a default, the first account", "INR",
+                Currencies.main(Arrays.asList(account("INR", false), account("AED", false))));
+        assertEquals("An account without a currency is skipped", "AED",
+                Currencies.main(Arrays.asList(account(null, true), account("AED", false))));
     }
 
     @Test
-    public void onlyRealAccountsHaveACurrency() {
-        Account virtual = new Account("Daily", "", "", null, "");
-        virtual.setCurrency("INR");
-        assertNull(Currencies.of(virtual));
-        assertEquals("INR", Currencies.of(real("INR", false)));
+    public void anAccountsCurrencyIsItsOwn() {
+        assertNull(Currencies.of(null));
+        assertEquals("INR", Currencies.of(account("INR", false)));
+    }
+
+    @Test
+    public void inUseListsEachAccountCurrencyOnce() {
+        assertEquals(new java.util.LinkedHashSet<>(Arrays.asList("INR", "AED")), Currencies.inUse(
+                Arrays.asList(account("INR", true), account("AED", false), account("INR", false), account(null, false))));
     }
 
     @Test

@@ -16,7 +16,6 @@ import com.example.expensemate.data.BudgetProgress;
 import com.example.expensemate.databinding.FragmentBudgetsBinding;
 import com.example.expensemate.databinding.ItemBudgetRowBinding;
 import com.example.expensemate.ui.common.ReorderDialog;
-import com.example.expensemate.ui.common.Ui;
 import com.example.expensemate.util.Currencies;
 import com.example.expensemate.util.CurrencyTotals;
 import com.example.expensemate.util.Money;
@@ -29,7 +28,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 
-/** Monthly limits on everyday spending, and how each month is going against them. */
+/** Monthly limits on everyday spending, and how each month is going against them. Shown in the Money tab. */
 public class BudgetsFragment extends Fragment {
     private FragmentBudgetsBinding binding;
     private BudgetViewModel viewModel;
@@ -49,8 +48,7 @@ public class BudgetsFragment extends Fragment {
         ViewModelProvider provider = new ViewModelProvider(requireActivity());
         viewModel = provider.get(BudgetViewModel.class);
 
-        Ui.addReorderAction(this, this::reorder);
-        binding.fabAdd.setOnClickListener(v -> BudgetForm.show(requireActivity(), null));
+        // Lives inside the Money tab, which owns the add button and the reorder action
         binding.btnPrevMonth.setOnClickListener(v -> viewModel.shiftMonth(-1));
         binding.btnNextMonth.setOnClickListener(v -> viewModel.shiftMonth(1));
 
@@ -132,7 +130,10 @@ public class BudgetsFragment extends Fragment {
         return row.getRoot();
     }
 
-    private void reorder() {
+    public void reorder() {
+        if (binding == null) {
+            return;
+        }
         List<String> names = new ArrayList<>();
         for (BudgetProgress progress : budgets) {
             names.add(progress.budget.getName());

@@ -23,8 +23,7 @@ public interface BudgetDao {
             + "COALESCE((SELECT SUM(t.amount) FROM transactions t "
             + "WHERE t.transactionType = 'DEBIT' AND t.transferGroupId IS NULL AND t.isExcludedFromSummary = 0 "
             + "AND t.currency = b.currency AND t.date BETWEEN :fromDate AND :toDate "
-            + "AND t.accountId = (SELECT a.id FROM accounts a WHERE a.type = '" + Account.TYPE_FUND + "' "
-            + "AND a.isDefault = 1 LIMIT 1) "
+            + "AND t.fundId = (SELECT f.id FROM funds f WHERE f.isDefault = 1 LIMIT 1) "
             + "AND t.category IN (SELECT bc.category FROM budget_categories bc WHERE bc.budgetId = b.id)), 0) AS spent "
             + "FROM budgets b ORDER BY b.sortOrder ASC, b.name ASC";
 

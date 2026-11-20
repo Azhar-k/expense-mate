@@ -6,10 +6,12 @@ import androidx.lifecycle.LiveData;
 import androidx.lifecycle.Transformations;
 import com.example.expensemate.AppServices;
 import com.example.expensemate.data.Account;
+import com.example.expensemate.data.Balance;
 import com.example.expensemate.domain.AccountService;
 import com.example.expensemate.util.Currencies;
 import java.util.List;
 
+/** Where money is. Funds, what it is for, are in {@link FundViewModel}. */
 public class AccountViewModel extends AndroidViewModel {
     private static final String TAG = "AccountViewModel";
     private final AccountService accounts;
@@ -23,13 +25,18 @@ public class AccountViewModel extends AndroidViewModel {
         return accounts.accounts();
     }
 
-    /** The default real account's currency, which lists and totals put first. */
+    /** The default account's currency, which lists and totals put first. */
     public LiveData<String> getMainCurrency() {
         return Transformations.distinctUntilChanged(Transformations.map(accounts.accounts(), Currencies::main));
     }
 
     public LiveData<Account> getDefaultAccount() {
         return accounts.defaultAccount();
+    }
+
+    /** One per account, keyed by account id. */
+    public LiveData<List<Balance>> getBalances() {
+        return accounts.balances();
     }
 
     public void setDefaultAccount(Account account) {

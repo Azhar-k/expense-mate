@@ -84,14 +84,13 @@ public class CaptureSuggestionsTest {
     }
 
     @Test
-    public void accountNumberInTheMessagePicksTheRealAccount() {
+    public void accountNumberInTheMessagePicksTheAccount() {
         Account card = new Account("HDFC card", "4321", "HDFC", null, null);
-        card.setType(Account.TYPE_REAL);
         card.setCurrency("INR");
         database.accountDao().insert(card);
         long cardId = database.accountDao().getAllAccountsSync().get(0).getId();
 
-        assertEquals(Long.valueOf(cardId), captured("AMAZON", "Spent Rs 100 on card XX4321").getRealAccountId());
+        assertEquals(Long.valueOf(cardId), captured("AMAZON", "Spent Rs 100 on card XX4321").getAccountId());
     }
 
     @Test
@@ -100,9 +99,8 @@ public class CaptureSuggestionsTest {
         due.setTimeInMillis(nextTime + HOUR);
         RecurringPayment rent = new RecurringPayment("Rent", 100, due.get(Calendar.DAY_OF_MONTH), null);
         database.recurringPaymentDao().insert(rent);
-        // A bill is only suggested for a payment in its currency, which comes from the real account
+        // A bill is only suggested for a payment in its currency, which comes from its account
         Account bank = new Account("Bank account", "", "", null, null);
-        bank.setType(Account.TYPE_REAL);
         bank.setCurrency("INR");
         database.accountDao().insert(bank);
         long rentId = database.recurringPaymentDao().getAllRecurringPaymentsSync().get(0).getId();

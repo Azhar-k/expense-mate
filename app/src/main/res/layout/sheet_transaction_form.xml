@@ -102,7 +102,7 @@
             android:layout_marginEnd="-20dp" />
 
         <include
-            android:id="@+id/pickAccount"
+            android:id="@+id/pickFund"
             layout="@layout/item_chip_picker"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -111,7 +111,7 @@
             android:layout_marginEnd="-20dp" />
 
         <include
-            android:id="@+id/pickRealAccount"
+            android:id="@+id/pickAccount"
             layout="@layout/item_chip_picker"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -129,34 +129,34 @@
             android:visibility="gone">
 
             <include
-                android:id="@+id/pickFrom"
+                android:id="@+id/pickFromFund"
                 layout="@layout/item_chip_picker"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="12dp" />
 
             <include
-                android:id="@+id/pickTo"
+                android:id="@+id/pickToFund"
                 layout="@layout/item_chip_picker"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="12dp" />
 
             <include
-                android:id="@+id/pickFromReal"
+                android:id="@+id/pickFromAccount"
                 layout="@layout/item_chip_picker"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="12dp" />
 
             <include
-                android:id="@+id/pickToReal"
+                android:id="@+id/pickToAccount"
                 layout="@layout/item_chip_picker"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="12dp" />
 
-            <!-- Only when the two real accounts hold different currencies: what arrived on the other side -->
+            <!-- Only when the two accounts hold different currencies: what arrived on the other side -->
             <com.google.android.material.textfield.TextInputLayout
                 android:id="@+id/tilReceived"
                 android:layout_width="match_parent"

@@ -28,7 +28,7 @@ import java.util.List;
 public class BudgetDaoTest {
     private static final long EVERYDAY = 1;
     private static final long TRIP = 2;
-    private static final long BANK = 3;
+    private static final long BANK = 1; // The same id as a fund, which must not matter
 
     private AppDatabase database;
     private BudgetService service;
@@ -45,7 +45,6 @@ public class BudgetDaoTest {
         fund(TRIP, "Trip", false);
         Account bank = new Account("Bank", "", "", null, "");
         bank.setId(BANK);
-        bank.setType(Account.TYPE_REAL);
         bank.setDefault(true);
         bank.setCurrency("INR");
         database.accountDao().insert(bank);
@@ -66,10 +65,10 @@ public class BudgetDaoTest {
     }
 
     private void fund(long id, String name, boolean isDefault) {
-        Account fund = new Account(name, "", "", null, "");
+        Fund fund = new Fund(name, "");
         fund.setId(id);
         fund.setDefault(isDefault);
-        database.accountDao().insert(fund);
+        database.fundDao().insert(fund);
     }
 
     private void spend(double amount, String category, long fund, Date date) {
@@ -83,8 +82,8 @@ public class BudgetDaoTest {
         row.setTransactionType("DEBIT");
         row.setAmount(amount);
         row.setCategory(category);
-        row.setAccountId(fund);
-        row.setRealAccountId(BANK);
+        row.setFundId(fund);
+        row.setAccountId(BANK);
         row.setCurrency("INR");
         row.setDate(date);
         change.accept(row);
@@ -150,8 +149,8 @@ public class BudgetDaoTest {
         spend(100, "Food", EVERYDAY, inMonth(3));
         spend(700, "Food", TRIP, inMonth(3));
 
-        database.accountDao().clearDefaultAccount(Account.TYPE_FUND);
-        database.accountDao().setDefaultAccount(TRIP);
+        database.fundDao().clearDefaultFund();
+        database.fundDao().setDefaultFund(TRIP);
 
         assertEquals(700, only().spent, 0.001);
     }

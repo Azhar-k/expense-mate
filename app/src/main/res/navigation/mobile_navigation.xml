@@ -20,23 +20,22 @@
         android:label="Bills" />
 
     <fragment
-        android:id="@+id/navigation_accounts"
-        android:name="com.example.expensemate.ui.accounts.AccountsFragment"
-        android:label="Accounts" />
+        android:id="@+id/navigation_money"
+        android:name="com.example.expensemate.ui.accounts.MoneyFragment"
+        android:label="Money" />
 
+    <!-- One screen for a fund or an account: their ids can be equal, so kind says which -->
     <fragment
         android:id="@+id/account_details_fragment"
         android:name="com.example.expensemate.ui.accounts.AccountDetailsFragment"
-        android:label="Account">
+        android:label="Details">
         <argument
-            android:name="accountId"
+            android:name="kind"
+            app:argType="string" />
+        <argument
+            android:name="id"
             app:argType="long" />
     </fragment>
-
-    <fragment
-        android:id="@+id/navigation_budgets"
-        android:name="com.example.expensemate.ui.budgets.BudgetsFragment"
-        android:label="Budgets" />
 
     <fragment
         android:id="@+id/navigation_loans"

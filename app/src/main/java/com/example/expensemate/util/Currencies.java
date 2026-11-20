@@ -14,7 +14,7 @@ import java.util.TreeMap;
 
 /**
  * ISO 4217 currency codes, such as INR or AED. Money is only ever added up within one currency,
- * and the main currency, the one the default real account holds, is listed first.
+ * and the main currency, the one the default account holds, is listed first.
  */
 public final class Currencies {
     /** What every amount was in before currencies existed, and what upgraded data is labelled with. */
@@ -56,28 +56,28 @@ public final class Currencies {
         return isValid(upper) ? upper : null;
     }
 
-    /** The default real account's currency, or the phone's when there is none yet. */
+    /** The default account's currency, or the phone's when there is none yet. */
     public static String main(Collection<Account> accounts) {
-        String firstReal = null;
+        String first = null;
         if (accounts != null) {
             for (Account account : accounts) {
-                if (!account.isReal() || account.getCurrency() == null) {
+                if (account.getCurrency() == null) {
                     continue;
                 }
                 if (account.isDefault()) {
                     return account.getCurrency();
                 }
-                if (firstReal == null) {
-                    firstReal = account.getCurrency();
+                if (first == null) {
+                    first = account.getCurrency();
                 }
             }
         }
-        return firstReal != null ? firstReal : fromLocale();
+        return first != null ? first : fromLocale();
     }
 
-    /** The currency an account's money is in: its own for a real account, none for a fund. */
+    /** The currency an account's money is in, or null for no account. */
     public static String of(Account account) {
-        return account != null && account.isReal() ? account.getCurrency() : null;
+        return account != null ? account.getCurrency() : null;
     }
 
     /** "Indian Rupee", in the phone's language. */
@@ -128,12 +128,12 @@ public final class Currencies {
         return new ArrayList<>(ordered);
     }
 
-    /** The currencies of these real accounts, for putting them near the top of a picker. */
+    /** The currencies of these accounts, for putting them near the top of a picker. */
     public static Set<String> inUse(Collection<Account> accounts) {
         Set<String> codes = new LinkedHashSet<>();
         if (accounts != null) {
             for (Account account : accounts) {
-                if (account.isReal() && account.getCurrency() != null) {
+                if (account.getCurrency() != null) {
                     codes.add(account.getCurrency());
                 }
             }

@@ -21,7 +21,7 @@ public final class Bills {
     }
 
     public static boolean isTransfer(RecurringPayment payment) {
-        return payment.getFromAccountId() != null && payment.getToAccountId() != null;
+        return payment.getFromFundId() != null && payment.getToFundId() != null;
     }
 
     public static boolean isPaid(RecurringPayment payment, Calendar today) {
@@ -73,7 +73,7 @@ public final class Bills {
         for (RecurringPayment bill : bills) {
             Status status = statusOf(bill, today);
             if (isTransfer(bill) && status != Status.PAID && status != Status.ENDED
-                    && !bill.getFromAccountId().equals(bill.getToAccountId())) {
+                    && !bill.getFromFundId().equals(bill.getToFundId())) {
                 pending.add(bill);
             }
         }

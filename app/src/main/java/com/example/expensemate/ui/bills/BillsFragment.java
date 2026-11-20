@@ -22,12 +22,14 @@ import com.example.expensemate.R;
 import com.example.expensemate.data.RecurringPayment;
 import com.example.expensemate.databinding.FragmentBillsBinding;
 import com.example.expensemate.databinding.ItemBillRowBinding;
+import com.example.expensemate.ui.common.TransactionText;
 import com.example.expensemate.ui.common.Ui;
 import com.example.expensemate.util.Bills;
 import com.example.expensemate.util.Currencies;
 import com.example.expensemate.util.CurrencyTotals;
 import com.example.expensemate.util.Money;
 import com.example.expensemate.viewmodel.AccountViewModel;
+import com.example.expensemate.viewmodel.FundViewModel;
 import com.example.expensemate.viewmodel.RecurringPaymentsViewModel;
 
 import java.text.SimpleDateFormat;
@@ -42,7 +44,7 @@ public class BillsFragment extends Fragment {
     private FragmentBillsBinding binding;
     private RecurringPaymentsViewModel viewModel;
     private List<RecurringPayment> allBills = new ArrayList<>();
-    private Map<Long, String> accountNames = new HashMap<>();
+    private Map<Long, String> fundNames = new HashMap<>();
     private String mainCurrency = Currencies.fromLocale();
 
     @Nullable
@@ -76,8 +78,11 @@ public class BillsFragment extends Fragment {
         }, getViewLifecycleOwner(), Lifecycle.State.RESUMED);
 
         binding.fabAdd.setOnClickListener(v -> BillForm.show(requireActivity(), null));
+        provider.get(FundViewModel.class).getAllFunds().observe(getViewLifecycleOwner(), funds -> {
+            fundNames = BillActions.names(funds);
+            render();
+        });
         provider.get(AccountViewModel.class).getAllAccounts().observe(getViewLifecycleOwner(), accounts -> {
-            accountNames = BillActions.names(accounts);
             mainCurrency = Currencies.main(accounts);
             render();
         });
@@ -172,7 +177,7 @@ public class BillsFragment extends Fragment {
         binding.btnMoveAll.setVisibility(pending.isEmpty() ? View.GONE : View.VISIBLE);
         binding.btnMoveAll.setText("Top up all " + pendingTotal.format(mainCurrency, mainCurrency));
         binding.btnMoveAll.setOnClickListener(
-                v -> BillActions.confirmMoveAll(requireActivity(), pending, accountNames));
+                v -> BillActions.confirmMoveAll(requireActivity(), pending, fundNames));
     }
 
     /** "₹500 paid of ₹900", or with several currencies "₹500 of ₹900 · AED 0 of AED 300 paid". */
@@ -220,7 +225,8 @@ public class BillsFragment extends Fragment {
 
         String statusLine = BillText.statusLine(bill, today);
         if (Bills.isTransfer(bill)) {
-            String route = accountNames.get(bill.getFromAccountId()) + " → " + accountNames.get(bill.getToAccountId());
+            String route = TransactionText.fundName(fundNames, bill.getFromFundId()) + " → "
+                    + TransactionText.fundName(fundNames, bill.getToFundId());
             statusLine = route + " · " + statusLine;
         }
         row.tvStatus.setText(statusLine);
@@ -247,10 +253,10 @@ public class BillsFragment extends Fragment {
         }
 
         boolean canMove = Bills.isTransfer(bill) && !paid && !ended
-                && !bill.getFromAccountId().equals(bill.getToAccountId());
+                && !bill.getFromFundId().equals(bill.getToFundId());
         if (canMove) {
             Ui.styleTag(row.btnMove, "Top up", R.color.transfer_container, R.color.transfer);
-            row.btnMove.setOnClickListener(v -> BillActions.confirmMove(requireActivity(), bill, accountNames));
+            row.btnMove.setOnClickListener(v -> BillActions.confirmMove(requireActivity(), bill, fundNames));
         }
         row.getRoot().setOnClickListener(v -> BillDetailsSheet.show(requireActivity(), bill.getId()));
         return row.getRoot();
