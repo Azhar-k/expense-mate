@@ -44,7 +44,7 @@ public final class BillText {
         int days = Bills.daysUntilDue(bill, today);
         switch (Bills.statusOf(bill, today)) {
             case PAID:
-                return (Bills.isTransfer(bill) ? "Moved " : "Paid ") + dayMonth.format(bill.getLastCompletedDate());
+                return (Bills.isTransfer(bill) ? "Topped up " : "Paid ") + dayMonth.format(bill.getLastCompletedDate());
             case LATE:
                 return "Was due " + due;
             case DUE_SOON:

@@ -131,7 +131,7 @@
                         style="@style/Text.ExpenseMate.Section"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Planned transfers" />
+                        android:text="Fund top-ups" />
 
                     <TextView
                         android:id="@+id/tvTransfersLeft"

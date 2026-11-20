@@ -77,7 +77,7 @@
                 android:layout_marginTop="4dp"
                 android:clickable="true"
                 android:focusable="true"
-                android:text="Move now"
+                android:text="Top up"
                 android:visibility="gone" />
         </LinearLayout>
     </LinearLayout>

@@ -67,7 +67,7 @@ public final class Bills {
         return days <= DUE_SOON_DAYS ? Status.DUE_SOON : Status.UPCOMING;
     }
 
-    /** Planned transfers still to be made this month. */
+    /** Fund top-ups still to be made this month. */
     public static List<RecurringPayment> pendingTransfers(List<RecurringPayment> bills, Calendar today) {
         List<RecurringPayment> pending = new ArrayList<>();
         for (RecurringPayment bill : bills) {

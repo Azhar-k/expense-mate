@@ -91,7 +91,7 @@ public class BillDetailsSheet extends ExpandedSheet {
         boolean canMove = Bills.isTransfer(bill) && status != Bills.Status.PAID && status != Bills.Status.ENDED
                 && !bill.getFromAccountId().equals(bill.getToAccountId());
         binding.btnMove.setVisibility(canMove ? View.VISIBLE : View.GONE);
-        binding.btnMove.setText("Move " + Money.format(bill.getAmount(), bill.getCurrency()));
+        binding.btnMove.setText("Top up " + Money.format(bill.getAmount(), bill.getCurrency()));
         binding.btnMove.setOnClickListener(v -> {
             dismiss();
             BillActions.confirmMove(activity, bill, names);

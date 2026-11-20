@@ -92,7 +92,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
-        android:text="Moving money between your own accounts? Choose both, and this becomes a planned transfer." />
+        android:text="Putting money into a fund each month? Choose where it comes from and the fund, and this becomes a top-up." />
 
     <LinearLayout
         android:layout_width="match_parent"

@@ -55,7 +55,7 @@ public final class BillForm {
             List<String> names = new ArrayList<>();
             names.add(NO_ACCOUNT);
             for (Account account : list) {
-                // A planned transfer moves money between funds
+                // A fund top-up moves money from one fund to another
                 if (account.isReal()) {
                     continue;
                 }

@@ -16,7 +16,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-/** Moving money for planned transfers, one at a time or all together. */
+/** Fund top-ups, one at a time or all together. */
 public final class BillActions {
     private BillActions() {
     }
@@ -31,13 +31,15 @@ public final class BillActions {
 
     public static void confirmMove(FragmentActivity activity, RecurringPayment bill, Map<Long, String> names) {
         new MaterialAlertDialogBuilder(activity)
-                .setTitle("Move " + Money.format(bill.getAmount(), bill.getCurrency()) + "?")
+                .setTitle("Top up " + TransactionText.accountName(names, bill.getToAccountId()) + " with "
+                        + Money.format(bill.getAmount(), bill.getCurrency()) + "?")
                 .setMessage("From " + TransactionText.accountName(names, bill.getFromAccountId()) + " to "
                         + TransactionText.accountName(names, bill.getToAccountId()) + " for " + bill.getName() + ".")
                 .setNegativeButton("Cancel", null)
-                .setPositiveButton("Move", (dialog, which) -> {
+                .setPositiveButton("Top up", (dialog, which) -> {
                     move(activity, bill);
-                    Ui.snackbar(activity, "Moved " + Money.format(bill.getAmount(), bill.getCurrency()));
+                    Ui.snackbar(activity, TransactionText.accountName(names, bill.getToAccountId()) + " topped up with "
+                            + Money.format(bill.getAmount(), bill.getCurrency()));
                 })
                 .show();
     }
@@ -54,14 +56,14 @@ public final class BillActions {
         }
         String totalText = total.format(pending.get(0).getCurrency(), pending.get(0).getCurrency());
         new MaterialAlertDialogBuilder(activity)
-                .setTitle("Move " + totalText + "?")
+                .setTitle("Top up funds with " + totalText + "?")
                 .setMessage(message.toString().trim())
                 .setNegativeButton("Cancel", null)
-                .setPositiveButton("Move all", (dialog, which) -> {
+                .setPositiveButton("Top up all", (dialog, which) -> {
                     for (RecurringPayment bill : pending) {
                         move(activity, bill);
                     }
-                    Ui.snackbar(activity, "Moved " + totalText);
+                    Ui.snackbar(activity, "Funds topped up with " + totalText);
                 })
                 .show();
     }

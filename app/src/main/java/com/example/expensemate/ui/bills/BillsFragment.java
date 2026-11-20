@@ -160,7 +160,7 @@ public class BillsFragment extends Fragment {
         binding.tvTransfersLeft.setText(transfersLeft.format(mainCurrency, mainCurrency) + " left");
 
         fillList(binding.listBills, bills, today, "No bills yet. Add rent, subscriptions or anything else that repeats.");
-        fillList(binding.listTransfers, transfers, today, "Add a bill with both accounts to plan a regular transfer.");
+        fillList(binding.listTransfers, transfers, today, "Add a bill with both funds to top up a fund every month.");
         fillList(binding.listEnded, ended, today, null);
         binding.headerEnded.setVisibility(ended.isEmpty() ? View.GONE : View.VISIBLE);
 
@@ -170,7 +170,7 @@ public class BillsFragment extends Fragment {
             pendingTotal.add(bill.getCurrency(), bill.getAmount());
         }
         binding.btnMoveAll.setVisibility(pending.isEmpty() ? View.GONE : View.VISIBLE);
-        binding.btnMoveAll.setText("Move all " + pendingTotal.format(mainCurrency, mainCurrency));
+        binding.btnMoveAll.setText("Top up all " + pendingTotal.format(mainCurrency, mainCurrency));
         binding.btnMoveAll.setOnClickListener(
                 v -> BillActions.confirmMoveAll(requireActivity(), pending, accountNames));
     }
@@ -249,7 +249,7 @@ public class BillsFragment extends Fragment {
         boolean canMove = Bills.isTransfer(bill) && !paid && !ended
                 && !bill.getFromAccountId().equals(bill.getToAccountId());
         if (canMove) {
-            Ui.styleTag(row.btnMove, "Move now", R.color.transfer_container, R.color.transfer);
+            Ui.styleTag(row.btnMove, "Top up", R.color.transfer_container, R.color.transfer);
             row.btnMove.setOnClickListener(v -> BillActions.confirmMove(requireActivity(), bill, accountNames));
         }
         row.getRoot().setOnClickListener(v -> BillDetailsSheet.show(requireActivity(), bill.getId()));
