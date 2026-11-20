@@ -19,8 +19,12 @@
             android:icon="@drawable/ic_tag"
             android:title="Categories" />
         <item
-            android:id="@+id/navigation_sms_scan"
+            android:id="@+id/navigation_patterns"
             android:icon="@drawable/ic_sms"
+            android:title="Message patterns" />
+        <item
+            android:id="@+id/navigation_sms_scan"
+            android:icon="@drawable/ic_search"
             android:title="Scan messages" />
         <item
             android:id="@+id/navigation_settings"
