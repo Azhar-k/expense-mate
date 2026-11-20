@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
     <item android:id="@+id/navigation_home" android:icon="@drawable/ic_home" android:title="Home" />
+    <item android:id="@+id/navigation_money" android:icon="@drawable/ic_wallet" android:title="Money" />
     <item android:id="@+id/navigation_activity" android:icon="@drawable/ic_activity" android:title="Activity" />
     <item android:id="@+id/navigation_bills" android:icon="@drawable/ic_bill" android:title="Bills" />
-    <item android:id="@+id/navigation_money" android:icon="@drawable/ic_wallet" android:title="Money" />
 </menu>

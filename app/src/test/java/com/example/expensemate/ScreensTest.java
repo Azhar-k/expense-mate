@@ -332,11 +332,20 @@ public class ScreensTest {
         assertShows("Ended");
         shoot("bills");
 
-        // Money opens on funds; funds and accounts add up to the same total
+        // Money opens on budgets; funds and accounts add up to the same total
         String savingsTarget = Money.format(50000, "INR") + " to go of " + Money.format(300000, "INR");
         activity.openTab(R.id.navigation_money);
         settle();
         assertEquals("Money", title());
+        assertShows("Eating");
+        assertShows("Eating out, Groceries");
+        assertShows("Budget");
+        assertFalse(visibleTexts().contains("Trip"));
+        shoot("money_budgets");
+
+        TabLayout tabs = activity.findViewById(R.id.tabs);
+        tabs.selectTab(tabs.getTabAt(1));
+        settle();
         assertShows("Net balance");
         assertShows("₹3,48,390");
         assertShows("Everyday");
@@ -346,15 +355,6 @@ public class ScreensTest {
         assertFalse(visibleTexts().contains("State Bank ••4821"));
         shoot("money_funds");
 
-        TabLayout tabs = activity.findViewById(R.id.tabs);
-        tabs.selectTab(tabs.getTabAt(1));
-        settle();
-        assertShows("Eating");
-        assertShows("Eating out, Groceries");
-        assertShows("Budget");
-        assertFalse(visibleTexts().contains("Trip"));
-        shoot("money_budgets");
-
         tabs.selectTab(tabs.getTabAt(2));
         settle();
         assertShows("₹3,48,390");
@@ -363,7 +363,7 @@ public class ScreensTest {
         assertShows("Account");
         assertFalse(visibleTexts().contains(savingsTarget));
         shoot("money_accounts");
-        tabs.selectTab(tabs.getTabAt(0));
+        tabs.selectTab(tabs.getTabAt(1));
         settle();
 
         // The same id can name a fund and an account, so details are opened by kind

@@ -40,8 +40,8 @@ import java.util.Map;
  * (where money is). Funds and accounts are two views of the same money, so their totals match.
  */
 public class MoneyFragment extends Fragment {
-    static final int FUNDS = 0;
-    static final int BUDGETS = 1;
+    static final int BUDGETS = 0;
+    static final int FUNDS = 1;
     static final int ACCOUNTS = 2;
     private static final String STATE_SEGMENT = "segment";
 
@@ -54,7 +54,7 @@ public class MoneyFragment extends Fragment {
     private Map<Long, CurrencyTotals> fundBalances = new HashMap<>();
     private Map<Long, CurrencyTotals> accountBalances = new HashMap<>();
     private String mainCurrency = Currencies.fromLocale();
-    private int segment = FUNDS; // Kept on the instance, so coming back from details keeps the segment
+    private int segment = BUDGETS; // Kept on the instance, so coming back from details keeps the segment
 
     @Nullable
     @Override
