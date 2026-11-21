@@ -115,14 +115,23 @@ public interface TransactionDao {
         // Amounts in different currencies are never added together, so every total comes one per currency.
         // A null fund or account means any.
 
+        // A pair whose other side is in the same account (or fund) being shown cancels out there, so it moved
+        // nothing in or out of it: a move seen from its account, or a transfer between accounts seen from its fund
+        String STAYS_OUT = "AND NOT EXISTS (SELECT 1 FROM transactions other "
+                + "WHERE other.transferGroupId = transactions.transferGroupId AND other.id <> transactions.id "
+                + "AND ((:accountId IS NOT NULL AND other.accountId = transactions.accountId) "
+                + "OR (:fundId IS NOT NULL AND other.fundId = transactions.fundId)))";
+
         @Query("SELECT currency, " +
                         "COALESCE(SUM(CASE WHEN transactionType = 'DEBIT' AND transferGroupId IS NULL AND isExcludedFromSummary = 0 THEN amount END), 0) AS expense, "
                         +
                         "COALESCE(SUM(CASE WHEN transactionType = 'CREDIT' AND transferGroupId IS NULL AND isExcludedFromSummary = 0 THEN amount END), 0) AS income, "
                         +
-                        "COALESCE(SUM(CASE WHEN transactionType = 'DEBIT' AND transferGroupId IS NOT NULL AND isExcludedFromSummary = 0 THEN amount END), 0) AS movedOut, "
+                        "COALESCE(SUM(CASE WHEN transactionType = 'DEBIT' AND transferGroupId IS NOT NULL AND isExcludedFromSummary = 0 "
+                        + STAYS_OUT + " THEN amount END), 0) AS movedOut, "
                         +
-                        "COALESCE(SUM(CASE WHEN transactionType = 'CREDIT' AND transferGroupId IS NOT NULL AND isExcludedFromSummary = 0 THEN amount END), 0) AS movedIn "
+                        "COALESCE(SUM(CASE WHEN transactionType = 'CREDIT' AND transferGroupId IS NOT NULL AND isExcludedFromSummary = 0 "
+                        + STAYS_OUT + " THEN amount END), 0) AS movedIn "
                         +
                         "FROM transactions WHERE date >= :fromDate AND date < :toDate " +
                         "AND (:fundId IS NULL OR fundId = :fundId) AND (:accountId IS NULL OR accountId = :accountId) " +

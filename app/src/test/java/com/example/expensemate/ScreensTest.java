@@ -546,38 +546,77 @@ public class ScreensTest {
     }
 
     @Test
-    public void transferSheetSavesALinkedPairAndRefusesOneAccount() throws Exception {
+    public void moveSheetChangesOnlyTheFund() throws Exception {
         int before = allRows().size();
         Dialog dialog = openAddSheet();
         ((com.google.android.material.button.MaterialButtonToggleGroup) dialog.findViewById(R.id.typeToggle))
-                .check(R.id.btnTransfer);
+                .check(R.id.btnMove);
         settle();
         ((TextView) dialog.findViewById(R.id.etAmount)).setText("777");
         assertEquals("Move ₹777", ((TextView) dialog.findViewById(R.id.btnSave)).getText().toString());
+        // Every account holds rupees, so there is no account to pick: a move never leaves one
+        assertEquals(View.VISIBLE, dialog.findViewById(R.id.pickFromFund).getVisibility());
+        assertEquals(View.GONE, dialog.findViewById(R.id.pickAccount).getVisibility());
+        assertEquals(View.GONE, dialog.findViewById(R.id.pickFromAccount).getVisibility());
 
-        // Same fund and same account on both sides: nothing would move
         clickChip(dialog, R.id.pickToFund, "Everyday");
         dialog.findViewById(R.id.btnSave).performClick();
         settle();
-        assertEquals("Nothing moves", before, allRows().size());
+        assertEquals("A move to the same fund moves nothing", before, allRows().size());
 
         clickChip(dialog, R.id.pickToFund, "Savings");
         dialog.findViewById(R.id.btnSave).performClick();
         settle();
 
-        List<Transaction> rows = allRows();
-        assertEquals(before + 2, rows.size());
-        String group = null;
-        int legs = 0;
-        for (Transaction row : rows) {
-            if (row.getAmount() == 777) {
-                group = row.getTransferGroupId();
-                assertNotNull(group);
-                assertEquals(Transfers.CATEGORY, row.getCategory());
-                legs++;
+        List<Transaction> legs = rowsWithAmount(777);
+        assertEquals(before + 2, allRows().size());
+        assertEquals(2, legs.size());
+        assertNotNull(legs.get(0).getTransferGroupId());
+        assertEquals(legs.get(0).getTransferGroupId(), legs.get(1).getTransferGroupId());
+        assertEquals(Transfers.CATEGORY, legs.get(0).getCategory());
+        assertEquals(legs.get(0).getAccountId(), legs.get(1).getAccountId());
+        assertTrue(Transfers.isMove(legs.get(0), legs.get(1)));
+    }
+
+    @Test
+    public void transferSheetChangesOnlyTheAccount() throws Exception {
+        int before = allRows().size();
+        Dialog dialog = openAddSheet();
+        ((com.google.android.material.button.MaterialButtonToggleGroup) dialog.findViewById(R.id.typeToggle))
+                .check(R.id.btnTransfer);
+        settle();
+        ((TextView) dialog.findViewById(R.id.etAmount)).setText("888");
+        assertEquals("Transfer ₹888", ((TextView) dialog.findViewById(R.id.btnSave)).getText().toString());
+        // The money keeps its purpose, so no fund is asked for
+        assertEquals(View.VISIBLE, dialog.findViewById(R.id.pickToAccount).getVisibility());
+        assertEquals(View.GONE, dialog.findViewById(R.id.pickFromFund).getVisibility());
+        assertEquals(View.GONE, dialog.findViewById(R.id.pickToFund).getVisibility());
+
+        dialog.findViewById(R.id.btnSave).performClick();
+        settle();
+        assertEquals("Both sides start on the default account, so nothing moves yet", before, allRows().size());
+
+        clickChip(dialog, R.id.pickToAccount, "Household");
+        dialog.findViewById(R.id.btnSave).performClick();
+        settle();
+
+        List<Transaction> legs = rowsWithAmount(888);
+        assertEquals(2, legs.size());
+        assertEquals(legs.get(0).getTransferGroupId(), legs.get(1).getTransferGroupId());
+        assertEquals(legs.get(0).getFundId(), legs.get(1).getFundId());
+        assertEquals(Long.valueOf(everydayId), legs.get(0).getFundId());
+        assertTrue(!legs.get(0).getAccountId().equals(legs.get(1).getAccountId()));
+        assertTrue(!Transfers.isMove(legs.get(0), legs.get(1)));
+    }
+
+    private List<Transaction> rowsWithAmount(double amount) throws Exception {
+        List<Transaction> found = new java.util.ArrayList<>();
+        for (Transaction row : allRows()) {
+            if (row.getAmount() == amount) {
+                found.add(row);
             }
         }
-        assertEquals(2, legs);
+        return found;
     }
 
     @Test

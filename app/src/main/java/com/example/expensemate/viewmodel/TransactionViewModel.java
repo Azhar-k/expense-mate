@@ -12,6 +12,7 @@ import com.example.expensemate.AppServices;
 import com.example.expensemate.data.CategorySum;
 import com.example.expensemate.data.SummaryTotals;
 import com.example.expensemate.data.Transaction;
+import com.example.expensemate.data.Transfers;
 import com.example.expensemate.domain.CaptureService;
 import com.example.expensemate.domain.Services;
 import com.example.expensemate.domain.TransactionService;
@@ -19,6 +20,7 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 
 public class TransactionViewModel extends AndroidViewModel {
     private static final String TAG = "TransactionViewModel";
@@ -74,16 +76,28 @@ public class TransactionViewModel extends AndroidViewModel {
     }
 
     private LiveData<List<ActivityRow>> rowsFor(TransactionFilter f) {
+        // Moves and transfers are stored alike, so which one a pair is can only be read once its two sides meet
+        Boolean moves = Boolean.TRUE.equals(f.transfers) ? f.moves : null;
+        Predicate<ActivityRow> keep = moves == null ? null
+                : moves ? ActivityRow::isMove : ActivityRow::isAccountTransfer;
+        // Narrowed to one account or fund, a pair that changes nothing there is left out, as on its own page
+        Predicate<ActivityRow> narrowed = f.accountId != null ? row -> !row.isMove()
+                : f.fundId != null ? row -> !row.isTransfer() || !Transfers.staysInFund(row.debitLeg, row.creditLeg)
+                : null;
+        if (narrowed != null) {
+            keep = keep == null ? narrowed : keep.and(narrowed);
+        }
         return combine(transactions.find(f.toQuery()),
-                transactions.transferLegsBetween(new Date(f.fromMillis), new Date(f.toMillis)));
+                transactions.transferLegsBetween(new Date(f.fromMillis), new Date(f.toMillis)), keep);
     }
 
     private static LiveData<List<ActivityRow>> combine(LiveData<List<Transaction>> transactions,
-            LiveData<List<Transaction>> legs) {
+            LiveData<List<Transaction>> legs, Predicate<ActivityRow> keep) {
         MediatorLiveData<List<ActivityRow>> rows = new MediatorLiveData<>();
         Runnable update = () -> {
             if (transactions.getValue() != null && legs.getValue() != null) {
-                rows.setValue(ActivityRow.build(transactions.getValue(), legs.getValue(), Calendar.getInstance()));
+                List<ActivityRow> built = ActivityRow.build(transactions.getValue(), legs.getValue(), Calendar.getInstance());
+                rows.setValue(keep == null ? built : ActivityRow.keep(built, keep));
             }
         };
         rows.addSource(transactions, value -> update.run());
@@ -244,16 +258,20 @@ public class TransactionViewModel extends AndroidViewModel {
     /****************************************************************************************************/
     // Fund and account details
 
+    /** Leaves out transfers between accounts that stay in this fund, since they change nothing in it. */
     public LiveData<List<ActivityRow>> getRowsForFund(long fundId, long fromMillis, long toMillis) {
         Date from = new Date(fromMillis);
         Date to = new Date(toMillis);
-        return combine(transactions.findForFund(fundId, from, to), transactions.transferLegsBetween(from, to));
+        return combine(transactions.findForFund(fundId, from, to), transactions.transferLegsBetween(from, to),
+                row -> !row.isTransfer() || !Transfers.staysInFund(row.debitLeg, row.creditLeg));
     }
 
+    /** Leaves out moves between funds: the bank never saw them, so the history matches its statement. */
     public LiveData<List<ActivityRow>> getRowsForAccount(long accountId, long fromMillis, long toMillis) {
         Date from = new Date(fromMillis);
         Date to = new Date(toMillis);
-        return combine(transactions.findForAccount(accountId, from, to), transactions.transferLegsBetween(from, to));
+        return combine(transactions.findForAccount(accountId, from, to), transactions.transferLegsBetween(from, to),
+                row -> !row.isMove());
     }
 
     /****************************************************************************************************/

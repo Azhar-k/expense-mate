@@ -2,6 +2,7 @@ package com.example.expensemate.ui.common;
 
 import com.example.expensemate.R;
 import com.example.expensemate.data.Transaction;
+import com.example.expensemate.data.Transfers;
 import com.example.expensemate.util.Money;
 
 import java.util.Locale;
@@ -50,18 +51,35 @@ public final class TransactionText {
         return Money.format(shown.getAmount(), shown.getCurrency());
     }
 
-    /** Names the side the money moved on: a transfer can stay in one fund and change account. */
+    /** A move names the funds; a transfer names the accounts, since that is what changed. */
     public static String transferRoute(java.util.Map<Long, String> fundNames, java.util.Map<Long, String> accountNames,
             Transaction debit, Transaction credit) {
         if (debit == null || credit == null) {
             return (debit != null ? fundName(fundNames, debit.getFundId()) : "Unknown") + " → "
                     + (credit != null ? fundName(fundNames, credit.getFundId()) : "Unknown");
         }
-        if (java.util.Objects.equals(debit.getFundId(), credit.getFundId())) {
-            return accountName(accountNames, debit.getAccountId()) + " → "
-                    + accountName(accountNames, credit.getAccountId());
+        if (Transfers.isMove(debit, credit)) {
+            return fundName(fundNames, debit.getFundId()) + " → " + fundName(fundNames, credit.getFundId());
         }
-        return fundName(fundNames, debit.getFundId()) + " → " + fundName(fundNames, credit.getFundId());
+        return accountName(accountNames, debit.getAccountId()) + " → "
+                + accountName(accountNames, credit.getAccountId());
+    }
+
+    /** "Move" or "Transfer". A transfer that also changed fund says which, as nothing else on the row does. */
+    public static String transferKind(java.util.Map<Long, String> fundNames, Transaction debit, Transaction credit) {
+        if (Transfers.isMove(debit, credit)) {
+            return "Move";
+        }
+        if (debit != null && credit != null && !Transfers.staysInFund(debit, credit)) {
+            return "Transfer · " + fundName(fundNames, debit.getFundId()) + " → "
+                    + fundName(fundNames, credit.getFundId());
+        }
+        return "Transfer";
+    }
+
+    /** The word for a pair on its own, as in "Move deleted". */
+    public static String transferNoun(Transaction debit, Transaction credit) {
+        return Transfers.isMove(debit, credit) ? "Move" : "Transfer";
     }
 
     public static int categoryIcon(String category) {

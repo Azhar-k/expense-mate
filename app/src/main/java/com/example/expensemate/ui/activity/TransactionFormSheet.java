@@ -44,7 +44,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
-/** The one place to add or edit an expense, an income or a transfer. */
+/** The one place to add or edit an expense, an income, a move between funds or a transfer between accounts. */
 public class TransactionFormSheet extends ExpandedSheet {
     private static final String ARG_EDIT_ID = "edit_id";
     private static final String ARG_AMOUNT = "amount";
@@ -77,6 +77,8 @@ public class TransactionFormSheet extends ExpandedSheet {
     private Transaction editingCredit;
     private final Map<Long, Account> accountsById = new HashMap<>();
     private String mainCurrency = Currencies.fromLocale();
+    private boolean manyCurrencies; // A move asks for its account only when accounts differ in currency
+    private boolean editingChangesFund; // An older transfer that changed both fund and account
 
     public static void showAdd(FragmentActivity activity) {
         new TransactionFormSheet().show(activity.getSupportFragmentManager(), "transaction_form");
@@ -208,6 +210,7 @@ public class TransactionFormSheet extends ExpandedSheet {
                 accountsById.put(each.getId(), each);
             }
             mainCurrency = Currencies.main(list);
+            manyCurrencies = Currencies.inUse(list).size() > 1;
             boolean firstFill = account.selectedId() == null;
             account.setAccounts(list);
             fromAccount.setAccounts(list);
@@ -222,7 +225,7 @@ public class TransactionFormSheet extends ExpandedSheet {
                 }
             }
             fillAccountsForEdit();
-            onCurrencyChanged();
+            onTypeChanged();
         });
         categoryViewModel.getAllCategories().observe(getViewLifecycleOwner(), list -> {
             categories = list;
@@ -240,6 +243,7 @@ public class TransactionFormSheet extends ExpandedSheet {
         });
 
         if (isEditing()) {
+            binding.btnMove.setEnabled(false);
             binding.btnTransfer.setEnabled(false);
             binding.chipMore.performClick();
             Ui.observeOnce(viewModel.getTransaction(args.getLong(ARG_EDIT_ID)), getViewLifecycleOwner(), this::loadForEdit);
@@ -275,6 +279,8 @@ public class TransactionFormSheet extends ExpandedSheet {
         binding.etNote.setText(transaction.getDescription());
         binding.etReceiver.setText(transaction.getReceiverName());
         if (transaction.isTransfer()) {
+            // Either kind can be turned into the other, but not into an expense or income
+            binding.btnMove.setEnabled(true);
             binding.btnTransfer.setEnabled(true);
             binding.btnExpense.setEnabled(false);
             binding.btnIncome.setEnabled(false);
@@ -288,6 +294,10 @@ public class TransactionFormSheet extends ExpandedSheet {
                         editingCredit = leg;
                     }
                 }
+                // A transfer saved before the two were told apart may change fund too, so it keeps both
+                editingChangesFund = !Transfers.isMove(editingDebit, editingCredit)
+                        && !Transfers.staysInFund(editingDebit, editingCredit);
+                binding.typeToggle.check(Transfers.isMove(editingDebit, editingCredit) ? R.id.btnMove : R.id.btnTransfer);
                 // The amount is what left; the row tapped may be the side that arrived, in another currency
                 if (editingDebit != null) {
                     binding.etAmount.setText(Money.plain(editingDebit.getAmount()));
@@ -331,6 +341,8 @@ public class TransactionFormSheet extends ExpandedSheet {
                 toFund.select(editingCredit.getFundId());
                 fromAccount.select(editingDebit.getAccountId());
                 toAccount.select(editingCredit.getAccountId());
+                account.select(editingDebit.getAccountId());
+                fund.select(editingDebit.getFundId());
             }
         } else {
             fund.select(editing.getFundId());
@@ -357,21 +369,44 @@ public class TransactionFormSheet extends ExpandedSheet {
         }
     }
 
+    /** Between funds, inside one account. */
+    private boolean isMoveMode() {
+        return binding.typeToggle.getCheckedButtonId() == R.id.btnMove;
+    }
+
+    /** Between accounts. */
     private boolean isTransferMode() {
         return binding.typeToggle.getCheckedButtonId() == R.id.btnTransfer;
+    }
+
+    /** Either: saved as a debit and a credit. */
+    private boolean isPairMode() {
+        return isMoveMode() || isTransferMode();
     }
 
     private boolean isIncomeMode() {
         return binding.typeToggle.getCheckedButtonId() == R.id.btnIncome;
     }
 
+    /**
+     * Each kind asks only for what it changes. A move picks two funds; its account only sets the
+     * currency, so it shows when accounts hold more than one. A transfer picks two accounts; the fund
+     * stays the same on both sides, so it is not asked for.
+     */
     private void onTypeChanged() {
+        boolean move = isMoveMode();
         boolean transfer = isTransferMode();
-        binding.pickCategory.getRoot().setVisibility(transfer ? View.GONE : View.VISIBLE);
-        binding.pickFund.getRoot().setVisibility(transfer ? View.GONE : View.VISIBLE);
-        binding.pickAccount.getRoot().setVisibility(transfer ? View.GONE : View.VISIBLE);
-        binding.groupTransfer.setVisibility(transfer ? View.VISIBLE : View.GONE);
-        binding.tilReceiver.setVisibility(transfer ? View.GONE : View.VISIBLE);
+        boolean pair = move || transfer;
+        binding.pickCategory.getRoot().setVisibility(pair ? View.GONE : View.VISIBLE);
+        binding.pickFund.getRoot().setVisibility(pair ? View.GONE : View.VISIBLE);
+        binding.pickAccount.getRoot().setVisibility(!pair || (move && manyCurrencies) ? View.VISIBLE : View.GONE);
+        binding.groupTransfer.setVisibility(pair ? View.VISIBLE : View.GONE);
+        boolean fundsShown = move || editingChangesFund;
+        binding.pickFromFund.getRoot().setVisibility(fundsShown ? View.VISIBLE : View.GONE);
+        binding.pickToFund.getRoot().setVisibility(fundsShown ? View.VISIBLE : View.GONE);
+        binding.pickFromAccount.getRoot().setVisibility(transfer ? View.VISIBLE : View.GONE);
+        binding.pickToAccount.getRoot().setVisibility(transfer ? View.VISIBLE : View.GONE);
+        binding.tilReceiver.setVisibility(pair ? View.GONE : View.VISIBLE);
         binding.tilReceiver.setHint(isIncomeMode() ? "Received from" : "Paid to");
         selectedCategoryStillValid();
         buildCategoryChips();
@@ -469,8 +504,8 @@ public class TransactionFormSheet extends ExpandedSheet {
 
     private void updateSaveLabel() {
         Double amount = Money.parse(binding.etAmount.getText().toString());
-        if (isTransferMode() && !isEditing() && amount != null) {
-            binding.btnSave.setText("Move " + Money.format(amount, amountCurrency()));
+        if (isPairMode() && !isEditing() && amount != null) {
+            binding.btnSave.setText((isMoveMode() ? "Move " : "Transfer ") + Money.format(amount, amountCurrency()));
         } else {
             binding.btnSave.setText("Save");
         }
@@ -482,7 +517,7 @@ public class TransactionFormSheet extends ExpandedSheet {
             binding.tvAmountError.setVisibility(View.VISIBLE);
             return;
         }
-        if (isTransferMode()) {
+        if (isPairMode()) {
             saveTransfer(amount);
         } else {
             saveTransaction(amount);
@@ -490,20 +525,42 @@ public class TransactionFormSheet extends ExpandedSheet {
     }
 
     private void saveTransfer(double amount) {
-        Long fromFundId = fromFund.selectedId();
-        Long toFundId = toFund.selectedId();
-        Long fromAccountId = fromAccount.selectedId();
-        Long toAccountId = toAccount.selectedId();
-        // Money can move between funds, between accounts or both, but it has to move somewhere
-        boolean nothingMoves = fromFundId != null && fromFundId.equals(toFundId)
-                && fromAccountId != null && fromAccountId.equals(toAccountId);
-        fromFund.setError(fromFundId == null ? "Choose where it comes from" : null);
-        toFund.setError(toFundId == null ? "Choose where it goes"
-                : nothingMoves ? "Pick another, so money moves on one side" : null);
-        fromAccount.setError(fromAccountId == null ? "Choose where it comes from" : null);
-        toAccount.setError(toAccountId == null ? "Choose where it goes" : null);
-        if (fromFundId == null || toFundId == null || fromAccountId == null || toAccountId == null || nothingMoves) {
-            return;
+        Long fromFundId;
+        Long toFundId;
+        Long fromAccountId;
+        Long toAccountId;
+        if (isMoveMode()) {
+            // Both sides stay in one account, so only the funds change
+            fromFundId = fromFund.selectedId();
+            toFundId = toFund.selectedId();
+            fromAccountId = account.selectedId();
+            toAccountId = fromAccountId;
+            boolean same = fromFundId != null && fromFundId.equals(toFundId);
+            fromFund.setError(fromFundId == null ? "Choose the fund it comes from" : null);
+            toFund.setError(toFundId == null ? "Choose the fund it goes to"
+                    : same ? "Pick another fund" : null);
+            account.setError(fromAccountId == null ? "Choose the account it sits in" : null);
+            if (fromFundId == null || toFundId == null || fromAccountId == null || same) {
+                return;
+            }
+        } else {
+            fromAccountId = fromAccount.selectedId();
+            toAccountId = toAccount.selectedId();
+            boolean same = fromAccountId != null && fromAccountId.equals(toAccountId);
+            fromAccount.setError(fromAccountId == null ? "Choose the account it leaves" : null);
+            toAccount.setError(toAccountId == null ? "Choose the account it reaches"
+                    : same ? "Pick another account" : null);
+            if (editingChangesFund) {
+                fromFundId = fromFund.selectedId();
+                toFundId = toFund.selectedId();
+            } else {
+                // The money keeps its purpose: the fund it had, or everyday money for a new transfer
+                fromFundId = fund.selectedId();
+                toFundId = fromFundId;
+            }
+            if (fromAccountId == null || toAccountId == null || same || fromFundId == null || toFundId == null) {
+                return;
+            }
         }
         double received = amount;
         if (crossCurrency()) {

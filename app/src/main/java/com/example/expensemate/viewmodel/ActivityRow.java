@@ -1,6 +1,7 @@
 package com.example.expensemate.viewmodel;
 
 import com.example.expensemate.data.Transaction;
+import com.example.expensemate.data.Transfers;
 import com.example.expensemate.util.CurrencyTotals;
 
 import java.text.SimpleDateFormat;
@@ -38,8 +39,38 @@ public class ActivityRow {
         return transaction == null;
     }
 
+    /** A move or a transfer: either way, stored as a debit and a credit. */
     public boolean isTransfer() {
         return transaction != null && transaction.isTransfer();
+    }
+
+    /** Between funds, inside one account. */
+    public boolean isMove() {
+        return isTransfer() && Transfers.isMove(debitLeg, creditLeg);
+    }
+
+    /** Between accounts. */
+    public boolean isAccountTransfer() {
+        return isTransfer() && !isMove();
+    }
+
+    /** Keeps the rows the test accepts, and drops day headings left with nothing under them. */
+    public static List<ActivityRow> keep(List<ActivityRow> rows, java.util.function.Predicate<ActivityRow> test) {
+        List<ActivityRow> kept = new ArrayList<>();
+        for (ActivityRow row : rows) {
+            if (row.isHeader()) {
+                if (!kept.isEmpty() && kept.get(kept.size() - 1).isHeader()) {
+                    kept.remove(kept.size() - 1);
+                }
+                kept.add(row);
+            } else if (test.test(row)) {
+                kept.add(row);
+            }
+        }
+        if (!kept.isEmpty() && kept.get(kept.size() - 1).isHeader()) {
+            kept.remove(kept.size() - 1);
+        }
+        return kept;
     }
 
     public boolean sameItem(ActivityRow other) {

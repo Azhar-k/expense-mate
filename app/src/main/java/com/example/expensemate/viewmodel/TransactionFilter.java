@@ -21,6 +21,8 @@ public class TransactionFilter {
     public Boolean excluded;
     public Long billId;
     public Boolean transfers;
+    /** With transfers on: true for moves between funds only, false for transfers between accounts only. */
+    public Boolean moves;
     public Boolean needsReview;
 
     public static TransactionFilter lastDays(int days) {
@@ -63,6 +65,7 @@ public class TransactionFilter {
         copy.excluded = excluded;
         copy.billId = billId;
         copy.transfers = transfers;
+        copy.moves = moves;
         copy.needsReview = needsReview;
         return copy;
     }

@@ -48,7 +48,7 @@ public class FilterSheet extends ExpandedSheet {
         TransactionFilter current = viewModel.getFilter().getValue();
 
         if (Boolean.TRUE.equals(current.transfers)) {
-            binding.chipsType.check(R.id.typeTransfer);
+            binding.chipsType.check(Boolean.TRUE.equals(current.moves) ? R.id.typeMove : R.id.typeTransfer);
         } else if ("DEBIT".equals(current.transactionType)) {
             binding.chipsType.check(R.id.typeExpense);
         } else if ("CREDIT".equals(current.transactionType)) {
@@ -114,8 +114,12 @@ public class FilterSheet extends ExpandedSheet {
         updated.excluded = binding.switchExcluded.isChecked() ? Boolean.TRUE : null;
 
         int type = binding.chipsType.getCheckedChipId();
-        if (type == R.id.typeTransfer) {
+        if (type == R.id.typeMove) {
             updated.transfers = true;
+            updated.moves = true;
+        } else if (type == R.id.typeTransfer) {
+            updated.transfers = true;
+            updated.moves = false;
         } else if (type == R.id.typeExpense) {
             updated.transactionType = "DEBIT";
             updated.transfers = false;
@@ -141,6 +145,7 @@ public class FilterSheet extends ExpandedSheet {
         filter.description = null;
         filter.excluded = null;
         filter.transfers = null;
+        filter.moves = null;
         filter.transactionType = null;
         filter.billId = null;
         filter.needsReview = null;

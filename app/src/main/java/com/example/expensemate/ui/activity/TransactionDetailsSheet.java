@@ -17,6 +17,7 @@ import com.example.expensemate.data.Fund;
 import com.example.expensemate.data.LoanSummary;
 import com.example.expensemate.data.RecurringPayment;
 import com.example.expensemate.data.Transaction;
+import com.example.expensemate.data.Transfers;
 import com.example.expensemate.databinding.SheetTransactionDetailsBinding;
 import com.example.expensemate.ui.common.ExpandedSheet;
 import com.example.expensemate.ui.common.TransactionText;
@@ -160,7 +161,6 @@ public class TransactionDetailsSheet extends ExpandedSheet {
     }
 
     private void renderTransfer() {
-        Ui.styleIconTile(binding.ivIcon, R.drawable.ic_swap, R.color.transfer_container, R.color.transfer);
         Transaction debit = null;
         Transaction credit = null;
         for (Transaction leg : legs) {
@@ -170,6 +170,9 @@ public class TransactionDetailsSheet extends ExpandedSheet {
                 credit = leg;
             }
         }
+        boolean move = Transfers.isMove(debit, credit);
+        Ui.styleIconTile(binding.ivIcon, move ? R.drawable.ic_move : R.drawable.ic_swap,
+                R.color.transfer_container, R.color.transfer);
         binding.tvTitle.setText(TransactionText.transferRoute(fundNames, accountNames, debit, credit));
         binding.tvAmount.setText(TransactionText.transferAmount(transaction, debit, credit));
         binding.tvAmount.setTextColor(requireContext().getColor(R.color.transfer));
@@ -177,16 +180,28 @@ public class TransactionDetailsSheet extends ExpandedSheet {
         binding.rowLoan.setVisibility(View.GONE);
         binding.rowCount.setVisibility(View.GONE);
         binding.tvMessage.setVisibility(View.GONE);
-        if (debit != null && credit != null) {
+        if (move) {
+            Ui.addKeyValue(binding.details, "Type", "Move between funds");
             Ui.addKeyValue(binding.details, "From fund", TransactionText.fundName(fundNames, debit.getFundId()));
             Ui.addKeyValue(binding.details, "To fund", TransactionText.fundName(fundNames, credit.getFundId()));
+            Ui.addKeyValue(binding.details, "Account", TransactionText.accountName(accountNames, debit.getAccountId()));
+        } else if (debit != null && credit != null) {
+            Ui.addKeyValue(binding.details, "Type", "Transfer between accounts");
             Ui.addKeyValue(binding.details, "From account", TransactionText.accountName(accountNames, debit.getAccountId()));
             Ui.addKeyValue(binding.details, "To account", TransactionText.accountName(accountNames, credit.getAccountId()));
+            if (Transfers.staysInFund(debit, credit)) {
+                Ui.addKeyValue(binding.details, "Fund", TransactionText.fundName(fundNames, debit.getFundId()));
+            } else {
+                Ui.addKeyValue(binding.details, "From fund", TransactionText.fundName(fundNames, debit.getFundId()));
+                Ui.addKeyValue(binding.details, "To fund", TransactionText.fundName(fundNames, credit.getFundId()));
+            }
         }
         if (TransactionText.hasText(transaction.getDescription())) {
             Ui.addKeyValue(binding.details, "Note", transaction.getDescription());
         }
-        Ui.addKeyValue(binding.details, "In your totals", "No, it only moves your own money around");
+        Ui.addKeyValue(binding.details, "In your totals", move
+                ? "No, it only changes what the money is for. Your account balance stays the same."
+                : "No, it only moves your own money between accounts");
     }
 
     private void renderTransaction() {

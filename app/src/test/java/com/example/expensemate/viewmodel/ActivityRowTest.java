@@ -80,6 +80,41 @@ public class ActivityRowTest {
         assertSame(transfer[1], built.get(1).creditLeg);
     }
 
+    private static Transaction[] pair(long id, long fromFund, long toFund, long fromAccount, long toAccount, Date date) {
+        Transaction[] legs = Transfers.newPair(100, fromFund, toFund, date, "");
+        legs[0].setId(id);
+        legs[1].setId(id + 1);
+        legs[0].setAccountId(fromAccount);
+        legs[1].setAccountId(toAccount);
+        return legs;
+    }
+
+    @Test
+    public void tellsAMoveFromATransferAndKeepsOnlyOneKind() {
+        Transaction[] move = pair(10, 1, 2, 7, 7, at(12, 10));
+        Transaction[] transfer = pair(20, 1, 1, 7, 8, at(11, 10));
+        Transaction spend = row(30, 50, "DEBIT", at(12, 9));
+        List<Transaction> legs = Arrays.asList(move[0], move[1], transfer[0], transfer[1]);
+        List<Transaction> rows = Arrays.asList(move[0], move[1], spend, transfer[0], transfer[1]);
+        List<ActivityRow> built = ActivityRow.build(rows, legs, NOW);
+
+        assertTrue(built.get(1).isMove());
+        assertFalse(built.get(1).isAccountTransfer());
+        assertFalse(built.get(4).isMove());
+        assertTrue(built.get(4).isAccountTransfer());
+        assertFalse(built.get(2).isMove());
+
+        // Only moves: yesterday held just the transfer, so its heading goes too
+        List<ActivityRow> moves = ActivityRow.keep(built, ActivityRow::isMove);
+        assertEquals(2, moves.size());
+        assertEquals("Today", moves.get(0).dayLabel);
+        assertTrue(moves.get(1).isMove());
+
+        List<ActivityRow> transfers = ActivityRow.keep(built, ActivityRow::isAccountTransfer);
+        assertEquals(2, transfers.size());
+        assertEquals("Yesterday", transfers.get(0).dayLabel);
+    }
+
     @Test
     public void emptyListHasNoHeaders() {
         assertTrue(ActivityRow.build(new ArrayList<>(), new ArrayList<>(), NOW).isEmpty());

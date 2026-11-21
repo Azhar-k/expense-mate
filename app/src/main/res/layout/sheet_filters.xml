@@ -53,6 +53,13 @@
                 android:text="Income" />
 
             <com.google.android.material.chip.Chip
+                android:id="@+id/typeMove"
+                style="@style/Widget.Material3.Chip.Filter"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Moves" />
+
+            <com.google.android.material.chip.Chip
                 android:id="@+id/typeTransfer"
                 style="@style/Widget.Material3.Chip.Filter"
                 android:layout_width="wrap_content"

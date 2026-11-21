@@ -17,6 +17,21 @@ public final class Transfers {
     }
 
     /**
+     * A move between funds stays in one account, so the bank never sees it; a transfer changes account.
+     * Both are stored the same way, as a debit and a credit, so this is read from the two sides.
+     */
+    public static boolean isMove(Transaction debit, Transaction credit) {
+        return debit != null && credit != null && debit.getAccountId() != null
+                && debit.getAccountId().equals(credit.getAccountId());
+    }
+
+    /** Both sides in one fund: only where the money is changed. */
+    public static boolean staysInFund(Transaction debit, Transaction credit) {
+        return debit != null && credit != null && debit.getFundId() != null
+                && debit.getFundId().equals(credit.getFundId());
+    }
+
+    /**
      * Legs between two funds. Callers set each leg's account, since the funds say nothing about it.
      *
      * @return the debit and credit sides, in that order

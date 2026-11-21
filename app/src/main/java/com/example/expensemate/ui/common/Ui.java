@@ -109,12 +109,25 @@ public final class Ui {
     public static void deleteWithUndo(FragmentActivity activity, TransactionViewModel viewModel,
             Transaction transaction) {
         viewModel.delete(transaction, removed -> {
-            String message = transaction.isTransfer() ? "Transfer deleted" : "Transaction deleted";
+            String message = transaction.isTransfer() ? transferNoun(removed) + " deleted" : "Transaction deleted";
             Snackbar snackbar = Snackbar.make(activity.findViewById(R.id.root), message, Snackbar.LENGTH_LONG)
                     .setAction("Undo", v -> viewModel.restore(removed));
             anchor(activity, snackbar);
             snackbar.show();
         });
+    }
+
+    private static String transferNoun(List<Transaction> legs) {
+        Transaction debit = null;
+        Transaction credit = null;
+        for (Transaction leg : legs) {
+            if ("DEBIT".equals(leg.getTransactionType())) {
+                debit = leg;
+            } else {
+                credit = leg;
+            }
+        }
+        return TransactionText.transferNoun(debit, credit);
     }
 
     private static void anchor(FragmentActivity activity, Snackbar snackbar) {

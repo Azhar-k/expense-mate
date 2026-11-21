@@ -39,6 +39,16 @@
                 android:layout_weight="1"
                 android:text="Income" />
 
+            <!-- Between funds, inside one account -->
+            <Button
+                android:id="@+id/btnMove"
+                style="@style/Widget.ExpenseMate.Segment"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Move" />
+
+            <!-- Between accounts -->
             <Button
                 android:id="@+id/btnTransfer"
                 style="@style/Widget.ExpenseMate.Segment"

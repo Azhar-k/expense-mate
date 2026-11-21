@@ -175,9 +175,10 @@ public class ActivityAdapter extends ListAdapter<ActivityRow, RecyclerView.ViewH
             binding.pills.setVisibility(row.isTransfer() ? View.GONE : View.VISIBLE);
 
             if (row.isTransfer()) {
-                Ui.styleIconTile(binding.ivIcon, R.drawable.ic_swap, R.color.transfer_container, R.color.transfer);
+                Ui.styleIconTile(binding.ivIcon, row.isMove() ? R.drawable.ic_move : R.drawable.ic_swap,
+                        R.color.transfer_container, R.color.transfer);
                 binding.tvTitle.setText(transferTitle(row));
-                binding.tvSubtitle.setText("Transfer");
+                binding.tvSubtitle.setText(TransactionText.transferKind(fundNames, row.debitLeg, row.creditLeg));
                 binding.tvAmount.setText(TransactionText.transferAmount(transaction, row.debitLeg, row.creditLeg));
                 amountColor = R.color.transfer;
             } else {
