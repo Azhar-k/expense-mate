@@ -27,6 +27,7 @@ import com.example.expensemate.data.Balance;
 import com.example.expensemate.data.Fund;
 import com.example.expensemate.databinding.FragmentAccountDetailsBinding;
 import com.example.expensemate.ui.activity.TransactionDetailsSheet;
+import com.example.expensemate.ui.activity.TransactionFormSheet;
 import com.example.expensemate.ui.common.ActivityAdapter;
 import com.example.expensemate.ui.common.Pickers;
 import com.example.expensemate.ui.common.RowSwipe;
@@ -107,6 +108,14 @@ public class AccountDetailsFragment extends Fragment {
                 return isFund ? onFundMenu(item.getItemId()) : onAccountMenu(item.getItemId());
             }
         }, getViewLifecycleOwner(), Lifecycle.State.RESUMED);
+        // Starts from what is on screen: a move out of this fund, or a transfer out of this account
+        if (isFund) {
+            Ui.addAction(this, R.id.action_move, "Move money", R.drawable.ic_move,
+                    () -> TransactionFormSheet.showMoveOrTransfer(requireActivity(), id, null));
+        } else {
+            Ui.addAction(this, R.id.action_move, "Transfer", R.drawable.ic_swap,
+                    () -> TransactionFormSheet.showMoveOrTransfer(requireActivity(), null, id));
+        }
 
         ActivityAdapter adapter = new ActivityAdapter(
                 row -> TransactionDetailsSheet.show(requireActivity(), row.transaction.getId()));

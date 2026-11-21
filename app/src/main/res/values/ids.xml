@@ -2,4 +2,5 @@
 <resources>
     <item name="action_reorder" type="id" />
     <item name="action_refresh" type="id" />
+    <item name="action_move" type="id" />
 </resources>

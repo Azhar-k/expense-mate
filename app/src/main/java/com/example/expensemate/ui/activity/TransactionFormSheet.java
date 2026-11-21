@@ -51,7 +51,12 @@ public class TransactionFormSheet extends ExpandedSheet {
     private static final String ARG_NOTE = "note";
     private static final String ARG_MESSAGE = "message";
     private static final String ARG_SENDER = "sender";
+    private static final String ARG_PAIR = "pair";
+    private static final String ARG_FROM_FUND = "from_fund";
+    private static final String ARG_FROM_ACCOUNT = "from_account";
     private static final String NO_BILL = "None";
+    private static final String PREFS = "transaction_form";
+    private static final String PREF_LAST_PAIR = "last_pair"; // "move" or "transfer"
 
     private SheetTransactionFormBinding binding;
     private TransactionViewModel viewModel;
@@ -80,8 +85,29 @@ public class TransactionFormSheet extends ExpandedSheet {
     private boolean manyCurrencies; // A move asks for its account only when accounts differ in currency
     private boolean editingChangesFund; // An older transfer that changed both fund and account
 
+    /** Adds an expense or an income. */
     public static void showAdd(FragmentActivity activity) {
         new TransactionFormSheet().show(activity.getSupportFragmentManager(), "transaction_form");
+    }
+
+    /**
+     * Adds a move between funds or a transfer between accounts, which have their own sheet so the everyday
+     * one stays short. Opened from a fund it starts as a move out of it; from an account, a transfer out of
+     * it; otherwise as whichever was used last.
+     */
+    public static void showMoveOrTransfer(FragmentActivity activity, @Nullable Long fromFundId,
+            @Nullable Long fromAccountId) {
+        Bundle args = new Bundle();
+        args.putBoolean(ARG_PAIR, true);
+        if (fromFundId != null) {
+            args.putLong(ARG_FROM_FUND, fromFundId);
+        }
+        if (fromAccountId != null) {
+            args.putLong(ARG_FROM_ACCOUNT, fromAccountId);
+        }
+        TransactionFormSheet sheet = new TransactionFormSheet();
+        sheet.setArguments(args);
+        sheet.show(activity.getSupportFragmentManager(), "transaction_form");
     }
 
     public static void showEdit(FragmentActivity activity, long transactionId) {
@@ -151,7 +177,9 @@ public class TransactionFormSheet extends ExpandedSheet {
         // A category can be left empty, so tapping the chosen one clears it
         binding.pickCategory.chips.setSelectionRequired(false);
 
-        binding.typeToggle.check(R.id.btnExpense);
+        // Two sheets in one: expense or income, or a move or transfer. An edit is put in the right one once it loads
+        showPairChoices(isPairSheet());
+        binding.typeToggle.check(isPairSheet() ? firstPairButton() : R.id.btnExpense);
         binding.typeToggle.addOnButtonCheckedListener((group, checkedId, isChecked) -> {
             if (isChecked) {
                 onTypeChanged();
@@ -202,6 +230,9 @@ public class TransactionFormSheet extends ExpandedSheet {
                         fromFund.select(each.getId());
                     }
                 }
+                if (args != null && args.containsKey(ARG_FROM_FUND)) {
+                    fromFund.select(args.getLong(ARG_FROM_FUND));
+                }
             }
             fillAccountsForEdit();
         });
@@ -216,12 +247,15 @@ public class TransactionFormSheet extends ExpandedSheet {
             fromAccount.setAccounts(list);
             toAccount.setAccounts(list);
             if (!isEditing() && firstFill) {
+                // The account it goes to is left for the person to pick: the default would only be refused
                 for (Account each : list) {
                     if (each.isDefault()) {
                         account.select(each.getId());
                         fromAccount.select(each.getId());
-                        toAccount.select(each.getId());
                     }
+                }
+                if (args != null && args.containsKey(ARG_FROM_ACCOUNT)) {
+                    fromAccount.select(args.getLong(ARG_FROM_ACCOUNT));
                 }
             }
             fillAccountsForEdit();
@@ -243,8 +277,6 @@ public class TransactionFormSheet extends ExpandedSheet {
         });
 
         if (isEditing()) {
-            binding.btnMove.setEnabled(false);
-            binding.btnTransfer.setEnabled(false);
             binding.chipMore.performClick();
             Ui.observeOnce(viewModel.getTransaction(args.getLong(ARG_EDIT_ID)), getViewLifecycleOwner(), this::loadForEdit);
         }
@@ -267,6 +299,32 @@ public class TransactionFormSheet extends ExpandedSheet {
         return getArguments() != null && getArguments().containsKey(ARG_EDIT_ID);
     }
 
+    private boolean isPairSheet() {
+        return getArguments() != null && getArguments().getBoolean(ARG_PAIR);
+    }
+
+    /** Shows Move and Transfer, or Expense and Income: never all four, which crowded the sheet. */
+    private void showPairChoices(boolean pair) {
+        binding.btnExpense.setVisibility(pair ? View.GONE : View.VISIBLE);
+        binding.btnIncome.setVisibility(pair ? View.GONE : View.VISIBLE);
+        binding.btnMove.setVisibility(pair ? View.VISIBLE : View.GONE);
+        binding.btnTransfer.setVisibility(pair ? View.VISIBLE : View.GONE);
+    }
+
+    // Opened from an account, a transfer out of it; from a fund, a move; otherwise as last time
+    private int firstPairButton() {
+        Bundle args = getArguments();
+        if (args.containsKey(ARG_FROM_ACCOUNT)) {
+            return R.id.btnTransfer;
+        }
+        if (args.containsKey(ARG_FROM_FUND)) {
+            return R.id.btnMove;
+        }
+        String last = requireContext().getSharedPreferences(PREFS, android.content.Context.MODE_PRIVATE)
+                .getString(PREF_LAST_PAIR, "move");
+        return "transfer".equals(last) ? R.id.btnTransfer : R.id.btnMove;
+    }
+
     private void loadForEdit(Transaction transaction) {
         if (transaction == null) {
             dismiss();
@@ -280,10 +338,7 @@ public class TransactionFormSheet extends ExpandedSheet {
         binding.etReceiver.setText(transaction.getReceiverName());
         if (transaction.isTransfer()) {
             // Either kind can be turned into the other, but not into an expense or income
-            binding.btnMove.setEnabled(true);
-            binding.btnTransfer.setEnabled(true);
-            binding.btnExpense.setEnabled(false);
-            binding.btnIncome.setEnabled(false);
+            showPairChoices(true);
             binding.typeToggle.check(R.id.btnTransfer);
             binding.tilBill.setVisibility(View.GONE);
             Ui.observeOnce(viewModel.getTransferLegs(transaction.getTransferGroupId()), getViewLifecycleOwner(), legs -> {
@@ -584,6 +639,8 @@ public class TransactionFormSheet extends ExpandedSheet {
             legs[1].setAccountId(toAccountId);
             legs[1].setAmount(received);
             viewModel.insertTransfer(legs[0], legs[1]);
+            requireContext().getSharedPreferences(PREFS, android.content.Context.MODE_PRIVATE).edit()
+                    .putString(PREF_LAST_PAIR, isMoveMode() ? "move" : "transfer").apply();
         }
         dismiss();
     }

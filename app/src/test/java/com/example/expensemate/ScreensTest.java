@@ -460,6 +460,12 @@ public class ScreensTest {
         return id[0];
     }
 
+    private Dialog openMoveSheet(Long fromFundId, Long fromAccountId) throws Exception {
+        TransactionFormSheet.showMoveOrTransfer(activity, fromFundId, fromAccountId);
+        settle();
+        return ShadowDialog.getLatestDialog();
+    }
+
     private Dialog openAddSheet() throws Exception {
         TransactionFormSheet.showAdd(activity);
         settle();
@@ -546,12 +552,21 @@ public class ScreensTest {
     }
 
     @Test
+    public void addSheetOffersOnlyExpenseAndIncome() throws Exception {
+        Dialog dialog = openAddSheet();
+        assertEquals(View.VISIBLE, dialog.findViewById(R.id.btnExpense).getVisibility());
+        assertEquals(View.VISIBLE, dialog.findViewById(R.id.btnIncome).getVisibility());
+        assertEquals(View.GONE, dialog.findViewById(R.id.btnMove).getVisibility());
+        assertEquals(View.GONE, dialog.findViewById(R.id.btnTransfer).getVisibility());
+    }
+
+    @Test
     public void moveSheetChangesOnlyTheFund() throws Exception {
         int before = allRows().size();
-        Dialog dialog = openAddSheet();
-        ((com.google.android.material.button.MaterialButtonToggleGroup) dialog.findViewById(R.id.typeToggle))
-                .check(R.id.btnMove);
-        settle();
+        // Its own sheet, which starts as a move until a transfer has been made
+        Dialog dialog = openMoveSheet(null, null);
+        assertEquals(View.GONE, dialog.findViewById(R.id.btnExpense).getVisibility());
+        assertEquals(View.VISIBLE, dialog.findViewById(R.id.btnTransfer).getVisibility());
         ((TextView) dialog.findViewById(R.id.etAmount)).setText("777");
         assertEquals("Move ₹777", ((TextView) dialog.findViewById(R.id.btnSave)).getText().toString());
         // Every account holds rupees, so there is no account to pick: a move never leaves one
@@ -581,10 +596,8 @@ public class ScreensTest {
     @Test
     public void transferSheetChangesOnlyTheAccount() throws Exception {
         int before = allRows().size();
-        Dialog dialog = openAddSheet();
-        ((com.google.android.material.button.MaterialButtonToggleGroup) dialog.findViewById(R.id.typeToggle))
-                .check(R.id.btnTransfer);
-        settle();
+        // Opened from an account's page, so a transfer out of it
+        Dialog dialog = openMoveSheet(null, salaryAccountId);
         ((TextView) dialog.findViewById(R.id.etAmount)).setText("888");
         assertEquals("Transfer ₹888", ((TextView) dialog.findViewById(R.id.btnSave)).getText().toString());
         // The money keeps its purpose, so no fund is asked for
@@ -594,7 +607,7 @@ public class ScreensTest {
 
         dialog.findViewById(R.id.btnSave).performClick();
         settle();
-        assertEquals("Both sides start on the default account, so nothing moves yet", before, allRows().size());
+        assertEquals("Nowhere to go picked yet", before, allRows().size());
 
         clickChip(dialog, R.id.pickToAccount, "Household");
         dialog.findViewById(R.id.btnSave).performClick();

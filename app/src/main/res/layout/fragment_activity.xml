@@ -126,7 +126,7 @@
                 android:clipToPadding="false"
                 android:paddingStart="14dp"
                 android:paddingEnd="14dp"
-                android:paddingBottom="88dp" />
+                android:paddingBottom="148dp" />
         </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
     </LinearLayout>
 
@@ -163,6 +163,18 @@
             android:gravity="center"
             android:text="Try a longer date range or clear the filters." />
     </LinearLayout>
+
+    <!-- Moves between funds and transfers between accounts, kept off Add so its sheet stays short -->
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fabMove"
+        style="?attr/floatingActionButtonSmallSecondaryStyle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_marginEnd="24dp"
+        android:layout_marginBottom="88dp"
+        android:contentDescription="Move or transfer"
+        app:srcCompat="@drawable/ic_swap" />
 
     <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
         android:id="@+id/fabAdd"

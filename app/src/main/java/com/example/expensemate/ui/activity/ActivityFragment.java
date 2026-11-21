@@ -89,6 +89,20 @@ public class ActivityFragment extends Fragment {
         });
 
         binding.fabAdd.setOnClickListener(v -> TransactionFormSheet.showAdd(requireActivity()));
+        binding.fabMove.setOnClickListener(v -> TransactionFormSheet.showMoveOrTransfer(requireActivity(), null, null));
+        // Two buttons cover more of the list, so they step aside while reading down it and return going up
+        binding.recyclerView.addOnScrollListener(new androidx.recyclerview.widget.RecyclerView.OnScrollListener() {
+            @Override
+            public void onScrolled(@NonNull androidx.recyclerview.widget.RecyclerView list, int dx, int dy) {
+                if (dy > 12) {
+                    binding.fabAdd.hide();
+                    binding.fabMove.hide();
+                } else if (dy < -12 || !list.canScrollVertically(-1)) {
+                    binding.fabAdd.show();
+                    binding.fabMove.show();
+                }
+            }
+        });
         Ui.addAction(this, R.id.action_refresh, "Refresh", R.drawable.ic_refresh, this::refresh);
         binding.swipeRefresh.setOnRefreshListener(this::refresh);
         binding.swipeRefresh.setColorSchemeResources(R.color.primary);
