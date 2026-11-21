@@ -103,7 +103,6 @@ public class ActivityFragment extends Fragment {
                 }
             }
         });
-        Ui.addAction(this, R.id.action_refresh, "Refresh", R.drawable.ic_refresh, this::refresh);
         binding.swipeRefresh.setOnRefreshListener(this::refresh);
         binding.swipeRefresh.setColorSchemeResources(R.color.primary);
         binding.swipeRefresh.setProgressBackgroundColorSchemeResource(R.color.surface);
@@ -176,7 +175,7 @@ public class ActivityFragment extends Fragment {
             Ui.snackbar(requireActivity(), "Refreshed. Turn on SMS reading in Settings to pick up bank messages.");
             return;
         }
-        // The spinner shows while messages are read, whether the list was pulled or the button tapped
+        // The spinner shows while messages are read
         refreshing = true;
         binding.swipeRefresh.setRefreshing(true);
         MmsChangeJob.start(requireContext().getApplicationContext(), () -> handler.post(() -> {

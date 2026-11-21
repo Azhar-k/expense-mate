@@ -2,6 +2,7 @@ package com.example.expensemate.ui.common;
 
 import android.content.Context;
 import android.content.res.ColorStateList;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -11,6 +12,7 @@ import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
 import android.widget.ImageView;
+import android.widget.PopupMenu;
 import android.widget.TextView;
 
 import androidx.annotation.ColorRes;
@@ -31,6 +33,8 @@ import com.example.expensemate.viewmodel.TransactionViewModel;
 import com.google.android.material.snackbar.Snackbar;
 
 import java.util.List;
+import java.util.function.Consumer;
+import java.util.function.Predicate;
 
 /** Small view helpers shared by the screens. */
 public final class Ui {
@@ -61,6 +65,21 @@ public final class Ui {
                 return false;
             }
         }, fragment.getViewLifecycleOwner(), Lifecycle.State.RESUMED);
+    }
+
+    /**
+     * A ⋮ icon in the toolbar that opens a menu of the screen's extra actions. It is an icon rather
+     * than the system overflow, which always sits last and would push Settings off the right edge.
+     */
+    public static void addMoreActions(Fragment fragment, Consumer<Menu> fill, Predicate<Integer> onSelected) {
+        addAction(fragment, R.id.action_more, "More options", R.drawable.ic_more_vert, () -> {
+            View anchor = fragment.requireActivity().findViewById(R.id.action_more);
+            PopupMenu popup = new PopupMenu(fragment.requireContext(),
+                    anchor != null ? anchor : fragment.requireView(), Gravity.END);
+            fill.accept(popup.getMenu());
+            popup.setOnMenuItemClickListener(item -> onSelected.test(item.getItemId()));
+            popup.show();
+        });
     }
 
     public static <T> void observeOnce(LiveData<T> liveData, LifecycleOwner owner, Observer<T> observer) {

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <item name="action_reorder" type="id" />
-    <item name="action_refresh" type="id" />
-    <item name="action_move" type="id" />
+    <item name="action_settings" type="id" />
+    <item name="action_more" type="id" />
 </resources>

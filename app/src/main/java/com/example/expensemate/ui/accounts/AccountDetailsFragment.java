@@ -3,17 +3,13 @@ package com.example.expensemate.ui.accounts;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.Menu;
-import android.view.MenuInflater;
-import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.view.MenuProvider;
 import androidx.fragment.app.Fragment;
-import androidx.lifecycle.Lifecycle;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.Transformations;
@@ -27,7 +23,6 @@ import com.example.expensemate.data.Balance;
 import com.example.expensemate.data.Fund;
 import com.example.expensemate.databinding.FragmentAccountDetailsBinding;
 import com.example.expensemate.ui.activity.TransactionDetailsSheet;
-import com.example.expensemate.ui.activity.TransactionFormSheet;
 import com.example.expensemate.ui.common.ActivityAdapter;
 import com.example.expensemate.ui.common.Pickers;
 import com.example.expensemate.ui.common.RowSwipe;
@@ -95,27 +90,11 @@ public class AccountDetailsFragment extends Fragment {
         fundViewModel = provider.get(FundViewModel.class);
         transactionViewModel = provider.get(TransactionViewModel.class);
 
-        requireActivity().addMenuProvider(new MenuProvider() {
-            @Override
-            public void onCreateMenu(@NonNull Menu menu, @NonNull MenuInflater inflater) {
-                menu.add(Menu.NONE, MENU_EDIT, Menu.NONE, "Edit");
-                menu.add(Menu.NONE, MENU_DEFAULT, Menu.NONE, isFund ? "Set as everyday fund" : "Set as default");
-                menu.add(Menu.NONE, MENU_DELETE, Menu.NONE, "Delete");
-            }
-
-            @Override
-            public boolean onMenuItemSelected(@NonNull MenuItem item) {
-                return isFund ? onFundMenu(item.getItemId()) : onAccountMenu(item.getItemId());
-            }
-        }, getViewLifecycleOwner(), Lifecycle.State.RESUMED);
-        // Starts from what is on screen: a move out of this fund, or a transfer out of this account
-        if (isFund) {
-            Ui.addAction(this, R.id.action_move, "Move money", R.drawable.ic_swap,
-                    () -> TransactionFormSheet.showMoveOrTransfer(requireActivity(), id, null));
-        } else {
-            Ui.addAction(this, R.id.action_move, "Transfer", R.drawable.ic_swap,
-                    () -> TransactionFormSheet.showMoveOrTransfer(requireActivity(), null, id));
-        }
+        Ui.addMoreActions(this, menu -> {
+            menu.add(Menu.NONE, MENU_EDIT, Menu.NONE, "Edit");
+            menu.add(Menu.NONE, MENU_DEFAULT, Menu.NONE, isFund ? "Set as everyday fund" : "Set as default");
+            menu.add(Menu.NONE, MENU_DELETE, Menu.NONE, "Delete");
+        }, item -> isFund ? onFundMenu(item) : onAccountMenu(item));
 
         ActivityAdapter adapter = new ActivityAdapter(
                 row -> TransactionDetailsSheet.show(requireActivity(), row.transaction.getId()));

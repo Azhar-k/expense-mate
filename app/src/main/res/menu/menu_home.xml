@@ -11,9 +11,4 @@
         android:icon="@drawable/ic_chevron_right"
         android:title="Next month"
         app:showAsAction="always" />
-    <item
-        android:id="@+id/action_settings"
-        android:icon="@drawable/ic_settings"
-        android:title="Settings"
-        app:showAsAction="always" />
 </menu>

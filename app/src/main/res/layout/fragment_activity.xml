@@ -112,7 +112,7 @@
             </com.google.android.material.chip.ChipGroup>
         </HorizontalScrollView>
 
-        <!-- Pulling down does what the toolbar's refresh does -->
+        <!-- Pulling down brings the list up to now and reads new bank messages -->
         <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
             android:id="@+id/swipeRefresh"
             android:layout_width="match_parent"

@@ -16,7 +16,6 @@ import androidx.core.view.MenuProvider;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.Lifecycle;
 import androidx.lifecycle.ViewModelProvider;
-import androidx.navigation.fragment.NavHostFragment;
 
 import com.example.expensemate.MainActivity;
 import com.example.expensemate.R;
@@ -93,10 +92,6 @@ public class HomeFragment extends Fragment {
                 }
                 if (id == R.id.action_next_month) {
                     moveMonth(1);
-                    return true;
-                }
-                if (id == R.id.action_settings) {
-                    NavHostFragment.findNavController(HomeFragment.this).navigate(R.id.navigation_settings);
                     return true;
                 }
                 return false;

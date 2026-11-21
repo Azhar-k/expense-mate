@@ -3,9 +3,6 @@ package com.example.expensemate.ui.bills;
 import android.Manifest;
 import android.os.Bundle;
 import android.view.LayoutInflater;
-import android.view.Menu;
-import android.view.MenuInflater;
-import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.LinearLayout;
@@ -16,9 +13,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
-import androidx.core.view.MenuProvider;
 import androidx.fragment.app.Fragment;
-import androidx.lifecycle.Lifecycle;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.example.expensemate.R;
@@ -88,22 +83,6 @@ public class BillsFragment extends Fragment {
         ViewModelProvider provider = new ViewModelProvider(requireActivity());
         viewModel = provider.get(RecurringPaymentsViewModel.class);
 
-        requireActivity().addMenuProvider(new MenuProvider() {
-            @Override
-            public void onCreateMenu(@NonNull Menu menu, @NonNull MenuInflater inflater) {
-                menu.add(Menu.NONE, 1, Menu.NONE, "Mark all as paid");
-                menu.add(Menu.NONE, 2, Menu.NONE, "Mark all as unpaid");
-            }
-
-            @Override
-            public boolean onMenuItemSelected(@NonNull MenuItem item) {
-                if (item.getItemId() == 1 || item.getItemId() == 2) {
-                    markAll(item.getItemId() == 1);
-                    return true;
-                }
-                return false;
-            }
-        }, getViewLifecycleOwner(), Lifecycle.State.RESUMED);
 
         binding.tabs.selectTab(binding.tabs.getTabAt(showTopUps ? 1 : 0));
         binding.tabs.addOnTabSelectedListener(new TabLayout.OnTabSelectedListener() {
@@ -177,6 +156,18 @@ public class BillsFragment extends Fragment {
             }
         }
         return bills;
+    }
+
+    private void confirmMarkAll(boolean paid, int howMany) {
+        String things = showTopUps ? (howMany == 1 ? "top-up" : "top-ups") : (howMany == 1 ? "bill" : "bills");
+        String done = showTopUps ? (paid ? "done" : "not done") : (paid ? "paid" : "unpaid");
+        new MaterialAlertDialogBuilder(requireContext())
+                .setTitle("Mark " + howMany + " " + things + " " + done + " for " + Periods.name(period) + "?")
+                .setMessage(paid ? "This only ticks them off. No money is moved or recorded."
+                        : "They go back to owed for this month.")
+                .setNegativeButton("Cancel", null)
+                .setPositiveButton("Mark " + done, (dialog, which) -> markAll(paid))
+                .show();
     }
 
     private void markAll(boolean paid) {
@@ -268,6 +259,14 @@ public class BillsFragment extends Fragment {
             binding.progressPaid.setProgress(count > 0 ? done * 100 / count : 0);
         }
         binding.tvPaidSummary.setText(paidSummary(paid, total));
+        // One button that does whatever is left: tick the rest, or untick them all once everything is done
+        int owed = count - done;
+        boolean markDone = owed > 0;
+        binding.btnMarkAll.setVisibility(count == 0 ? View.GONE : View.VISIBLE);
+        binding.btnMarkAll.setText(showTopUps ? (markDone ? "Mark all done" : "Mark all not done")
+                : markDone ? "Mark all paid" : "Mark all unpaid");
+        int howMany = markDone ? owed : done;
+        binding.btnMarkAll.setOnClickListener(v -> confirmMarkAll(markDone, howMany));
 
         fillList(binding.list, active, today, emptyText(period, current));
         fillList(binding.listEnded, ended, today, null);

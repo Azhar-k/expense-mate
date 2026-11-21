@@ -8,6 +8,8 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.provider.Settings;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
@@ -23,6 +25,7 @@ import androidx.core.view.WindowInsetsCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.NavController;
+import androidx.navigation.NavDestination;
 import androidx.navigation.fragment.NavHostFragment;
 import androidx.navigation.ui.AppBarConfiguration;
 import androidx.navigation.ui.NavigationUI;
@@ -44,6 +47,8 @@ import com.google.android.material.navigation.NavigationView;
 public class MainActivity extends AppCompatActivity {
     /** Set on the intent a bill reminder opens, so the app shows Bills. */
     public static final String EXTRA_OPEN_BILLS = "open_bills";
+    /** Higher than any screen's own toolbar items, so Settings sits rightmost. */
+    private static final int SETTINGS_ORDER = 1000;
 
     private static final int SMS_PERMISSION_REQUEST_CODE = 123;
     private static final String PREFS = "main_activity";
@@ -87,6 +92,7 @@ public class MainActivity extends AppCompatActivity {
             bottomNavView.setVisibility(topLevel ? View.VISIBLE : View.GONE);
             drawerLayout.setDrawerLockMode(topLevel ? DrawerLayout.LOCK_MODE_UNLOCKED
                     : DrawerLayout.LOCK_MODE_LOCKED_CLOSED);
+            invalidateOptionsMenu(); // Settings hides on its own screen
         });
 
         applySystemBarInsets();
@@ -191,6 +197,35 @@ public class MainActivity extends AppCompatActivity {
                 closeDrawer.setEnabled(false);
             }
         });
+    }
+
+    // Settings is on every screen, and its order puts it after each screen's own icons
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        super.onCreateOptionsMenu(menu);
+        menu.add(Menu.NONE, R.id.action_settings, SETTINGS_ORDER, "Settings")
+                .setIcon(R.drawable.ic_settings)
+                .setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
+        return true;
+    }
+
+    @Override
+    public boolean onPrepareOptionsMenu(Menu menu) {
+        MenuItem settings = menu.findItem(R.id.action_settings);
+        NavDestination here = navController.getCurrentDestination();
+        if (settings != null) {
+            settings.setVisible(here == null || here.getId() != R.id.navigation_settings);
+        }
+        return super.onPrepareOptionsMenu(menu);
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(@NonNull MenuItem item) {
+        if (item.getItemId() == R.id.action_settings) {
+            navController.navigate(R.id.navigation_settings);
+            return true;
+        }
+        return super.onOptionsItemSelected(item);
     }
 
     @Override
