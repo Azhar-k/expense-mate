@@ -90,6 +90,14 @@ public class ActivityFragment extends Fragment {
 
         binding.fabAdd.setOnClickListener(v -> TransactionFormSheet.showAdd(requireActivity()));
         binding.fabMove.setOnClickListener(v -> TransactionFormSheet.showMoveOrTransfer(requireActivity(), null, null));
+        // Stacked, the two read as a pair only at one width
+        binding.fabMove.post(() -> {
+            if (binding != null) {
+                int width = Math.max(binding.fabMove.getWidth(), binding.fabAdd.getWidth());
+                binding.fabMove.setMinWidth(width);
+                binding.fabAdd.setMinWidth(width);
+            }
+        });
         // Two buttons cover more of the list, so they step aside while reading down it and return going up
         binding.recyclerView.addOnScrollListener(new androidx.recyclerview.widget.RecyclerView.OnScrollListener() {
             @Override
