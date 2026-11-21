@@ -8,7 +8,6 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.provider.Settings;
-import android.view.Menu;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
@@ -65,7 +64,7 @@ public class MainActivity extends AppCompatActivity {
                 .findFragmentById(R.id.nav_host_fragment);
         navController = navHostFragment.getNavController();
         bottomNavView = findViewById(R.id.nav_view);
-        TabOrder.apply(this, bottomNavView.getMenu());
+        TabOrder.BOTTOM.apply(this, bottomNavView.getMenu());
         NavigationUI.setupWithNavController(bottomNavView, navController);
 
         drawerLayout = findViewById(R.id.drawer_layout);
@@ -93,14 +92,9 @@ public class MainActivity extends AppCompatActivity {
         startCaptureSetup();
     }
 
-    /** The bottom tabs, in the order they show. */
-    public Menu getTabs() {
-        return bottomNavView.getMenu();
-    }
-
     /** Puts the bottom tabs in the order saved in Settings. */
     public void applyTabOrder() {
-        TabOrder.apply(this, bottomNavView.getMenu());
+        TabOrder.BOTTOM.apply(this, bottomNavView.getMenu());
     }
 
     @Override

@@ -21,6 +21,7 @@ import com.example.expensemate.databinding.ItemAccountBinding;
 import com.example.expensemate.ui.budgets.BudgetForm;
 import com.example.expensemate.ui.budgets.BudgetsFragment;
 import com.example.expensemate.ui.common.ReorderDialog;
+import com.example.expensemate.ui.common.TabOrder;
 import com.example.expensemate.ui.common.Ui;
 import com.example.expensemate.util.Currencies;
 import com.example.expensemate.util.CurrencyTotals;
@@ -45,6 +46,12 @@ public class MoneyFragment extends Fragment {
     static final int ACCOUNTS = 2;
     private static final String STATE_SEGMENT = "segment";
 
+    /** The order of the sections, as chosen in Settings. The screen opens on the first. */
+    public static final TabOrder SECTIONS = new TabOrder("money_tab_order",
+            new int[] { BUDGETS, FUNDS, ACCOUNTS },
+            new String[] { "budgets", "funds", "accounts" },
+            new String[] { "Budgets", "Funds", "Accounts" });
+
     private FragmentMoneyBinding binding;
     private AccountViewModel accountViewModel;
     private FundViewModel fundViewModel;
@@ -54,7 +61,7 @@ public class MoneyFragment extends Fragment {
     private Map<Long, CurrencyTotals> fundBalances = new HashMap<>();
     private Map<Long, CurrencyTotals> accountBalances = new HashMap<>();
     private String mainCurrency = Currencies.fromLocale();
-    private int segment = BUDGETS; // Kept on the instance, so coming back from details keeps the segment
+    private int segment = -1; // Kept on the instance, so coming back from details keeps the segment
 
     @Nullable
     @Override
@@ -84,11 +91,19 @@ public class MoneyFragment extends Fragment {
         binding.fabAdd.setOnClickListener(v -> add());
         binding.btnInfo.setOnClickListener(v -> explainTotal());
 
-        binding.tabs.selectTab(binding.tabs.getTabAt(segment));
+        // Each tab carries its section, since the person can put them in any order
+        List<Integer> order = SECTIONS.saved(requireContext());
+        if (!order.contains(segment)) {
+            segment = order.get(0);
+        }
+        for (int section : order) {
+            TabLayout.Tab tab = binding.tabs.newTab().setText(SECTIONS.label(section)).setTag(section);
+            binding.tabs.addTab(tab, section == segment);
+        }
         binding.tabs.addOnTabSelectedListener(new TabLayout.OnTabSelectedListener() {
             @Override
             public void onTabSelected(TabLayout.Tab tab) {
-                segment = tab.getPosition();
+                segment = (Integer) tab.getTag();
                 render();
             }
 

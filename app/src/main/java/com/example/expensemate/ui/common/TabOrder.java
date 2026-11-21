@@ -13,58 +13,86 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * The order of the bottom tabs, as the person chose it in Settings. Until they choose, the tabs keep the
- * order in the menu file. Home stays the screen the app opens on, wherever it sits.
+ * An order of tabs the person chose in Settings: the bottom bar, or the sections of a screen. Until they
+ * choose, the tabs keep the order they were given in.
  */
 public final class TabOrder {
     private static final String PREFS = "appearance";
-    private static final String PREF_TABS = "tab_order";
 
-    // Saved by name, so the choice survives tab ids changing between builds
-    private static final int[] IDS = {
-            R.id.navigation_home, R.id.navigation_money, R.id.navigation_activity, R.id.navigation_bills
-    };
-    private static final String[] KEYS = { "home", "money", "activity", "bills" };
+    /** The bottom bar. Home stays the screen the app opens on, wherever it sits. */
+    public static final TabOrder BOTTOM = new TabOrder("tab_order",
+            new int[] { R.id.navigation_home, R.id.navigation_money, R.id.navigation_activity, R.id.navigation_bills },
+            new String[] { "home", "money", "activity", "bills" },
+            new String[] { "Home", "Money", "Activity", "Bills" });
 
-    private TabOrder() {
+    private final String pref;
+    private final int[] ids;
+    // Saved by name, so the choice survives ids changing between builds
+    private final String[] keys;
+    private final String[] labels;
+
+    public TabOrder(String pref, int[] ids, String[] keys, String[] labels) {
+        this.pref = pref;
+        this.ids = ids;
+        this.keys = keys;
+        this.labels = labels;
     }
 
-    /** The tab ids in the saved order. A tab missing from the saved order goes where the menu file puts it. */
-    public static List<Integer> saved(Context context) {
-        String saved = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(PREF_TABS, null);
+    /** The ids in the saved order. One missing from the saved order goes where the default order puts it. */
+    public List<Integer> saved(Context context) {
+        String saved = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(pref, null);
         List<Integer> order = new ArrayList<>();
         if (saved != null) {
             for (String key : saved.split(",")) {
-                int id = idOf(key.trim());
-                if (id != 0 && !order.contains(id)) {
-                    order.add(id);
+                int index = indexOfKey(key.trim());
+                if (index >= 0 && !order.contains(ids[index])) {
+                    order.add(ids[index]);
                 }
             }
         }
-        for (int i = 0; i < IDS.length; i++) {
-            if (!order.contains(IDS[i])) {
-                order.add(Math.min(i, order.size()), IDS[i]);
+        for (int i = 0; i < ids.length; i++) {
+            if (!order.contains(ids[i])) {
+                order.add(Math.min(i, order.size()), ids[i]);
             }
         }
         return order;
     }
 
-    public static void save(Context context, List<Integer> ids) {
-        StringBuilder keys = new StringBuilder();
-        for (int id : ids) {
-            String key = keyOf(id);
-            if (key != null) {
-                if (keys.length() > 0) {
-                    keys.append(',');
+    public void save(Context context, List<Integer> order) {
+        StringBuilder text = new StringBuilder();
+        for (int id : order) {
+            int index = indexOfId(id);
+            if (index >= 0) {
+                if (text.length() > 0) {
+                    text.append(',');
                 }
-                keys.append(key);
+                text.append(keys[index]);
             }
         }
-        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putString(PREF_TABS, keys.toString()).apply();
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putString(pref, text.toString()).apply();
     }
 
-    /** Rebuilds the bar's menu in the saved order, keeping each tab's title and icon. */
-    public static void apply(Context context, Menu menu) {
+    public String label(int id) {
+        int index = indexOfId(id);
+        return index >= 0 ? labels[index] : "";
+    }
+
+    /** The labels in the saved order. */
+    public List<String> labels(Context context) {
+        List<String> names = new ArrayList<>();
+        for (int id : saved(context)) {
+            names.add(label(id));
+        }
+        return names;
+    }
+
+    /** The labels in the saved order, for a Settings row. */
+    public String summary(Context context) {
+        return String.join(" · ", labels(context));
+    }
+
+    /** Rebuilds a menu in the saved order, keeping each item's title and icon. */
+    public void apply(Context context, Menu menu) {
         Map<Integer, CharSequence> titles = new HashMap<>();
         Map<Integer, Drawable> icons = new HashMap<>();
         int checked = 0;
@@ -88,36 +116,21 @@ public final class TabOrder {
         }
     }
 
-    /** The titles of the tabs in the saved order, for the Settings row. */
-    public static String summary(Context context, Menu menu) {
-        StringBuilder text = new StringBuilder();
-        for (int id : saved(context)) {
-            MenuItem item = menu.findItem(id);
-            if (item != null) {
-                if (text.length() > 0) {
-                    text.append(" · ");
-                }
-                text.append(item.getTitle());
+    private int indexOfKey(String key) {
+        for (int i = 0; i < keys.length; i++) {
+            if (keys[i].equals(key)) {
+                return i;
             }
         }
-        return text.toString();
+        return -1;
     }
 
-    private static int idOf(String key) {
-        for (int i = 0; i < KEYS.length; i++) {
-            if (KEYS[i].equals(key)) {
-                return IDS[i];
+    private int indexOfId(int id) {
+        for (int i = 0; i < ids.length; i++) {
+            if (ids[i] == id) {
+                return i;
             }
         }
-        return 0;
-    }
-
-    private static String keyOf(int id) {
-        for (int i = 0; i < IDS.length; i++) {
-            if (IDS[i] == id) {
-                return KEYS[i];
-            }
-        }
-        return null;
+        return -1;
     }
 }

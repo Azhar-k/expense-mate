@@ -30,6 +30,7 @@ import com.example.expensemate.data.BackupDataLoader;
 import com.example.expensemate.databinding.FragmentSettingsBinding;
 import com.example.expensemate.databinding.ItemSettingsRowBinding;
 import com.example.expensemate.service.BackupScheduler;
+import com.example.expensemate.ui.accounts.MoneyFragment;
 import com.example.expensemate.service.BackupWorker;
 import com.example.expensemate.service.DriveAuth;
 import com.example.expensemate.service.GoogleDriveService;
@@ -120,9 +121,11 @@ public class SettingsFragment extends Fragment {
         configureRow(binding.rowTheme, R.drawable.ic_palette, "Theme", AppTheme.LABELS[AppTheme.selected(requireContext())]);
         binding.rowTheme.getRoot().setOnClickListener(v -> chooseTheme());
         MainActivity main = (MainActivity) requireActivity();
-        configureRow(binding.rowTabOrder, R.drawable.ic_reorder, "Tab order",
-                TabOrder.summary(requireContext(), main.getTabs()));
-        binding.rowTabOrder.getRoot().setOnClickListener(v -> chooseTabOrder(main));
+        setUpOrderRow(binding.rowTabOrder, "Tab order", TabOrder.BOTTOM,
+                "Drag to move. The top one sits at the left of the bar. The app still opens on Home.",
+                main::applyTabOrder);
+        setUpOrderRow(binding.rowMoneyOrder, "Money sections", MoneyFragment.SECTIONS,
+                "Drag to move. The top one sits at the left, and Money opens on it.", null);
 
         configureRow(binding.rowAbout, R.drawable.ic_info, "Expense Mate", "Version " + BuildConfig.VERSION_NAME);
         binding.rowAbout.getRoot().setOnClickListener(v -> new MaterialAlertDialogBuilder(requireContext())
@@ -181,24 +184,25 @@ public class SettingsFragment extends Fragment {
                 .show();
     }
 
-    // The app still opens on Home, wherever it sits in the bar
-    private void chooseTabOrder(MainActivity main) {
-        List<Integer> ids = TabOrder.saved(requireContext());
-        List<String> names = new ArrayList<>();
-        for (int id : ids) {
-            names.add(main.getTabs().findItem(id).getTitle().toString());
-        }
-        ReorderDialog.show(requireContext(), "Tab order",
-                "Drag to move. The top one sits at the left of the bar. The app still opens on Home.", names, order -> {
-            List<Integer> ordered = new ArrayList<>();
-            for (int index : order) {
-                ordered.add(ids.get(index));
-            }
-            TabOrder.save(requireContext(), ordered);
-            main.applyTabOrder();
-            if (binding != null) {
-                binding.rowTabOrder.tvSubtitle.setText(TabOrder.summary(requireContext(), main.getTabs()));
-            }
+    // A row whose subtitle shows the current order, and which opens the dialog to change it
+    private void setUpOrderRow(ItemSettingsRowBinding row, String title, TabOrder tabs, String hint,
+            @Nullable Runnable onSaved) {
+        configureRow(row, R.drawable.ic_reorder, title, tabs.summary(requireContext()));
+        row.getRoot().setOnClickListener(v -> {
+            List<Integer> ids = tabs.saved(requireContext());
+            ReorderDialog.show(requireContext(), title, hint, tabs.labels(requireContext()), order -> {
+                List<Integer> ordered = new ArrayList<>();
+                for (int index : order) {
+                    ordered.add(ids.get(index));
+                }
+                tabs.save(requireContext(), ordered);
+                if (onSaved != null) {
+                    onSaved.run();
+                }
+                if (binding != null) {
+                    row.tvSubtitle.setText(tabs.summary(requireContext()));
+                }
+            });
         });
     }
 

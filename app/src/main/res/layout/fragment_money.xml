@@ -15,23 +15,8 @@
             android:layout_height="wrap_content"
             android:background="@android:color/transparent"
             app:tabGravity="fill"
-            app:tabMode="fixed">
-
-            <com.google.android.material.tabs.TabItem
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Budgets" />
-
-            <com.google.android.material.tabs.TabItem
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Funds" />
-
-            <com.google.android.material.tabs.TabItem
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Accounts" />
-        </com.google.android.material.tabs.TabLayout>
+            app:tabMode="fixed" />
+        <!-- The tabs are added in code, in the order chosen in Settings -->
 
         <FrameLayout
             android:layout_width="match_parent"

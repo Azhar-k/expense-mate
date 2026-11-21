@@ -4,12 +4,14 @@ import static org.junit.Assert.assertEquals;
 
 import android.content.Context;
 import android.view.Menu;
-import android.widget.PopupMenu;
+import android.view.MenuInflater;
 import android.view.View;
+import android.widget.PopupMenu;
 
 import androidx.test.core.app.ApplicationProvider;
 
 import com.example.expensemate.R;
+import com.example.expensemate.ui.accounts.MoneyFragment;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -32,33 +34,42 @@ public class TabOrderTest {
     }
 
     @Test
-    public void keepsTheMenuOrderUntilChosen() {
+    public void keepsTheDefaultOrderUntilChosen() {
         assertEquals(Arrays.asList(R.id.navigation_home, R.id.navigation_money, R.id.navigation_activity,
-                R.id.navigation_bills), TabOrder.saved(context));
+                R.id.navigation_bills), TabOrder.BOTTOM.saved(context));
+        assertEquals("Budgets · Funds · Accounts", MoneyFragment.SECTIONS.summary(context));
     }
 
     @Test
-    public void savesAndRebuildsTheMenuInTheChosenOrder() {
+    public void savesAndRebuildsTheBarInTheChosenOrder() {
         List<Integer> chosen = Arrays.asList(R.id.navigation_bills, R.id.navigation_home, R.id.navigation_activity,
                 R.id.navigation_money);
-        TabOrder.save(context, chosen);
-        assertEquals(chosen, TabOrder.saved(context));
+        TabOrder.BOTTOM.save(context, chosen);
+        assertEquals(chosen, TabOrder.BOTTOM.saved(context));
 
         Menu menu = new PopupMenu(context, new View(context)).getMenu();
-        new android.view.MenuInflater(context).inflate(R.menu.bottom_nav_menu, menu);
-        TabOrder.apply(context, menu);
+        new MenuInflater(context).inflate(R.menu.bottom_nav_menu, menu);
+        TabOrder.BOTTOM.apply(context, menu);
         assertEquals(4, menu.size());
         for (int i = 0; i < chosen.size(); i++) {
             assertEquals((int) chosen.get(i), menu.getItem(i).getItemId());
         }
-        assertEquals("Bills · Home · Activity · Money", TabOrder.summary(context, menu));
+        assertEquals("Bills · Home · Activity · Money", TabOrder.BOTTOM.summary(context));
     }
 
     @Test
-    public void aTabMissingFromTheSavedOrderKeepsItsMenuPlace() {
+    public void theBarAndMoneyKeepSeparateOrders() {
+        List<Integer> sections = MoneyFragment.SECTIONS.saved(context);
+        MoneyFragment.SECTIONS.save(context, Arrays.asList(sections.get(2), sections.get(0), sections.get(1)));
+        assertEquals("Accounts · Budgets · Funds", MoneyFragment.SECTIONS.summary(context));
+        assertEquals("Home · Money · Activity · Bills", TabOrder.BOTTOM.summary(context));
+    }
+
+    @Test
+    public void oneMissingFromTheSavedOrderKeepsItsDefaultPlace() {
         context.getSharedPreferences("appearance", Context.MODE_PRIVATE).edit()
                 .putString("tab_order", "bills,activity,unknown").commit();
         assertEquals(Arrays.asList(R.id.navigation_home, R.id.navigation_money, R.id.navigation_bills,
-                R.id.navigation_activity), TabOrder.saved(context));
+                R.id.navigation_activity), TabOrder.BOTTOM.saved(context));
     }
 }

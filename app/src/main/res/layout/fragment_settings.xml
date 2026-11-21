@@ -64,6 +64,10 @@
                 <include
                     android:id="@+id/rowTabOrder"
                     layout="@layout/item_settings_row" />
+
+                <include
+                    android:id="@+id/rowMoneyOrder"
+                    layout="@layout/item_settings_row" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
