@@ -34,12 +34,15 @@ import com.example.expensemate.service.BackupWorker;
 import com.example.expensemate.service.DriveAuth;
 import com.example.expensemate.service.GoogleDriveService;
 import com.example.expensemate.ui.common.AppTheme;
+import com.example.expensemate.ui.common.ReorderDialog;
+import com.example.expensemate.ui.common.TabOrder;
 import com.example.expensemate.ui.common.Ui;
 import com.google.android.gms.auth.api.identity.AuthorizationResult;
 import com.google.android.gms.common.api.ApiException;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
@@ -116,6 +119,10 @@ public class SettingsFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         configureRow(binding.rowTheme, R.drawable.ic_palette, "Theme", AppTheme.LABELS[AppTheme.selected(requireContext())]);
         binding.rowTheme.getRoot().setOnClickListener(v -> chooseTheme());
+        MainActivity main = (MainActivity) requireActivity();
+        configureRow(binding.rowTabOrder, R.drawable.ic_reorder, "Tab order",
+                TabOrder.summary(requireContext(), main.getTabs()));
+        binding.rowTabOrder.getRoot().setOnClickListener(v -> chooseTabOrder(main));
 
         configureRow(binding.rowAbout, R.drawable.ic_info, "Expense Mate", "Version " + BuildConfig.VERSION_NAME);
         binding.rowAbout.getRoot().setOnClickListener(v -> new MaterialAlertDialogBuilder(requireContext())
@@ -172,6 +179,27 @@ public class SettingsFragment extends Fragment {
                 })
                 .setNegativeButton("Cancel", null)
                 .show();
+    }
+
+    // The app still opens on Home, wherever it sits in the bar
+    private void chooseTabOrder(MainActivity main) {
+        List<Integer> ids = TabOrder.saved(requireContext());
+        List<String> names = new ArrayList<>();
+        for (int id : ids) {
+            names.add(main.getTabs().findItem(id).getTitle().toString());
+        }
+        ReorderDialog.show(requireContext(), "Tab order",
+                "Drag to move. The top one sits at the left of the bar. The app still opens on Home.", names, order -> {
+            List<Integer> ordered = new ArrayList<>();
+            for (int index : order) {
+                ordered.add(ids.get(index));
+            }
+            TabOrder.save(requireContext(), ordered);
+            main.applyTabOrder();
+            if (binding != null) {
+                binding.rowTabOrder.tvSubtitle.setText(TabOrder.summary(requireContext(), main.getTabs()));
+            }
+        });
     }
 
     private void configureRow(ItemSettingsRowBinding row, int icon, String title, String subtitle) {

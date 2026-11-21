@@ -8,6 +8,7 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.provider.Settings;
+import android.view.Menu;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
@@ -31,6 +32,7 @@ import com.example.expensemate.data.LoanSummary;
 import com.example.expensemate.service.RcsNotificationListenerService;
 import com.example.expensemate.service.MmsChangeJob;
 import com.example.expensemate.ui.common.AppTheme;
+import com.example.expensemate.ui.common.TabOrder;
 import com.example.expensemate.ui.patterns.PatternsFragment;
 import com.example.expensemate.util.CurrencyTotals;
 import com.example.expensemate.viewmodel.LoanViewModel;
@@ -63,6 +65,7 @@ public class MainActivity extends AppCompatActivity {
                 .findFragmentById(R.id.nav_host_fragment);
         navController = navHostFragment.getNavController();
         bottomNavView = findViewById(R.id.nav_view);
+        TabOrder.apply(this, bottomNavView.getMenu());
         NavigationUI.setupWithNavController(bottomNavView, navController);
 
         drawerLayout = findViewById(R.id.drawer_layout);
@@ -88,6 +91,16 @@ public class MainActivity extends AppCompatActivity {
             return; // Sharing a message is not the moment to ask for permissions
         }
         startCaptureSetup();
+    }
+
+    /** The bottom tabs, in the order they show. */
+    public Menu getTabs() {
+        return bottomNavView.getMenu();
+    }
+
+    /** Puts the bottom tabs in the order saved in Settings. */
+    public void applyTabOrder() {
+        TabOrder.apply(this, bottomNavView.getMenu());
     }
 
     @Override

@@ -26,6 +26,12 @@ public final class ReorderDialog {
 
     /** Calls onSave with the original positions of the names, in their new order. */
     public static void show(Context context, String title, List<String> names, Consumer<List<Integer>> onSave) {
+        show(context, title, "Drag to move. The top ones come first wherever you pick from this list.", names, onSave);
+    }
+
+    /** The same, with its own line under the title. */
+    public static void show(Context context, String title, String message, List<String> names,
+            Consumer<List<Integer>> onSave) {
         List<Integer> order = new ArrayList<>();
         for (int i = 0; i < names.size(); i++) {
             order.add(i);
@@ -84,7 +90,7 @@ public final class ReorderDialog {
 
         new MaterialAlertDialogBuilder(context)
                 .setTitle(title)
-                .setMessage("Drag to move. The top ones come first wherever you pick from this list.")
+                .setMessage(message)
                 .setView(list)
                 .setNegativeButton("Cancel", null)
                 .setPositiveButton("Save", (dialog, which) -> onSave.accept(order))
