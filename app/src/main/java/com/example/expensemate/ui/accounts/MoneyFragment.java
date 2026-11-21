@@ -181,7 +181,7 @@ public class MoneyFragment extends Fragment {
         boolean budgets = segment == BUDGETS;
         binding.scrollList.setVisibility(budgets ? View.GONE : View.VISIBLE);
         binding.budgetsContainer.setVisibility(budgets ? View.VISIBLE : View.GONE);
-        binding.fabAdd.setText(segment == FUNDS ? "Fund" : budgets ? "Budget" : "Account");
+        binding.fabAdd.setContentDescription(segment == FUNDS ? "Add fund" : budgets ? "Add budget" : "Add account");
         if (budgets) {
             return;
         }

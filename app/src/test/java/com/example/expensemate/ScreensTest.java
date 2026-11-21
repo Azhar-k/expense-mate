@@ -267,6 +267,29 @@ public class ScreensTest {
         }
     }
 
+    /** The add button shows only an icon, so what it does is in what screen readers say. */
+    private String addButtonSays() {
+        List<View> found = new ArrayList<>();
+        findVisible(activity.getWindow().getDecorView(), R.id.fabAdd, found);
+        assertEquals("One add button on screen", 1, found.size());
+        return String.valueOf(found.get(0).getContentDescription());
+    }
+
+    private static void findVisible(View view, int id, List<View> found) {
+        if (view.getVisibility() != View.VISIBLE) {
+            return;
+        }
+        if (view.getId() == id) {
+            found.add(view);
+        }
+        if (view instanceof android.view.ViewGroup) {
+            android.view.ViewGroup group = (android.view.ViewGroup) view;
+            for (int i = 0; i < group.getChildCount(); i++) {
+                findVisible(group.getChildAt(i), id, found);
+            }
+        }
+    }
+
     private List<String> visibleTexts() {
         List<String> texts = new ArrayList<>();
         collect(activity.getWindow().getDecorView(), texts);
@@ -339,7 +362,7 @@ public class ScreensTest {
         assertEquals("Money", title());
         assertShows("Eating");
         assertShows("Eating out, Groceries");
-        assertShows("Budget");
+        assertEquals("Add budget", addButtonSays());
         assertFalse(visibleTexts().contains("Trip"));
         shoot("money_budgets");
 
@@ -351,7 +374,7 @@ public class ScreensTest {
         assertShows("Everyday");
         assertShows("Trip");
         assertShows(savingsTarget);
-        assertShows("Fund");
+        assertEquals("Add fund", addButtonSays());
         assertFalse(visibleTexts().contains("State Bank ••4821"));
         shoot("money_funds");
 
@@ -360,7 +383,7 @@ public class ScreensTest {
         assertShows("₹3,48,390");
         assertShows("State Bank ••4821");
         assertShows("Default");
-        assertShows("Account");
+        assertEquals("Add account", addButtonSays());
         assertFalse(visibleTexts().contains(savingsTarget));
         shoot("money_accounts");
         tabs.selectTab(tabs.getTabAt(1));
