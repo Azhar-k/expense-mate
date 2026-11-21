@@ -121,7 +121,7 @@ public class SettingsFragment extends Fragment {
         configureRow(binding.rowTheme, R.drawable.ic_palette, "Theme", AppTheme.LABELS[AppTheme.selected(requireContext())]);
         binding.rowTheme.getRoot().setOnClickListener(v -> chooseTheme());
         MainActivity main = (MainActivity) requireActivity();
-        setUpOrderRow(binding.rowTabOrder, "Tab order", TabOrder.BOTTOM,
+        setUpOrderRow(binding.rowTabOrder, "Bottom bar", TabOrder.BOTTOM,
                 "Drag to move. The top one sits at the left of the bar. The app still opens on Home.",
                 main::applyTabOrder);
         setUpOrderRow(binding.rowMoneyOrder, "Money sections", MoneyFragment.SECTIONS,
