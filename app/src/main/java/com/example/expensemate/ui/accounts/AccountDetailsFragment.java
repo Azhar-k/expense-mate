@@ -160,7 +160,7 @@ public class AccountDetailsFragment extends Fragment {
                 ? transactionViewModel.getRowsForFund(id, r.fromMillis, r.toMillis)
                 : transactionViewModel.getRowsForAccount(id, r.fromMillis, r.toMillis));
         rows.observe(getViewLifecycleOwner(), list -> {
-            adapter.submit(list, range.getValue() != shownRange, binding.recyclerView);
+            adapter.submit(list, range.getValue() != shownRange, transactionViewModel.justAdded(), binding.recyclerView);
             shownRange = range.getValue();
             binding.tvEmpty.setVisibility(list.isEmpty() ? View.VISIBLE : View.GONE);
         });

@@ -39,18 +39,23 @@ public final class Ui {
 
     /** Puts a Reorder button in the toolbar while the fragment's view is showing. */
     public static void addReorderAction(Fragment fragment, Runnable onReorder) {
+        addAction(fragment, R.id.action_reorder, "Reorder", R.drawable.ic_reorder, onReorder);
+    }
+
+    /** An icon in the toolbar while the fragment is showing. */
+    public static void addAction(Fragment fragment, int id, String title, int icon, Runnable onSelected) {
         fragment.requireActivity().addMenuProvider(new MenuProvider() {
             @Override
             public void onCreateMenu(@NonNull Menu menu, @NonNull MenuInflater inflater) {
-                menu.add(Menu.NONE, R.id.action_reorder, Menu.NONE, "Reorder")
-                        .setIcon(R.drawable.ic_reorder)
+                menu.add(Menu.NONE, id, Menu.NONE, title)
+                        .setIcon(icon)
                         .setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM);
             }
 
             @Override
             public boolean onMenuItemSelected(@NonNull MenuItem item) {
-                if (item.getItemId() == R.id.action_reorder) {
-                    onReorder.run();
+                if (item.getItemId() == id) {
+                    onSelected.run();
                     return true;
                 }
                 return false;

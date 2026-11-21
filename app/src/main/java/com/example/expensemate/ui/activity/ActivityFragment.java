@@ -1,5 +1,7 @@
 package com.example.expensemate.ui.activity;
 
+import android.Manifest;
+import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -11,11 +13,14 @@ import android.view.ViewGroup;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
+import com.example.expensemate.R;
 import com.example.expensemate.data.Account;
+import com.example.expensemate.service.MmsChangeJob;
 import com.example.expensemate.data.Category;
 import com.example.expensemate.data.Fund;
 import com.example.expensemate.databinding.FragmentActivityBinding;
@@ -53,6 +58,7 @@ public class ActivityFragment extends Fragment {
     private final Handler handler = new Handler(Looper.getMainLooper());
     private Runnable pendingSearch;
     private TransactionFilter shownFilter;
+    private boolean refreshing; // A message check is running, so another tap only reloads the list
 
     @Nullable
     @Override
@@ -83,6 +89,7 @@ public class ActivityFragment extends Fragment {
         });
 
         binding.fabAdd.setOnClickListener(v -> TransactionFormSheet.showAdd(requireActivity()));
+        Ui.addAction(this, R.id.action_refresh, "Refresh", R.drawable.ic_refresh, this::refresh);
         setChipAction(binding.chipRange, this::chooseRange);
         setChipAction(binding.chipAccount, this::chooseAccount);
         setChipAction(binding.chipCategory, this::chooseCategory);
@@ -129,10 +136,46 @@ public class ActivityFragment extends Fragment {
         viewModel.getFilter().observe(getViewLifecycleOwner(), this::renderFilter);
         viewModel.getActivityRows().observe(getViewLifecycleOwner(), rows -> {
             TransactionFilter filter = viewModel.getFilter().getValue();
-            adapter.submit(rows, filter != shownFilter, binding.recyclerView);
+            adapter.submit(rows, filter != shownFilter, viewModel.justAdded(), binding.recyclerView);
             shownFilter = filter;
             binding.emptyState.setVisibility(rows.isEmpty() ? View.VISIBLE : View.GONE);
         });
+    }
+
+    /**
+     * Brings the list up to now: a range such as "Last 30 days" was worked out when it was picked, so it
+     * moves on to end today, and bank messages that arrived while the app was asleep are read.
+     */
+    private void refresh() {
+        TransactionFilter filter = viewModel.getFilter().getValue().copy();
+        moveRangeToNow(filter);
+        viewModel.setFilter(filter);
+        if (refreshing) {
+            return;
+        }
+        if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.READ_SMS)
+                != PackageManager.PERMISSION_GRANTED) {
+            Ui.snackbar(requireActivity(), "Refreshed. Turn on SMS reading in Settings to pick up bank messages.");
+            return;
+        }
+        refreshing = true;
+        Ui.snackbar(requireActivity(), "Checking for new bank messages…");
+        MmsChangeJob.start(requireContext().getApplicationContext(), () -> handler.post(() -> {
+            refreshing = false;
+            if (binding != null && isAdded()) {
+                Ui.snackbar(requireActivity(), "Up to date");
+            }
+        }));
+    }
+
+    private static void moveRangeToNow(TransactionFilter filter) {
+        java.util.regex.Matcher lastDays = java.util.regex.Pattern.compile("Last (\\d+) days")
+                .matcher(filter.rangeLabel != null ? filter.rangeLabel : "");
+        if (lastDays.matches()) {
+            filter.setLastDays(Integer.parseInt(lastDays.group(1)));
+        } else if ("This month".equals(filter.rangeLabel)) {
+            setThisMonth(filter);
+        }
     }
 
     private void openRow(ActivityRow row) {

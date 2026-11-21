@@ -37,6 +37,7 @@ public class TransactionViewModel extends AndroidViewModel {
     private final LiveData<List<CategorySum>> homeIncome;
     private boolean homeShowingExpenses = true;
     private boolean homeFilterChosen = false;
+    private long lastAddedAt;
 
     /**
      * The month the Home screen is showing, and at most one of a fund or an account to narrow it to;
@@ -286,7 +287,13 @@ public class TransactionViewModel extends AndroidViewModel {
     }
 
     public void insertTransaction(Transaction transaction) {
+        lastAddedAt = android.os.SystemClock.elapsedRealtime();
         Writes.log(TAG, "inserting transaction", transactions.add(transaction));
+    }
+
+    /** True for a few seconds after the person adds something, so a list can go to where it landed. */
+    public boolean justAdded() {
+        return lastAddedAt != 0 && android.os.SystemClock.elapsedRealtime() - lastAddedAt < 5000;
     }
 
     public void updateTransaction(Transaction edited) {
@@ -327,6 +334,7 @@ public class TransactionViewModel extends AndroidViewModel {
     }
 
     public void insertTransfer(Transaction debit, Transaction credit) {
+        lastAddedAt = android.os.SystemClock.elapsedRealtime();
         Writes.log(TAG, "saving transfer", transactions.addTransfer(debit, credit));
     }
 

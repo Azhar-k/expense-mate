@@ -73,6 +73,14 @@ public class ActivityRow {
         return kept;
     }
 
+    /** Stays the same for one heading, transaction or pair of legs across reloads. */
+    public String key() {
+        if (isHeader()) {
+            return "day:" + dayLabel;
+        }
+        return isTransfer() ? "pair:" + transaction.getTransferGroupId() : "row:" + transaction.getId();
+    }
+
     public boolean sameItem(ActivityRow other) {
         if (isHeader() || other.isHeader()) {
             return isHeader() && other.isHeader() && dayLabel.equals(other.dayLabel);

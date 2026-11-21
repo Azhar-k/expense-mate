@@ -81,13 +81,36 @@ public class ActivityAdapter extends ListAdapter<ActivityRow, RecyclerView.ViewH
      * Shows new rows. A row's corners and divider depend on its neighbours, which can change
      * without the row itself changing, so every row is drawn again once the list has settled.
      */
-    public void submit(List<ActivityRow> rows, boolean scrollToTop, RecyclerView recyclerView) {
+    /**
+     * @param scrollToTop  for a new filter, which starts the list again
+     * @param revealAdded  just after the person added something, so the list goes to it wherever it landed
+     */
+    public void submit(List<ActivityRow> rows, boolean scrollToTop, boolean revealAdded, RecyclerView recyclerView) {
+        // A row added above the top would otherwise sit just out of sight, as the list keeps its place
+        boolean atTop = !recyclerView.canScrollVertically(-1);
+        java.util.Set<String> before = new java.util.HashSet<>();
+        for (ActivityRow row : getCurrentList()) {
+            before.add(row.key());
+        }
         submitList(rows, () -> {
             notifyItemRangeChanged(0, getItemCount());
-            if (scrollToTop) {
+            int added = firstNewRow(rows, before);
+            if (scrollToTop || (atTop && added >= 0 && added <= 1)) {
                 recyclerView.scrollToPosition(0);
+            } else if (revealAdded && added >= 0 && !before.isEmpty()) {
+                // From its day heading, so the row reads with its date
+                recyclerView.smoothScrollToPosition(Math.max(0, added - 1));
             }
         });
+    }
+
+    private static int firstNewRow(List<ActivityRow> rows, java.util.Set<String> before) {
+        for (int i = 0; i < rows.size(); i++) {
+            if (!rows.get(i).isHeader() && !before.contains(rows.get(i).key())) {
+                return i;
+            }
+        }
+        return -1;
     }
 
     @Override
