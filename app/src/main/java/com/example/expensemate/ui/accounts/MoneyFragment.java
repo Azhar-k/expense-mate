@@ -18,6 +18,7 @@ import com.example.expensemate.data.Balance;
 import com.example.expensemate.data.Fund;
 import com.example.expensemate.databinding.FragmentMoneyBinding;
 import com.example.expensemate.databinding.ItemAccountBinding;
+import com.example.expensemate.ui.activity.TransactionFormSheet;
 import com.example.expensemate.ui.budgets.BudgetForm;
 import com.example.expensemate.ui.budgets.BudgetsFragment;
 import com.example.expensemate.ui.common.ReorderDialog;
@@ -87,6 +88,14 @@ public class MoneyFragment extends Fragment {
                     .commit();
         }
 
+        // From Funds a move, from Accounts a transfer, from Budgets whichever was used last
+        Ui.addAction(this, R.id.action_move, "Move money", R.drawable.ic_swap, () -> {
+            if (segment == BUDGETS) {
+                TransactionFormSheet.showMoveOrTransfer(requireActivity(), null, null);
+            } else {
+                TransactionFormSheet.showMoveOrTransfer(requireActivity(), segment == ACCOUNTS);
+            }
+        });
         Ui.addReorderAction(this, this::reorder);
         binding.fabAdd.setOnClickListener(v -> add());
         binding.btnInfo.setOnClickListener(v -> explainTotal());

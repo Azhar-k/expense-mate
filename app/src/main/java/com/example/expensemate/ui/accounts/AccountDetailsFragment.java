@@ -110,7 +110,7 @@ public class AccountDetailsFragment extends Fragment {
         }, getViewLifecycleOwner(), Lifecycle.State.RESUMED);
         // Starts from what is on screen: a move out of this fund, or a transfer out of this account
         if (isFund) {
-            Ui.addAction(this, R.id.action_move, "Move money", R.drawable.ic_move,
+            Ui.addAction(this, R.id.action_move, "Move money", R.drawable.ic_swap,
                     () -> TransactionFormSheet.showMoveOrTransfer(requireActivity(), id, null));
         } else {
             Ui.addAction(this, R.id.action_move, "Transfer", R.drawable.ic_swap,

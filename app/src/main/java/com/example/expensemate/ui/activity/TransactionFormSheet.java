@@ -54,6 +54,7 @@ public class TransactionFormSheet extends ExpandedSheet {
     private static final String ARG_PAIR = "pair";
     private static final String ARG_FROM_FUND = "from_fund";
     private static final String ARG_FROM_ACCOUNT = "from_account";
+    private static final String ARG_START_TRANSFER = "start_transfer";
     private static final String NO_BILL = "None";
     private static final String PREFS = "transaction_form";
     private static final String PREF_LAST_PAIR = "last_pair"; // "move" or "transfer"
@@ -97,7 +98,20 @@ public class TransactionFormSheet extends ExpandedSheet {
      */
     public static void showMoveOrTransfer(FragmentActivity activity, @Nullable Long fromFundId,
             @Nullable Long fromAccountId) {
+        showMoveOrTransfer(activity, fromFundId, fromAccountId, null);
+    }
+
+    /** The same, starting as a transfer or a move when startTransfer says which, with nothing picked yet. */
+    public static void showMoveOrTransfer(FragmentActivity activity, boolean startTransfer) {
+        showMoveOrTransfer(activity, null, null, startTransfer);
+    }
+
+    private static void showMoveOrTransfer(FragmentActivity activity, @Nullable Long fromFundId,
+            @Nullable Long fromAccountId, @Nullable Boolean startTransfer) {
         Bundle args = new Bundle();
+        if (startTransfer != null) {
+            args.putBoolean(ARG_START_TRANSFER, startTransfer);
+        }
         args.putBoolean(ARG_PAIR, true);
         if (fromFundId != null) {
             args.putLong(ARG_FROM_FUND, fromFundId);
@@ -319,6 +333,9 @@ public class TransactionFormSheet extends ExpandedSheet {
         }
         if (args.containsKey(ARG_FROM_FUND)) {
             return R.id.btnMove;
+        }
+        if (args.containsKey(ARG_START_TRANSFER)) {
+            return args.getBoolean(ARG_START_TRANSFER) ? R.id.btnTransfer : R.id.btnMove;
         }
         String last = requireContext().getSharedPreferences(PREFS, android.content.Context.MODE_PRIVATE)
                 .getString(PREF_LAST_PAIR, "move");
