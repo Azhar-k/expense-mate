@@ -2,6 +2,7 @@ package com.example.expensemate.ui.settings;
 
 import android.accounts.AccountManager;
 import android.app.Activity;
+import android.Manifest;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -30,6 +31,7 @@ import com.example.expensemate.data.BackupDataLoader;
 import com.example.expensemate.databinding.FragmentSettingsBinding;
 import com.example.expensemate.databinding.ItemSettingsRowBinding;
 import com.example.expensemate.service.BackupScheduler;
+import com.example.expensemate.service.BillReminderScheduler;
 import com.example.expensemate.ui.accounts.MoneyFragment;
 import com.example.expensemate.service.BackupWorker;
 import com.example.expensemate.service.DriveAuth;
@@ -66,10 +68,16 @@ public class SettingsFragment extends Fragment {
     private boolean needsConsent;
     /** Back up now was tapped on this screen, so its result is shown when it finishes. */
     private boolean manualBackupRequested;
+    private ActivityResultLauncher<String> notificationPermission;
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        notificationPermission = registerForActivityResult(new ActivityResultContracts.RequestPermission(), granted -> {
+            if (binding != null) {
+                renderReminders();
+            }
+        });
         if (savedInstanceState != null) {
             pendingAccount = savedInstanceState.getString(STATE_PENDING_ACCOUNT);
         }
@@ -127,6 +135,9 @@ public class SettingsFragment extends Fragment {
         setUpOrderRow(binding.rowMoneyOrder, "Money sections", MoneyFragment.SECTIONS,
                 "Drag to move. The top one sits at the left, and Money opens on it.", null);
 
+        renderReminders();
+        binding.rowReminderDays.getRoot().setOnClickListener(v -> chooseReminderDays());
+
         configureRow(binding.rowAbout, R.drawable.ic_info, "Expense Mate", "Version " + BuildConfig.VERSION_NAME);
         binding.rowAbout.getRoot().setOnClickListener(v -> new MaterialAlertDialogBuilder(requireContext())
                 .setTitle("Expense Mate " + BuildConfig.VERSION_NAME)
@@ -168,6 +179,7 @@ public class SettingsFragment extends Fragment {
     public void onResume() {
         super.onResume();
         renderCaptureStatus();
+        renderReminders(); // Notifications may have been allowed in the phone's settings meanwhile
     }
 
     private void chooseTheme() {
@@ -179,6 +191,55 @@ public class SettingsFragment extends Fragment {
                     if (binding != null) {
                         binding.rowTheme.tvSubtitle.setText(AppTheme.LABELS[which]);
                     }
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    // Bills only; fund top-ups are your own money moving, so they get no reminders
+    private void renderReminders() {
+        Context context = requireContext();
+        boolean on = BillReminderScheduler.isOn(context);
+        binding.switchBillReminders.setOnCheckedChangeListener(null);
+        binding.switchBillReminders.setChecked(on);
+        binding.switchBillReminders.setOnCheckedChangeListener((button, checked) -> {
+            BillReminderScheduler.setOn(requireContext().getApplicationContext(), checked);
+            if (checked && !BillReminderScheduler.canNotify(requireContext())) {
+                notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS);
+            }
+            renderReminders();
+        });
+        String when = BillReminderScheduler.describe(BillReminderScheduler.daysAhead(context)) + ", at 9 AM";
+        if (on && !BillReminderScheduler.canNotify(context)) {
+            when = "Notifications are off for Expense Mate. Tap to turn them on.";
+        }
+        configureRow(binding.rowReminderDays, R.drawable.ic_calendar, "When to remind", when);
+        binding.rowReminderDays.getRoot().setEnabled(on);
+        binding.rowReminderDays.getRoot().setAlpha(on ? 1f : 0.5f);
+    }
+
+    private void chooseReminderDays() {
+        Context context = requireContext();
+        if (!BillReminderScheduler.canNotify(context)) {
+            openAppSettings();
+            return;
+        }
+        int[] choices = BillReminderScheduler.DAYS_AHEAD_CHOICES;
+        String[] labels = new String[choices.length];
+        int checked = 0;
+        for (int i = 0; i < choices.length; i++) {
+            labels[i] = choices[i] == 0 ? "Only on the due day" : choices[i] == 1 ? "1 day before"
+                    : choices[i] + " days before";
+            if (choices[i] == BillReminderScheduler.daysAhead(context)) {
+                checked = i;
+            }
+        }
+        new MaterialAlertDialogBuilder(context)
+                .setTitle("Remind me")
+                .setSingleChoiceItems(labels, checked, (dialog, which) -> {
+                    BillReminderScheduler.setDaysAhead(requireContext().getApplicationContext(), choices[which]);
+                    dialog.dismiss();
+                    renderReminders();
                 })
                 .setNegativeButton("Cancel", null)
                 .show();

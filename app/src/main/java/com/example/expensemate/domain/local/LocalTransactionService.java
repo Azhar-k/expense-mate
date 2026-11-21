@@ -147,9 +147,13 @@ final class LocalTransactionService implements TransactionService {
             }
             if (row.isTransfer()) {
                 List<Transaction> legs = store.findTransferLegs(row.getTransferGroupId());
+                for (Transaction leg : legs) {
+                    rules.forgetBillMonths(leg);
+                }
                 store.deleteTransferGroup(row.getTransferGroupId());
                 return legs;
             }
+            rules.forgetBillMonths(row);
             store.delete(row);
             return Collections.singletonList(row);
         });
@@ -160,6 +164,7 @@ final class LocalTransactionService implements TransactionService {
         return writer.run(() -> {
             for (Transaction transaction : removed) {
                 store.insert(transaction);
+                rules.markLinkedBillPaid(transaction, null);
             }
         });
     }

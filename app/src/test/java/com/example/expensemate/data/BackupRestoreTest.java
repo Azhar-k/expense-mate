@@ -26,6 +26,7 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 
 @RunWith(RobolectricTestRunner.class)
@@ -558,6 +559,49 @@ public class BackupRestoreTest {
 
         assertTrue(restored.loanDao().getAllLoansSync().isEmpty());
         assertNull(find(restored, 1).getLoanId());
+    }
+
+    @Test
+    public void billMonthsComeBackAsTheyWere() throws Exception {
+        fund(1, "Daily", true);
+        RecurringPayment gym = new RecurringPayment("Gym", 900, 5, null);
+        gym.setId(4);
+        gym.setStartPeriod(202605);
+        source.recurringPaymentDao().insert(gym);
+        BillPayment may = BillPayment.paid(gym, 202605, new Date(1780000000000L), 7L);
+        may.setAmount(850);
+        source.recurringPaymentDao().insertPayment(may);
+        source.recurringPaymentDao().insertPayment(BillPayment.skipped(gym, 202606));
+        // Linked, but June was skipped on purpose: the restore must not mark it paid from the link
+        Transaction june = row(7, "DEBIT", 1L, null);
+        june.setLinkedRecurringPaymentId(4L);
+        source.transactionDao().insertTransaction(june);
+
+        new BackupDataLoader(context, restored).restore(backupFiles());
+
+        RecurringPaymentDao dao = restored.recurringPaymentDao();
+        assertEquals(202605, dao.getByIdSync(4).getStartPeriod());
+        assertEquals(2, dao.getAllPaymentsSync().size());
+        BillPayment back = dao.getPaymentSync(4, 202605);
+        assertEquals(850, back.getAmount(), 0);
+        assertEquals(1780000000000L, back.getPaidOn().getTime());
+        assertEquals(Long.valueOf(7), back.getTransactionId());
+        assertTrue(dao.getPaymentSync(4, 202606).isSkipped());
+    }
+
+    @Test
+    public void aBackupFromBeforeBillMonthsGetsThemFromItsLinks() throws Exception {
+        load("ACCOUNTS", "ID: 1\nName: Daily\nAccount Number: \nBank: \nExpiry Date: null\nDescription: \nIs Default: true\n---\n");
+        load("RECURRING PAYMENTS", "ID: 4\nName: Rent\nAmount: 2500\nDue Day: 5\nExpiry Date: null\nIs Completed: false\n"
+                + "Last Completed Date: null\nFrom Account ID: null\nTo Account ID: null\n---\n");
+        load("TRANSACTIONS", oldRow(1, "1").replace("Linked Payment ID: null", "Linked Payment ID: 4"));
+        BackupDataLoader.finishRestore(restored);
+
+        List<BillPayment> months = restored.recurringPaymentDao().getAllPaymentsSync();
+        assertEquals(1, months.size());
+        assertEquals(Long.valueOf(1), months.get(0).getTransactionId());
+        assertEquals(com.example.expensemate.util.Periods.current(),
+                restored.recurringPaymentDao().getByIdSync(4).getStartPeriod());
     }
 
     @Test

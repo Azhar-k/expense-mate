@@ -225,7 +225,7 @@ public class Migration17To18Test {
         }
     }
 
-    private static File newFile(String name) {
+    static File newFile(String name) {
         Context context = ApplicationProvider.getApplicationContext();
         File file = context.getDatabasePath(name);
         file.getParentFile().mkdirs();
@@ -235,12 +235,12 @@ public class Migration17To18Test {
 
     private static AppDatabase open(File file) {
         return Room.databaseBuilder(ApplicationProvider.getApplicationContext(), AppDatabase.class, file.getPath())
-                .addMigrations(AppDatabase.MIGRATION_17_18)
+                .addMigrations(AppDatabase.MIGRATION_17_18, AppDatabase.MIGRATION_18_19)
                 .allowMainThreadQueries()
                 .build();
     }
 
-    private static List<String> columns(SupportSQLiteDatabase db, String table) {
+    static List<String> columns(SupportSQLiteDatabase db, String table) {
         List<String> names = new java.util.ArrayList<>();
         try (Cursor cursor = db.query("PRAGMA table_info(`" + table + "`)")) {
             int name = cursor.getColumnIndexOrThrow("name");
@@ -286,7 +286,7 @@ public class Migration17To18Test {
     }
 
     // Version 17 as Migration16To17Test leaves it: funds and accounts share one table
-    private static SQLiteDatabase createVersion17(File file) {
+    static SQLiteDatabase createVersion17(File file) {
         SQLiteDatabase db = SQLiteDatabase.openOrCreateDatabase(file, null);
         db.execSQL("CREATE TABLE `transactions` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `amount` REAL NOT NULL, "
                 + "`description` TEXT, `date` INTEGER, `transactionType` TEXT, `receiverName` TEXT, `smsBody` TEXT, "

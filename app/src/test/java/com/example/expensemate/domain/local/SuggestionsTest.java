@@ -5,7 +5,10 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import com.example.expensemate.data.Account;
+import com.example.expensemate.data.BillPayment;
 import com.example.expensemate.data.PastTransaction;
+import com.example.expensemate.util.BillLedger;
+import com.example.expensemate.util.Periods;
 import com.example.expensemate.data.RecurringPayment;
 import com.example.expensemate.data.Transaction;
 
@@ -191,13 +194,15 @@ public class SuggestionsTest {
     @Test
     public void paidTransferAndIncomeBillsAreNotSuggested() {
         RecurringPayment paid = bill(5, "Rent", 15000, 1);
-        paid.setCompleted(true);
-        paid.setLastCompletedDate(day(1));
+        Transaction rent = spend("MR LANDLORD", 15000, 2);
+        BillLedger ledger = BillLedger.of(Collections.singletonList(
+                BillPayment.paid(paid, Periods.of(rent.getDate()), day(1), null)));
         RecurringPayment transfer = bill(6, "Savings", 15000, 1);
         transfer.setFromFundId(1L);
         transfer.setToFundId(2L);
         List<RecurringPayment> bills = Arrays.asList(paid, transfer);
-        assertNull(Suggestions.bill(spend("MR LANDLORD", 15000, 2), bills, Collections.emptyList()));
+        assertNull("This month is paid, even if older ones were not",
+                Suggestions.bill(rent, bills, ledger, Collections.emptyList()));
 
         Transaction income = spend("MR LANDLORD", 15000, 2);
         income.setTransactionType("CREDIT");

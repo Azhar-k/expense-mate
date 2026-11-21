@@ -34,6 +34,11 @@ public final class BillForm {
     }
 
     public static void show(FragmentActivity activity, @Nullable RecurringPayment bill) {
+        show(activity, bill, false);
+    }
+
+    /** {@code topUp} only names a new one as a fund top-up; picking both funds is what makes it one. */
+    public static void show(FragmentActivity activity, @Nullable RecurringPayment bill, boolean topUp) {
         DialogBillFormBinding form = DialogBillFormBinding.inflate(LayoutInflater.from(activity));
         SimpleDateFormat dateFormat = new SimpleDateFormat("d MMM yyyy", Locale.getDefault());
         Calendar ends = Calendar.getInstance();
@@ -74,7 +79,7 @@ public final class BillForm {
             CurrencyField.setUp(form.etCurrency, bill != null ? bill.getCurrency() : main, main, Currencies.inUse(list));
         });
 
-        FormSheet sheet = FormSheet.create(activity, bill == null ? "Add a bill" : "Edit " + bill.getName(),
+        FormSheet sheet = FormSheet.create(activity, bill == null ? (topUp ? "Add a fund top-up" : "Add a bill") : "Edit " + bill.getName(),
                 form.getRoot());
         // Keeps the sheet open when something needs fixing
         sheet.onSave(() -> {

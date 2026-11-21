@@ -47,9 +47,38 @@
             android:layout_marginTop="8dp"
             android:orientation="vertical" />
 
+        <TextView
+            style="@style/Text.ExpenseMate.Section"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="Last 12 months" />
+
+        <LinearLayout
+            android:id="@+id/history"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:orientation="horizontal" />
+
+        <TextView
+            android:id="@+id/tvHistorySummary"
+            style="@style/Text.ExpenseMate.Sub"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp" />
+
         <Button
             android:id="@+id/btnMove"
             style="@style/Widget.ExpenseMate.Primary"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:visibility="gone" />
+
+        <Button
+            android:id="@+id/btnSkip"
+            style="@style/Widget.ExpenseMate.Outlined"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"

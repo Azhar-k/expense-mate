@@ -21,6 +21,9 @@ public class RecurringPayment {
     private Date lastCompletedDate;
     private Long fromFundId;
     private Long toFundId;
+    // The first month the bill is owed, as a Periods number; 0 until it is saved
+    @ColumnInfo(defaultValue = "0")
+    private int startPeriod;
     @NonNull
     @ColumnInfo(defaultValue = Currencies.LEGACY) // Matches the migration
     private String currency = Currencies.LEGACY; // ISO 4217 code of amount
@@ -63,6 +66,9 @@ public class RecurringPayment {
 
     public Long getFromFundId() { return fromFundId; }
     public void setFromFundId(Long fromFundId) { this.fromFundId = fromFundId; }
+
+    public int getStartPeriod() { return startPeriod; }
+    public void setStartPeriod(int startPeriod) { this.startPeriod = startPeriod; }
 
     public Long getToFundId() { return toFundId; }
     public void setToFundId(Long toFundId) { this.toFundId = toFundId; }

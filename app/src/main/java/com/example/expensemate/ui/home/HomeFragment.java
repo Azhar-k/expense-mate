@@ -30,7 +30,9 @@ import com.example.expensemate.databinding.ItemBreakdownRowBinding;
 import com.example.expensemate.databinding.ItemComingUpBinding;
 import com.example.expensemate.ui.activity.TransactionFormSheet;
 import com.example.expensemate.ui.bills.BillText;
+import com.example.expensemate.util.BillLedger;
 import com.example.expensemate.util.Bills;
+import com.example.expensemate.util.Periods;
 import com.example.expensemate.util.Currencies;
 import com.example.expensemate.util.Money;
 import com.example.expensemate.viewmodel.AccountViewModel;
@@ -54,6 +56,7 @@ public class HomeFragment extends Fragment {
     private List<CategorySum> expenses = new ArrayList<>();
     private List<CategorySum> income = new ArrayList<>();
     private List<RecurringPayment> bills = new ArrayList<>();
+    private BillLedger billLedger = BillLedger.EMPTY;
     private List<Fund> funds = new ArrayList<>();
     private List<Account> accounts = new ArrayList<>();
     private List<SummaryTotals> currencyTotals = new ArrayList<>();
@@ -144,8 +147,13 @@ public class HomeFragment extends Fragment {
             binding.tvReview.setText(count == 1 ? "1 transaction needs a category"
                     : count + " transactions need a category");
         });
-        provider.get(RecurringPaymentsViewModel.class).getRecurringPayments().observe(getViewLifecycleOwner(), list -> {
+        RecurringPaymentsViewModel billsViewModel = provider.get(RecurringPaymentsViewModel.class);
+        billsViewModel.getRecurringPayments().observe(getViewLifecycleOwner(), list -> {
             bills = list;
+            renderComingUp();
+        });
+        billsViewModel.getPayments().observe(getViewLifecycleOwner(), payments -> {
+            billLedger = BillLedger.of(payments);
             renderComingUp();
         });
     }
@@ -344,15 +352,16 @@ public class HomeFragment extends Fragment {
         Calendar today = Calendar.getInstance();
         int shown = 0;
         if (showingCurrentMonth()) {
-            for (RecurringPayment bill : Bills.sortByUrgency(bills, today)) {
-                Bills.Status status = Bills.statusOf(bill, today);
-                if (shown == COMING_UP_LIMIT || status == Bills.Status.PAID || status == Bills.Status.ENDED) {
+            int period = Periods.of(today);
+            for (RecurringPayment bill : Bills.sortByUrgency(bills, billLedger, period, today)) {
+                Bills.Status status = Bills.statusOf(bill, billLedger, period, today);
+                if (shown == COMING_UP_LIMIT || !Bills.isOwed(status)) {
                     break;
                 }
                 ItemComingUpBinding row = ItemComingUpBinding.inflate(getLayoutInflater(), binding.comingUpRows, false);
                 row.tvName.setText(bill.getName());
                 row.tvAmount.setText(Money.format(bill.getAmount(), bill.getCurrency()));
-                BillText.styleStatusTag(row.tvTag, bill, today);
+                BillText.styleStatusTag(row.tvTag, bill, billLedger, period, today);
                 binding.comingUpRows.addView(row.getRoot());
                 shown++;
             }

@@ -2,12 +2,14 @@ package com.example.expensemate.domain.local;
 
 import androidx.lifecycle.LiveData;
 
+import com.example.expensemate.data.BillPayment;
 import com.example.expensemate.data.RecurringPayment;
 import com.example.expensemate.data.Transaction;
 import com.example.expensemate.data.Transfers;
 import com.example.expensemate.data.store.BillStore;
 import com.example.expensemate.data.store.TransactionStore;
 import com.example.expensemate.domain.BillService;
+import com.example.expensemate.util.Periods;
 
 import java.util.Date;
 import java.util.List;
@@ -32,6 +34,11 @@ final class LocalBillService implements BillService {
     }
 
     @Override
+    public LiveData<List<BillPayment>> payments() {
+        return store.observePayments();
+    }
+
+    @Override
     public LiveData<Double> totalAmount() {
         return store.observeTotalAmount();
     }
@@ -43,6 +50,9 @@ final class LocalBillService implements BillService {
 
     @Override
     public CompletableFuture<Void> add(RecurringPayment bill) {
+        if (bill.getStartPeriod() == 0) {
+            bill.setStartPeriod(Periods.current());
+        }
         return writer.run(() -> store.insert(bill));
     }
 
@@ -57,26 +67,26 @@ final class LocalBillService implements BillService {
     }
 
     @Override
-    public CompletableFuture<Void> markPaid(RecurringPayment bill) {
-        bill.setCompleted(true);
-        bill.setLastCompletedDate(new Date());
-        return update(bill);
+    public CompletableFuture<Void> markPaid(RecurringPayment bill, int period) {
+        return writer.run(() -> store.savePayment(BillPayment.paid(bill, period, new Date(), null)));
     }
 
     @Override
-    public CompletableFuture<Void> resetPaid(RecurringPayment bill) {
-        bill.setCompleted(false);
-        return update(bill);
+    public CompletableFuture<Void> skip(RecurringPayment bill, int period) {
+        return writer.run(() -> store.savePayment(BillPayment.skipped(bill, period)));
     }
 
     @Override
-    public CompletableFuture<Void> payByTransfer(RecurringPayment bill) {
+    public CompletableFuture<Void> resetPaid(RecurringPayment bill, int period) {
+        return writer.run(() -> store.deletePayment(bill.getId(), period));
+    }
+
+    @Override
+    public CompletableFuture<Void> payByTransfer(RecurringPayment bill, int period) {
         Date now = new Date();
         Transaction[] legs = Transfers.newPair(bill.getAmount(), bill.getFromFundId(), bill.getToFundId(),
                 now, bill.getName());
         legs[0].setLinkedRecurringPaymentId(bill.getId());
-        bill.setCompleted(true);
-        bill.setLastCompletedDate(now);
         return writer.run(() -> {
             // Both sides stay in one account that holds the bill's currency, so only fund balances move
             Long account = rules.accountIn(bill.getCurrency());
@@ -86,7 +96,7 @@ final class LocalBillService implements BillService {
                 leg.setCurrency(bill.getCurrency());
                 transactions.insert(leg);
             }
-            store.update(bill);
+            store.savePayment(BillPayment.paid(bill, period, now, legs[0].getId()));
         });
     }
 }

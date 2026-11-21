@@ -2,6 +2,7 @@ package com.example.expensemate.data.room;
 
 import androidx.lifecycle.LiveData;
 
+import com.example.expensemate.data.BillPayment;
 import com.example.expensemate.data.RecurringPayment;
 import com.example.expensemate.data.RecurringPaymentDao;
 import com.example.expensemate.data.store.BillStore;
@@ -52,7 +53,38 @@ final class RoomBillStore implements BillStore {
 
     @Override
     public void delete(RecurringPayment bill) {
+        dao.deletePayments(bill.getId());
         dao.delete(bill);
+    }
+
+    @Override
+    public LiveData<List<BillPayment>> observePayments() {
+        return dao.getAllPayments();
+    }
+
+    @Override
+    public List<BillPayment> findAllPayments() {
+        return dao.getAllPaymentsSync();
+    }
+
+    @Override
+    public List<BillPayment> findPayments(long billId) {
+        return dao.getPaymentsSync(billId);
+    }
+
+    @Override
+    public void savePayment(BillPayment payment) {
+        dao.insertPayment(payment);
+    }
+
+    @Override
+    public void deletePayment(long billId, int period) {
+        dao.deletePayment(billId, period);
+    }
+
+    @Override
+    public void deletePaymentsOf(long transactionId) {
+        dao.deletePaymentsOf(transactionId);
     }
 
     @Override

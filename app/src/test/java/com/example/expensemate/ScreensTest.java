@@ -22,6 +22,7 @@ import androidx.test.core.app.ApplicationProvider;
 
 import com.example.expensemate.data.Account;
 import com.example.expensemate.data.AppDatabase;
+import com.example.expensemate.data.BillPayment;
 import com.example.expensemate.data.Budget;
 import com.example.expensemate.data.BudgetCategory;
 import com.example.expensemate.data.Category;
@@ -33,6 +34,7 @@ import com.example.expensemate.ui.accounts.AccountDetailsFragment;
 import com.example.expensemate.ui.activity.TransactionDetailsSheet;
 import com.example.expensemate.ui.activity.TransactionFormSheet;
 import com.example.expensemate.util.Money;
+import com.example.expensemate.util.Periods;
 import com.google.android.material.tabs.TabLayout;
 
 import org.junit.After;
@@ -73,7 +75,8 @@ public class ScreensTest {
         Application app = ApplicationProvider.getApplicationContext();
         // On a phone WorkManager starts itself; Settings watches its Back up now job
         androidx.work.testing.WorkManagerTestInitHelper.initializeTestWorkManager(app);
-        Shadows.shadowOf(app).grantPermissions(Manifest.permission.READ_SMS, Manifest.permission.RECEIVE_SMS);
+        Shadows.shadowOf(app).grantPermissions(Manifest.permission.READ_SMS, Manifest.permission.RECEIVE_SMS,
+                Manifest.permission.POST_NOTIFICATIONS);
         app.getSharedPreferences("main_activity", Context.MODE_PRIVATE).edit()
                 .putBoolean("notification_access_asked", true).apply();
         database = AppDatabase.getDatabase(app);
@@ -186,18 +189,18 @@ public class ScreensTest {
             insert(25000, "CREDIT", "Business", everydayId, household, daysAgo(40, 9), "Opening balance", false, null);
 
             Date farOff = daysAgo(-300, 9);
-            database.recurringPaymentDao().insert(new RecurringPayment("Phone bill", 799, dayOffset(-4), farOff));
-            database.recurringPaymentDao().insert(new RecurringPayment("Electricity", 2200, dayOffset(3), farOff));
-            database.recurringPaymentDao().insert(new RecurringPayment("Streaming plan", 499, dayOffset(8), farOff));
-            RecurringPayment rent = new RecurringPayment("Rent", 24000, 1, farOff);
-            rent.setCompleted(true);
-            rent.setLastCompletedDate(new Date());
-            database.recurringPaymentDao().insert(rent);
-            database.recurringPaymentDao().insert(new RecurringPayment("Old gym plan", 900, 5, daysAgo(60, 9)));
-            RecurringPayment savingsPlan = new RecurringPayment("Monthly savings", 10000, dayOffset(8), farOff);
-            savingsPlan.setFromFundId(everydayId);
-            savingsPlan.setToFundId(savingsFundId);
-            database.recurringPaymentDao().insert(savingsPlan);
+            int thisMonth = Periods.current();
+            int lastMonth = Periods.plus(thisMonth, -1);
+            // The phone bill started last month and was never paid then, so it shows as missed
+            bill("Phone bill", 799, dayOffset(-4), farOff, lastMonth, null, null);
+            bill("Electricity", 2200, dayOffset(3), farOff, thisMonth, null, null);
+            bill("Streaming plan", 499, dayOffset(8), farOff, thisMonth, null, null);
+            long rentId = bill("Rent", 24000, 1, farOff, lastMonth, null, null);
+            RecurringPayment rent = database.recurringPaymentDao().getByIdSync(rentId);
+            database.recurringPaymentDao().insertPayment(BillPayment.paid(rent, thisMonth, new Date(), null));
+            database.recurringPaymentDao().insertPayment(BillPayment.paid(rent, lastMonth, daysAgo(30, 9), null));
+            bill("Old gym plan", 900, 5, daysAgo(60, 9), thisMonth, null, null);
+            bill("Monthly savings", 10000, dayOffset(8), farOff, thisMonth, everydayId, savingsFundId);
 
             Budget eating = new Budget();
             eating.setName("Eating");
@@ -209,6 +212,14 @@ public class ScreensTest {
         });
         seeder.start();
         seeder.join();
+    }
+
+    private long bill(String name, double amount, int dueDay, Date ends, int startPeriod, Long fromFund, Long toFund) {
+        RecurringPayment bill = new RecurringPayment(name, amount, dueDay, ends);
+        bill.setStartPeriod(startPeriod);
+        bill.setFromFundId(fromFund);
+        bill.setToFundId(toFund);
+        return database.recurringPaymentDao().insert(bill);
     }
 
     private void insert(double amount, String type, String category, long fund, long account, Date date,
@@ -349,11 +360,29 @@ public class ScreensTest {
 
         activity.openTab(R.id.navigation_bills);
         settle();
-        assertTrue(title(), title().endsWith(" bills"));
+        assertEquals("Bills", title());
         assertShows("Phone bill");
-        assertShows("Monthly savings");
         assertShows("Ended");
+        assertShows("1 unpaid from earlier months");
         shoot("bills");
+        // Last month keeps what was paid and what was missed
+        activity.findViewById(R.id.btnPrevMonth).performClick();
+        settle();
+        assertShows("Back to this month");
+        assertShows("Not paid");
+        assertTrue(visibleTexts().toString(), visibleTexts().stream().anyMatch(text -> text.startsWith("Missed · was due")));
+        shoot("bills-last-month");
+        activity.findViewById(R.id.btnThisMonth).performClick();
+        settle();
+        // Top-ups have their own tab
+        TabLayout billTabs = activity.findViewById(R.id.tabs);
+        billTabs.selectTab(billTabs.getTabAt(1));
+        settle();
+        assertShows("Monthly savings");
+        assertShows("Still to move");
+        shoot("bills-top-ups");
+        billTabs.selectTab(billTabs.getTabAt(0));
+        settle();
 
         // Money opens on budgets; funds and accounts add up to the same total
         String savingsTarget = Money.format(50000, "INR") + " to go of " + Money.format(300000, "INR");

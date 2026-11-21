@@ -30,6 +30,7 @@ import androidx.navigation.ui.NavigationUI;
 import com.example.expensemate.data.LoanSummary;
 import com.example.expensemate.service.RcsNotificationListenerService;
 import com.example.expensemate.service.MmsChangeJob;
+import com.example.expensemate.service.BillReminderScheduler;
 import com.example.expensemate.ui.common.AppTheme;
 import com.example.expensemate.ui.common.TabOrder;
 import com.example.expensemate.ui.patterns.PatternsFragment;
@@ -41,6 +42,9 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.navigation.NavigationView;
 
 public class MainActivity extends AppCompatActivity {
+    /** Set on the intent a bill reminder opens, so the app shows Bills. */
+    public static final String EXTRA_OPEN_BILLS = "open_bills";
+
     private static final int SMS_PERMISSION_REQUEST_CODE = 123;
     private static final String PREFS = "main_activity";
     private static final String PREF_NOTIFICATION_ACCESS_ASKED = "notification_access_asked";
@@ -86,6 +90,10 @@ public class MainActivity extends AppCompatActivity {
         });
 
         applySystemBarInsets();
+        BillReminderScheduler.sync(getApplicationContext());
+        if (savedInstanceState == null) {
+            openBillsFromReminder(getIntent());
+        }
         if (savedInstanceState == null && openSharedMessage(getIntent())) {
             return; // Sharing a message is not the moment to ask for permissions
         }
@@ -100,7 +108,16 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
+        openBillsFromReminder(intent);
         openSharedMessage(intent);
+    }
+
+    // Tapping a bill reminder lands on Bills
+    private void openBillsFromReminder(Intent intent) {
+        if (intent != null && intent.getBooleanExtra(EXTRA_OPEN_BILLS, false)) {
+            intent.removeExtra(EXTRA_OPEN_BILLS);
+            openTab(R.id.navigation_bills);
+        }
     }
 
     // A message shared from another app opens a new pattern with it as the sample

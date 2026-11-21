@@ -284,10 +284,19 @@ public class CurrencyRulesTest {
         services.bills().add(bill).join();
         bill = database.recurringPaymentDao().getAllRecurringPaymentsSync().get(0);
 
-        services.bills().payByTransfer(bill).join();
+        int month = com.example.expensemate.util.Periods.current();
+        services.bills().payByTransfer(bill, month).join();
+        long linkedLeg = 0;
         for (Transaction leg : database.transactionDao().getAllTransactionsSyncOrderByDateAsc()) {
             assertEquals("AED", leg.getCurrency());
             assertEquals("Held in the account that has dirhams", dirhams, (long) leg.getAccountId());
+            if (leg.getLinkedRecurringPaymentId() != null) {
+                linkedLeg = leg.getId();
+            }
         }
+        // The month is marked topped up, pointing at the leg that did it
+        BillPayment payment = database.recurringPaymentDao().getPaymentSync(bill.getId(), month);
+        assertEquals(Long.valueOf(linkedLeg), payment.getTransactionId());
+        assertEquals("AED", payment.getCurrency());
     }
 }

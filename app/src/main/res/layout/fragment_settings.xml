@@ -78,6 +78,40 @@
             android:layout_marginTop="16dp"
             android:paddingStart="4dp"
             android:paddingBottom="6dp"
+            android:text="Reminders" />
+
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <com.google.android.material.materialswitch.MaterialSwitch
+                    android:id="@+id/switchBillReminders"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:paddingStart="16dp"
+                    android:paddingTop="8dp"
+                    android:paddingEnd="16dp"
+                    android:paddingBottom="8dp"
+                    android:text="Remind me about bills" />
+
+                <include
+                    android:id="@+id/rowReminderDays"
+                    layout="@layout/item_settings_row" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <TextView
+            style="@style/Text.ExpenseMate.Section"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:paddingStart="4dp"
+            android:paddingBottom="6dp"
             android:text="Google Drive backup" />
 
         <com.google.android.material.card.MaterialCardView

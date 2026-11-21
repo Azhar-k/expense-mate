@@ -1,6 +1,10 @@
 package com.example.expensemate.domain.local;
 
 import com.example.expensemate.data.Account;
+import com.example.expensemate.data.BillPayment;
+import com.example.expensemate.util.BillLedger;
+import com.example.expensemate.util.Bills;
+import java.util.Calendar;
 import com.example.expensemate.data.Fund;
 import com.example.expensemate.data.PastTransaction;
 import com.example.expensemate.data.RecurringPayment;
@@ -153,7 +157,7 @@ final class TransactionRules {
                 sameCurrency.add(bill);
             }
         }
-        return Suggestions.bill(transaction, sameCurrency, recentHistory());
+        return Suggestions.bill(transaction, sameCurrency, BillLedger.of(bills.findAllPayments()), recentHistory());
     }
 
     void rememberCategory(Transaction row) {
@@ -169,17 +173,37 @@ final class TransactionRules {
         }
     }
 
-    /** A bill the row was just linked to counts as paid on the row's date. */
+    /**
+     * A bill the row was just linked to counts as paid for the month the row pays: its own month,
+     * or the oldest one still owed when that is done. Unlinking it unmarks the month it paid.
+     */
     void markLinkedBillPaid(Transaction row, Long previousBillId) {
         Long billId = row.getLinkedRecurringPaymentId();
-        if (billId == null || billId.equals(previousBillId)) {
+        if (Objects.equals(billId, previousBillId)) {
             return;
         }
-        RecurringPayment bill = bills.findById(billId);
-        if (bill != null) {
-            bill.setCompleted(true);
-            bill.setLastCompletedDate(row.getDate());
-            bills.update(bill);
+        if (previousBillId != null && row.getId() != 0) {
+            bills.deletePaymentsOf(row.getId());
+        }
+        RecurringPayment bill = billId == null ? null : bills.findById(billId);
+        if (bill == null || row.getDate() == null) {
+            return;
+        }
+        Calendar day = Calendar.getInstance();
+        day.setTime(row.getDate());
+        int period = Bills.periodToPay(bill, BillLedger.of(bills.findPayments(billId)), day);
+        if (period != 0) {
+            BillPayment payment = BillPayment.paid(bill, period, row.getDate(), row.getId() == 0 ? null : row.getId());
+            payment.setAmount(row.getAmount());
+            payment.setCurrency(row.getCurrency());
+            bills.savePayment(payment);
+        }
+    }
+
+    /** The months a deleted row paid are owed again. */
+    void forgetBillMonths(Transaction row) {
+        if (row.getLinkedRecurringPaymentId() != null) {
+            bills.deletePaymentsOf(row.getId());
         }
     }
 }

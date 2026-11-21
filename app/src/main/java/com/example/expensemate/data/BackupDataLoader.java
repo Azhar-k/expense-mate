@@ -9,6 +9,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase;
 import com.example.expensemate.service.GoogleDriveService;
 import com.example.expensemate.service.BackupScheduler;
 import com.example.expensemate.util.Currencies;
+import com.example.expensemate.util.Periods;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -58,13 +59,14 @@ public class BackupDataLoader {
             { "RECURRING PAYMENTS", "recurring_payments.txt" },
             { "LOANS", "loans.txt" },
             { "TRANSACTIONS", "transactions.txt" },
+            { "BILL PAYMENTS", "bill_payments.txt" },
             { "COUNTERPARTY CATEGORIES", "counterparty_categories.txt" },
             { "MESSAGE PATTERNS", "message_patterns.txt" },
             { "BUDGETS", "budgets.txt" },
     };
     private static final String[] TABLES = {
             "transactions", "categories", "recurring_payments", "funds", "accounts", "counterparty_categories",
-            "loans", "message_patterns", "budgets", "budget_categories" };
+            "loans", "message_patterns", "budgets", "budget_categories", "bill_payments" };
 
     // How older backups marked the rows of the accounts file that were accounts; the rest were funds
     private static final String OLD_ACCOUNT_TYPE = "REAL";
@@ -113,6 +115,7 @@ public class BackupDataLoader {
                     put(data, "From Fund ID", p.getFromFundId());
                     put(data, "To Fund ID", p.getToFundId());
                     put(data, "Currency", p.getCurrency());
+                    put(data, "Start Period", p.getStartPeriod());
                     data.append("---\n");
                 }
                 break;
@@ -180,6 +183,18 @@ public class BackupDataLoader {
                     put(data, "Match Key", t.getMatchKey());
                     put(data, "Message Time", t.getMessageTime());
                     put(data, "Currency", t.getCurrency());
+                    data.append("---\n");
+                }
+                break;
+            case "BILL PAYMENTS":
+                for (BillPayment p : database.recurringPaymentDao().getAllPaymentsSync()) {
+                    put(data, "Bill ID", p.getBillId());
+                    put(data, "Period", p.getPeriod());
+                    put(data, "Paid On", p.getPaidOn());
+                    put(data, "Amount", p.getAmount());
+                    put(data, "Currency", p.getCurrency());
+                    put(data, "Transaction ID", p.getTransactionId());
+                    put(data, "Skipped", p.isSkipped());
                     data.append("---\n");
                 }
                 break;
@@ -331,6 +346,9 @@ public class BackupDataLoader {
                     break;
                 case "RECURRING PAYMENTS":
                     processRecurringPayment(record);
+                    break;
+                case "BILL PAYMENTS":
+                    processBillPayment(record);
                     break;
                 case "FUNDS":
                     processFund(record);
@@ -506,7 +524,25 @@ public class BackupDataLoader {
         payment.setFromFundId(record.number(fundKeys ? "From Fund ID" : "From Account ID"));
         payment.setToFundId(record.number(fundKeys ? "To Fund ID" : "To Account ID"));
         payment.setCurrency(currencyOf(record));
+        payment.setStartPeriod(record.integer("Start Period", 0));
         database.recurringPaymentDao().insert(payment);
+    }
+
+    private void processBillPayment(Record record) throws ParseException {
+        Long billId = record.number("Bill ID");
+        int period = record.integer("Period", 0);
+        if (billId == null || period == 0) {
+            return;
+        }
+        BillPayment payment = new BillPayment();
+        payment.setBillId(billId);
+        payment.setPeriod(period);
+        payment.setPaidOn(record.date("Paid On"));
+        payment.setAmount(record.amount("Amount"));
+        payment.setCurrency(currencyOf(record));
+        payment.setTransactionId(record.number("Transaction ID"));
+        payment.setSkipped(record.flag("Skipped"));
+        database.recurringPaymentDao().insertPayment(payment);
     }
 
     private void processFund(Record record) throws ParseException {
@@ -726,11 +762,21 @@ public class BackupDataLoader {
             Account.ensureDefault(db);
             Account.ensureCurrencies(db, Currencies.LEGACY);
             Transfers.linkLegacyPairs(db);
+            // Backups from before bills kept their months get them from linked transactions, like the migration
+            if (isEmpty(db, "bill_payments")) {
+                BillPayment.backfill(db, Periods.current());
+            }
             // Backups from before the mappings file are rebuilt from the transactions
             if (rebuildMappings) {
                 CounterpartyCategory.rebuildFromTransactions(db);
             }
         });
+    }
+
+    private static boolean isEmpty(SupportSQLiteDatabase db, String table) {
+        try (Cursor cursor = db.query("SELECT 1 FROM " + table + " LIMIT 1")) {
+            return !cursor.moveToFirst();
+        }
     }
 
     /****************************************************************************************************/

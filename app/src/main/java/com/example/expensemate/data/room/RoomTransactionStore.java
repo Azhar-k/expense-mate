@@ -23,7 +23,8 @@ final class RoomTransactionStore implements TransactionStore {
 
     @Override
     public void insert(Transaction transaction) {
-        dao.insertTransaction(transaction);
+        // Callers link to the row they just added, such as a bill's month to its top-up
+        transaction.setId(dao.insertTransaction(transaction));
     }
 
     @Override

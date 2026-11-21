@@ -5,7 +5,9 @@ import com.example.expensemate.data.PastTransaction;
 import com.example.expensemate.data.RecurringPayment;
 import com.example.expensemate.data.Transaction;
 import com.example.expensemate.data.TransactionKeys;
+import com.example.expensemate.util.BillLedger;
 import com.example.expensemate.util.Bills;
+import com.example.expensemate.util.Periods;
 
 import java.text.Normalizer;
 import java.util.ArrayList;
@@ -151,6 +153,11 @@ final class Suggestions {
      * suggested only when it scores high enough and no other bill scores the same.
      */
     static Long bill(Transaction transaction, List<RecurringPayment> bills, List<PastTransaction> history) {
+        return bill(transaction, bills, BillLedger.EMPTY, history);
+    }
+
+    static Long bill(Transaction transaction, List<RecurringPayment> bills, BillLedger ledger,
+            List<PastTransaction> history) {
         if (!"DEBIT".equals(transaction.getTransactionType()) || transaction.isTransfer()
                 || transaction.getDate() == null) {
             return null;
@@ -173,11 +180,14 @@ final class Suggestions {
         double bestScore = Double.NEGATIVE_INFINITY;
         double secondScore = Double.NEGATIVE_INFINITY;
         for (RecurringPayment bill : bills) {
-            if (Bills.isTransfer(bill) || Bills.hasEnded(bill, day) || Bills.isPaid(bill, day)) {
+            // Only a bill still owed for the payment's own month; a second payment once that is done is
+            // more likely a different spend than an old month caught up, which is left to the user to link
+            int period = Periods.of(day);
+            if (Bills.isTransfer(bill) || !Bills.isOwed(Bills.statusOf(bill, ledger, period, day))) {
                 continue;
             }
             double score = amountScore(transaction.getAmount(), bill.getAmount());
-            int daysFromDue = Math.abs(Bills.daysUntilDue(bill, day));
+            int daysFromDue = Math.abs(Bills.daysUntilDue(bill, period, day));
             if (daysFromDue <= 3) {
                 score += 1;
             } else if (daysFromDue <= Bills.DUE_SOON_DAYS) {

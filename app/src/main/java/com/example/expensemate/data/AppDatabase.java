@@ -19,7 +19,7 @@ import java.util.List;
 import androidx.annotation.NonNull;
 import com.example.expensemate.util.Currencies;
 
-@Database(entities = {Transaction.class, Category.class, RecurringPayment.class, Account.class, CounterpartyCategory.class, Loan.class, MessagePattern.class, Budget.class, BudgetCategory.class, Fund.class}, version = 18, exportSchema = false)
+@Database(entities = {Transaction.class, Category.class, RecurringPayment.class, Account.class, CounterpartyCategory.class, Loan.class, MessagePattern.class, Budget.class, BudgetCategory.class, Fund.class, BillPayment.class}, version = 19, exportSchema = false)
 @TypeConverters(Converters.class)
 public abstract class AppDatabase extends RoomDatabase {
     private static volatile AppDatabase INSTANCE;
@@ -341,6 +341,17 @@ public abstract class AppDatabase extends RoomDatabase {
         }
     };
 
+    // Bills keep a row for every month they were paid or skipped in, instead of only the latest one
+    static final Migration MIGRATION_18_19 = new Migration(18, 19) {
+        @Override
+        public void migrate(SupportSQLiteDatabase database) {
+            database.execSQL(BillPayment.CREATE_TABLE);
+            database.execSQL(BillPayment.CREATE_INDEX);
+            database.execSQL("ALTER TABLE recurring_payments ADD COLUMN startPeriod INTEGER NOT NULL DEFAULT 0");
+            BillPayment.backfill(database, com.example.expensemate.util.Periods.current());
+        }
+    };
+
     private static final long REVIEW_BACKFILL_MS = 30L * 24 * 60 * 60 * 1000;
 
     public abstract TransactionDao transactionDao();
@@ -395,7 +406,7 @@ public abstract class AppDatabase extends RoomDatabase {
                 if (INSTANCE == null) {
                     INSTANCE = Room.databaseBuilder(context.getApplicationContext(),
                             AppDatabase.class, "expense_mate_database")
-                            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18)
+                            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19)
                             .addCallback(new RoomDatabase.Callback() {
                                 @Override
                                 public void onCreate(@NonNull SupportSQLiteDatabase db) {

@@ -29,7 +29,8 @@ public final class BillActions {
         return names;
     }
 
-    public static void confirmMove(FragmentActivity activity, RecurringPayment bill, Map<Long, String> names) {
+    public static void confirmMove(FragmentActivity activity, RecurringPayment bill, Map<Long, String> names,
+            int period) {
         new MaterialAlertDialogBuilder(activity)
                 .setTitle("Top up " + TransactionText.fundName(names, bill.getToFundId()) + " with "
                         + Money.format(bill.getAmount(), bill.getCurrency()) + "?")
@@ -37,7 +38,7 @@ public final class BillActions {
                         + TransactionText.fundName(names, bill.getToFundId()) + " for " + bill.getName() + ".")
                 .setNegativeButton("Cancel", null)
                 .setPositiveButton("Top up", (dialog, which) -> {
-                    move(activity, bill);
+                    move(activity, bill, period);
                     Ui.snackbar(activity, TransactionText.fundName(names, bill.getToFundId()) + " topped up with "
                             + Money.format(bill.getAmount(), bill.getCurrency()));
                 })
@@ -45,7 +46,7 @@ public final class BillActions {
     }
 
     public static void confirmMoveAll(FragmentActivity activity, List<RecurringPayment> pending,
-            Map<Long, String> names) {
+            Map<Long, String> names, int period) {
         StringBuilder message = new StringBuilder();
         CurrencyTotals total = new CurrencyTotals();
         for (RecurringPayment bill : pending) {
@@ -61,14 +62,14 @@ public final class BillActions {
                 .setNegativeButton("Cancel", null)
                 .setPositiveButton("Top up all", (dialog, which) -> {
                     for (RecurringPayment bill : pending) {
-                        move(activity, bill);
+                        move(activity, bill, period);
                     }
                     Ui.snackbar(activity, "Funds topped up with " + totalText);
                 })
                 .show();
     }
 
-    private static void move(FragmentActivity activity, RecurringPayment bill) {
-        new ViewModelProvider(activity).get(RecurringPaymentsViewModel.class).payByTransfer(bill);
+    private static void move(FragmentActivity activity, RecurringPayment bill, int period) {
+        new ViewModelProvider(activity).get(RecurringPaymentsViewModel.class).payByTransfer(bill, period);
     }
 }
