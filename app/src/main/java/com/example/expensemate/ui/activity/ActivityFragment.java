@@ -90,6 +90,9 @@ public class ActivityFragment extends Fragment {
 
         binding.fabAdd.setOnClickListener(v -> TransactionFormSheet.showAdd(requireActivity()));
         Ui.addAction(this, R.id.action_refresh, "Refresh", R.drawable.ic_refresh, this::refresh);
+        binding.swipeRefresh.setOnRefreshListener(this::refresh);
+        binding.swipeRefresh.setColorSchemeResources(R.color.primary);
+        binding.swipeRefresh.setProgressBackgroundColorSchemeResource(R.color.surface);
         setChipAction(binding.chipRange, this::chooseRange);
         setChipAction(binding.chipAccount, this::chooseAccount);
         setChipAction(binding.chipCategory, this::chooseCategory);
@@ -155,14 +158,17 @@ public class ActivityFragment extends Fragment {
         }
         if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.READ_SMS)
                 != PackageManager.PERMISSION_GRANTED) {
+            binding.swipeRefresh.setRefreshing(false);
             Ui.snackbar(requireActivity(), "Refreshed. Turn on SMS reading in Settings to pick up bank messages.");
             return;
         }
+        // The spinner shows while messages are read, whether the list was pulled or the button tapped
         refreshing = true;
-        Ui.snackbar(requireActivity(), "Checking for new bank messages…");
+        binding.swipeRefresh.setRefreshing(true);
         MmsChangeJob.start(requireContext().getApplicationContext(), () -> handler.post(() -> {
             refreshing = false;
             if (binding != null && isAdded()) {
+                binding.swipeRefresh.setRefreshing(false);
                 Ui.snackbar(requireActivity(), "Up to date");
             }
         }));

@@ -112,15 +112,22 @@
             </com.google.android.material.chip.ChipGroup>
         </HorizontalScrollView>
 
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/recyclerView"
+        <!-- Pulling down does what the toolbar's refresh does -->
+        <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+            android:id="@+id/swipeRefresh"
             android:layout_width="match_parent"
             android:layout_height="0dp"
-            android:layout_weight="1"
-            android:clipToPadding="false"
-            android:paddingStart="14dp"
-            android:paddingEnd="14dp"
-            android:paddingBottom="88dp" />
+            android:layout_weight="1">
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/recyclerView"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:clipToPadding="false"
+                android:paddingStart="14dp"
+                android:paddingEnd="14dp"
+                android:paddingBottom="88dp" />
+        </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
     </LinearLayout>
 
     <LinearLayout
